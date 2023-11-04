@@ -9,6 +9,7 @@ export default function Page() {
   const [priority, setPriority] = useState(null);
   const [dueDate, setDueDate] = useState(null);
   const [isAddProjectVisible, setIsAddProjectVisible] = useState(false);
+  const [isDescriptionVisible, setIsDescriptionVisible] = useState(false);
 
   return (
     <div className="flex h-screen justify-center">
@@ -19,29 +20,34 @@ export default function Page() {
           className="p-3 rounded-lg bg-[#3B3B3B]"
           onChange={(e) => setTaskName(e.target.value)}
         />
-        <textarea
-          className="p-3 h-20 rounded-lg bg-[#3B3B3B]"
-          placeholder="Description"
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <select
-          name="Project"
-          className="p-3 rounded-lg bg-[#3B3B3B] text-[#999]"
-          onChange={(e) => setProject(e.target.value)}
-        >
-          <option value="" selected disabled>
-            Select project
-          </option>
-          <option>solsense</option>
-          <option>to-do</option>
-          <option>Haayi</option>
-        </select>
-        <button className="text-green-400" onClick={() => setIsAddProjectVisible(!isAddProjectVisible)}>
-          {isAddProjectVisible ? 'cancel' : ' + add a new project'}
-        </button>
-        {isAddProjectVisible && <Project />}
 
-        <div className="space-x-3 flex">
+        <div className="flex gap-3">
+          <select
+            name="Project"
+            className="p-3 rounded-lg bg-[#3B3B3B] text-[#999] w-full"
+            onChange={(e) => setProject(e.target.value)}
+          >
+            <option value="" selected disabled>
+              Select project
+            </option>
+            <option>solsense</option>
+            <option>to-do</option>
+            <option>Haayi</option>
+          </select>
+          <button
+            className="p-3 bg-pink-900 w-20 rounded-lg font-bold"
+            onClick={() => setIsAddProjectVisible(!isAddProjectVisible)}
+          >
+            {isAddProjectVisible ? '-' : '+'}
+          </button>
+        </div>
+        {isAddProjectVisible && (
+          <div className="p-3 bg-black-900 border-2 border-gray-800 rounded-xl">
+            <Project />
+          </div>
+        )}
+
+        <div className="flex gap-3">
           <input
             placeholder="Priority"
             className="p-3 w-28 rounded-lg bg-[#3B3B3B] text-center"
@@ -63,11 +69,19 @@ export default function Page() {
           className="p-3 rounded-lg bg-[#3B3B3B]"
           onChange={(e) => setDueDate(e.target.value)}
         />
-        {taskName}
-        {description}
-        {project}
-        {priority}
-        {dueDate}
+        {!isDescriptionVisible && (
+          <button className="text-gray-600 text-left px-2" onClick={() => setIsDescriptionVisible(true)}>
+            + add some description about your task
+          </button>
+        )}
+
+        {isDescriptionVisible && (
+          <textarea
+            className="p-3 h-20 rounded-lg bg-[#3B3B3B]"
+            placeholder="Description"
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        )}
         <button className="p-3 bg-pink-900 rounded-lg">+ add task</button>
       </form>
     </div>
