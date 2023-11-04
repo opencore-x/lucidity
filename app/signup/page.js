@@ -12,30 +12,26 @@ export default function Page() {
   const [agreeToTerms, setAgreeToTerm] = useState(false);
 
   return (
-    <div className="flex h-screen justify-center ">
+    <div className="flex h-screen justify-center">
       <form className="flex flex-col h-4 mt-20 w-80 space-y-4" onSubmit={(e) => e.preventDefault()}>
-        {/* {firstName} */}
         <input
           placeholder="First Name"
           type="text"
           className="p-3 rounded-lg bg-[#3B3B3B]"
           onChange={(e) => setFirstName(e.target.value)}
         />
-        {/* {lastName} */}
         <input
           placeholder="Last Name"
           type="text"
           className="p-3 rounded-lg bg-[#3B3B3B]"
           onChange={(e) => setLastName(e.target.value)}
         />
-        {/* {email} */}
         <input
           placeholder="Email Address"
           type="text"
           className="p-3 rounded-lg bg-[#3B3B3B]"
           onChange={(e) => setEmail(e.target.value)}
         />
-        {/* {password} */}
         <div className="space-x-3 flex">
           <input
             placeholder="Password"
@@ -50,7 +46,6 @@ export default function Page() {
             Show
           </button>
         </div>
-        {/* {confirmPassword} */}
         <input
           placeholder="Confirm Password"
           type={isPasswordVisible ? 'text' : 'password'}
@@ -64,7 +59,7 @@ export default function Page() {
           </label>
         </div>
         <button type="submit" className="p-3 bg-pink-900  rounded-lg">
-          Sign Up
+          + Add Brain to Brain Disk
         </button>
       </form>
     </div>

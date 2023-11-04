@@ -22,6 +22,12 @@ export default function Page() {
         />
 
         <div className="flex gap-3">
+          <button
+            className="w-16 bg-pink-900 rounded-lg font-semibold"
+            onClick={() => setIsAddProjectVisible(!isAddProjectVisible)}
+          >
+            {isAddProjectVisible ? '-' : '+'}
+          </button>
           <select
             name="Project"
             className="p-3 rounded-lg bg-[#3B3B3B] text-[#999] w-full"
@@ -34,12 +40,6 @@ export default function Page() {
             <option>to-do</option>
             <option>Haayi</option>
           </select>
-          <button
-            className="p-3 bg-pink-900 w-20 rounded-lg font-bold"
-            onClick={() => setIsAddProjectVisible(!isAddProjectVisible)}
-          >
-            {isAddProjectVisible ? '-' : '+'}
-          </button>
         </div>
         {isAddProjectVisible && (
           <div className="p-3 bg-black-900 border-2 border-gray-800 rounded-xl">

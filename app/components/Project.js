@@ -6,11 +6,11 @@ export default function Project() {
     <form className="flex flex-col space-y-3" onSubmit={(e) => e.preventDefault()}>
       <input
         type="text"
-        placeholder="Enter project Name"
+        placeholder="Enter project name"
         className="p-3 rounded-xl bg-[#3B3B3B]"
         onChange={(e) => setProject(e.target.value)}
       />
-      <button className="p-3 bg-pink-900 rounded-lg">+ Add Project</button>
+      <button className="p-3 bg-pink-900 rounded-lg">+ add a new project</button>
     </form>
   );
 }
