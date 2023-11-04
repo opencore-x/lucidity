@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import Project from '../components/Project';
 
 export default function Page() {
   const [taskName, setTaskName] = useState('');
@@ -7,6 +8,7 @@ export default function Page() {
   const [project, setProject] = useState(null);
   const [priority, setPriority] = useState(null);
   const [dueDate, setDueDate] = useState(null);
+  const [isAddProjectVisible, setIsAddProjectVisible] = useState(false);
 
   return (
     <div className="flex h-screen justify-center">
@@ -34,6 +36,11 @@ export default function Page() {
           <option>to-do</option>
           <option>Haayi</option>
         </select>
+        <button className="text-green-400" onClick={() => setIsAddProjectVisible(!isAddProjectVisible)}>
+          {isAddProjectVisible ? 'cancel' : ' + add a new project'}
+        </button>
+        {isAddProjectVisible && <Project />}
+
         <div className="space-x-3 flex">
           <input
             placeholder="Priority"
