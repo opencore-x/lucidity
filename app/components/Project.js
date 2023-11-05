@@ -10,7 +10,7 @@ export default function Project() {
         className="p-3 rounded-xl bg-[#3B3B3B]"
         onChange={(e) => setProject(e.target.value)}
       />
-      <button className="p-3 bg-pink-900 rounded-lg">+ add a new project</button>
+      <button className="p-3 bg-pink-900 rounded-lg">add a new project</button>
     </form>
   );
 }

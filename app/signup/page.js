@@ -59,7 +59,7 @@ export default function Page() {
           </label>
         </div>
         <button type="submit" className="p-3 bg-pink-900  rounded-lg">
-          + Add Brain to Brain Disk
+          Create account and add brain
         </button>
       </form>
     </div>

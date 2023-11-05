@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
+import Context from '../context/Context';
 
 export default function Page() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  const { isAuthenticated } = useContext(Context);
   return (
     <div className="flex h-screen justify-center ">
       <form className="flex flex-col h-4 mt-20 w-80 space-y-4" onSubmit={(e) => e.preventDefault()}>
