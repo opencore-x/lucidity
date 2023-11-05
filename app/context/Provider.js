@@ -41,7 +41,7 @@ export default function Provider({ children }) {
   };
 
   return (
-    <Context.Provider value={{ auth, login: (authInfo) => login(authInfo), logout, isAuthenticated }}>
+    <Context.Provider value={{ auth, setAuth: (authInfo) => login(authInfo), logout, isAuthenticated }}>
       {children}
     </Context.Provider>
   );
