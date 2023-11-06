@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 
-export default function Page() {
+export default function Signup() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -12,35 +12,37 @@ export default function Page() {
   const [agreeToTerms, setAgreeToTerm] = useState(false);
 
   return (
-    <div className="flex h-screen justify-center">
-      <form className="flex flex-col h-4 mt-20 w-80 space-y-4" onSubmit={(e) => e.preventDefault()}>
+    <div className="px-8 text-lg justify-center">
+      <p className="text-left text-xl font-semibold">Signup</p>
+
+      <form className="flex flex-col mt-14 space-y-4" onSubmit={(e) => e.preventDefault()}>
         <input
           placeholder="First Name"
           type="text"
-          className="p-3 rounded-lg bg-[#3B3B3B]"
+          className="p-4 h-16 rounded-lg bg-[#3B3B3B]"
           onChange={(e) => setFirstName(e.target.value)}
         />
         <input
           placeholder="Last Name"
           type="text"
-          className="p-3 rounded-lg bg-[#3B3B3B]"
+          className="p-4 h-16 rounded-lg bg-[#3B3B3B]"
           onChange={(e) => setLastName(e.target.value)}
         />
         <input
           placeholder="Email Address"
           type="text"
-          className="p-3 rounded-lg bg-[#3B3B3B]"
+          className="p-4 h-16 rounded-lg bg-[#3B3B3B]"
           onChange={(e) => setEmail(e.target.value)}
         />
         <div className="space-x-3 flex">
           <input
             placeholder="Password"
             type={isPasswordVisible ? 'text' : 'password'}
-            className="p-3 w-full rounded-lg bg-[#3B3B3B]"
+            className="p-4 h-16 w-full rounded-lg bg-[#3B3B3B]"
             onChange={(e) => setPassword(e.target.value)}
           />
           <button
-            className="p-3 bg-pink-900 w-20 rounded-lg"
+            className="p-4 h-16 bg-pink-900 w-20 rounded-lg"
             onClick={() => setIsPasswordVisible(!isPasswordVisible)}
           >
             Show
@@ -49,17 +51,17 @@ export default function Page() {
         <input
           placeholder="Confirm Password"
           type={isPasswordVisible ? 'text' : 'password'}
-          className="p-3 rounded-lg bg-[#3B3B3B]"
+          className="p-4 h-16 rounded-lg bg-[#3B3B3B]"
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
-        <div className="flex gap-4" onClick={() => setAgreeToTerm(!agreeToTerms)}>
-          <input type="checkbox" checked={agreeToTerms} />
-          <label className="text-xs font-semibold text-[#606060]">
-            I agree to Terms of service and Privacy Policy
+        <div className="flex gap-3 items-center" onClick={() => setAgreeToTerm(!agreeToTerms)}>
+          <input className="" type="checkbox" checked={agreeToTerms} />
+          <label className="text-sm font-medium text-[#606060]">
+            I agree to Terms of Service & Privacy Policy
           </label>
         </div>
-        <button type="submit" className="p-3 bg-pink-900  rounded-lg">
-          Create account and add brain
+        <button type="submit" className="p-4 h-16 bg-pink-900  rounded-lg">
+          Create Account
         </button>
       </form>
     </div>

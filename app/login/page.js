@@ -5,7 +5,7 @@ import Context from '../context/Context';
 import axios from '../api/axios';
 import { useRouter } from 'next/navigation';
 
-export default function Page() {
+export default function Login() {
   const { setAuth } = useContext(Context);
   const router = useRouter();
 
@@ -54,33 +54,34 @@ export default function Page() {
   };
 
   return (
-    <div className="flex h-screen justify-center ">
+    <div className="text-lg justify-center px-8">
+      <p className="text-left text-xl font-semibold">Login</p>
       <p>{errorMessage ? errorMessage : ''}</p>
-      <form className="flex flex-col h-4 mt-20 w-80 space-y-4" onSubmit={handleFormSubmit}>
+      <form className="flex flex-col mt-14 space-y-4" onSubmit={handleFormSubmit}>
         <input
           placeholder="Email Address"
           type="text"
-          className="p-3 rounded-lg bg-[#3B3B3B]"
+          className="p-4 h-16 rounded-lg bg-[#3B3B3B]"
           onChange={(e) => setEmail(e.target.value)}
         />
         <div className="space-x-3 flex">
           <input
             placeholder="Password"
             type={isPasswordVisible ? 'text' : 'password'}
-            className="p-3 w-full rounded-lg bg-[#3B3B3B]"
+            className="p-4 h-16 w-full rounded-lg bg-[#3B3B3B]"
             onChange={(e) => setPassword(e.target.value)}
           />
           <button
-            className="p-3 bg-pink-900 w-20 rounded-lg"
+            className="bg-pink-900 w-20 px-4 rounded-lg"
             onClick={() => setIsPasswordVisible(!isPasswordVisible)}
           >
             Show
           </button>
         </div>
         {isFormValid ? (
-          <button className="p-3 bg-pink-900 rounded-lg">Login</button>
+          <button className="h-16 bg-pink-900 rounded-lg">Login</button>
         ) : (
-          <button className="p-3 bg-pink-900 rounded-lg opacity-40" disabled>
+          <button className="h-16 bg-pink-900 rounded-lg opacity-40" disabled>
             Login
           </button>
         )}
