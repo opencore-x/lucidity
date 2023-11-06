@@ -1,88 +1,109 @@
 'use client';
 import React, { useState } from 'react';
+import DatePicker from 'react-datepicker';
 import Project from '../components/Project';
+import 'react-datepicker/dist/react-datepicker.css';
 
 export default function Page() {
   const [taskName, setTaskName] = useState('');
   const [description, setDescription] = useState('');
-  const [project, setProject] = useState(null);
-  const [priority, setPriority] = useState(null);
-  const [dueDate, setDueDate] = useState(null);
+  const [project, setProject] = useState('');
+  const [priority, setPriority] = useState('');
+  const [dueDate, setDueDate] = useState();
   const [isAddProjectVisible, setIsAddProjectVisible] = useState(false);
   const [isDescriptionVisible, setIsDescriptionVisible] = useState(false);
 
   return (
-    <div className="flex h-screen justify-center">
-      <form className="flex flex-col mt-20 w-80 space-y-4" onSubmit={(e) => e.preventDefault()}>
+    <div className="flex h-screen justify-center text-lg px-8">
+      <form className="flex flex-col w-full space-y-4 mt-32" onSubmit={(e) => e.preventDefault()}>
         <input
           type="text"
           placeholder="Enter task"
-          className="p-3 rounded-lg bg-[#3B3B3B]"
+          className="p-6 h-16 rounded-lg bg-[#3B3B3B]"
           onChange={(e) => setTaskName(e.target.value)}
         />
 
-        <div className="flex gap-3">
+        <div className="flex h-16 gap-3">
           <button
-            className="w-16 bg-pink-900 rounded-lg font-semibold"
+            className="w-20 bg-pink-900 rounded-lg font-semibold"
             onClick={() => setIsAddProjectVisible(!isAddProjectVisible)}
           >
             {isAddProjectVisible ? '-' : '+'}
           </button>
           <select
             name="Project"
-            className="p-3 rounded-lg bg-[#3B3B3B] text-[#999] w-full"
+            className="p-1 rounded-lg bg-[#3B3B3B] text-[#999] w-full"
             onChange={(e) => setProject(e.target.value)}
+            defaultValue={'select project'}
           >
-            <option value="" selected disabled>
-              Select project
+            <option value={'select project'} disabled>
+              select project
             </option>
-            <option>solsense</option>
-            <option>to-do</option>
-            <option>Haayi</option>
+            <option value={'solsense'}>solsense</option>
+            <option value={'to-do'}>to-do</option>
+            <option value={'Haayi'}>Haayi</option>
           </select>
         </div>
         {isAddProjectVisible && (
-          <div className="p-3 bg-black-900 border-2 border-gray-800 rounded-xl">
+          <div className="p-6 bg-black-900 border-2 border-gray-800 rounded-xl">
             <Project />
           </div>
         )}
 
-        <div className="flex gap-3">
+        <div className="flex h-16 gap-3">
           <input
             placeholder="Priority"
-            className="p-3 w-28 rounded-lg bg-[#3B3B3B] text-center"
+            className="w-20 rounded-lg bg-[#3B3B3B] text-center"
             onChange={(e) => setPriority(e.target.value)}
             value={priority}
           />
-          <button className="p-3 bg-pink-900 w-20 rounded-lg" onClick={() => setPriority(1)}>
+          <button className="bg-pink-900 w-20 rounded-lg" onClick={() => setPriority(1)}>
             1
           </button>
-          <button className="p-3 bg-pink-900 w-20 rounded-lg" onClick={() => setPriority(2)}>
+          <button className="bg-pink-900 w-20 rounded-lg" onClick={() => setPriority(2)}>
             2
           </button>
-          <button className="p-3 bg-pink-900 w-20 rounded-lg" onClick={() => setPriority(3)}>
+          <button className="bg-pink-900 w-20 rounded-lg" onClick={() => setPriority(3)}>
             3
           </button>
         </div>
-        <input
-          type="date"
-          className="p-3 rounded-lg bg-[#3B3B3B]"
-          onChange={(e) => setDueDate(e.target.value)}
-        />
+
+        <div>
+          <p className="ml-2 mb-3 text-base text-gray-400">Due Date</p>
+          <div className="flex gap-3">
+            <button className="px-3 bg-pink-900 h-16 rounded-lg" onClick={() => setDueDate(new Date())}>
+              Today
+            </button>
+            <button
+              className="px-3 bg-pink-900 h-16 rounded-lg"
+              onClick={() => setDueDate(new Date(new Date().getTime() + 24 * 60 * 60 * 1000))}
+            >
+              Tomorrow
+            </button>
+            <DatePicker
+              className="h-16 w-full text-center bg-[#3B3B3B] rounded-xl"
+              selected={dueDate}
+              onChange={(date) => setDueDate(date)}
+              dateFormat="dd-MM-yy"
+              minDate={new Date()}
+            />
+          </div>
+        </div>
+
         {!isDescriptionVisible && (
-          <button className="text-gray-600 text-left px-2" onClick={() => setIsDescriptionVisible(true)}>
+          <button className="text-gray-400 text-left" onClick={() => setIsDescriptionVisible(true)}>
             + add some description about your task
           </button>
         )}
 
         {isDescriptionVisible && (
           <textarea
-            className="p-3 h-20 rounded-lg bg-[#3B3B3B]"
+            className="p-6 h-32 rounded-lg bg-[#3B3B3B]"
             placeholder="Description"
             onChange={(e) => setDescription(e.target.value)}
           />
         )}
-        <button className="p-3 bg-pink-900 rounded-lg">+ add task</button>
+        <button className="h-16 bg-pink-900 rounded-lg">add task</button>
       </form>
     </div>
   );
