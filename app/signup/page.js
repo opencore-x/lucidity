@@ -55,7 +55,12 @@ export default function Signup() {
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
         <div className="flex gap-3 items-center" onClick={() => setAgreeToTerm(!agreeToTerms)}>
-          <input className="" type="checkbox" checked={agreeToTerms} />
+          <input
+            className=""
+            type="checkbox"
+            checked={agreeToTerms}
+            onChange={() => setAgreeToTerm(!agreeToTerms)}
+          />
           <label className="text-sm font-medium text-[#606060]">
             I agree to Terms of Service & Privacy Policy
           </label>
