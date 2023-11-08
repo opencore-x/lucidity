@@ -27,8 +27,11 @@ export default function Login() {
   }, [email, password]);
 
   useEffect(
-    () => (isEmailValid && isPasswordValid ? setIsFormValid(true) : setIsFormValid(false)),
-    [isEmailValid, isPasswordValid]
+    () =>
+      isEmailValid && isPasswordValid
+        ? setIsFormValid(true)
+        : setIsFormValid(false),
+    [isEmailValid, isPasswordValid],
   );
 
   const handleFormSubmit = async (e) => {
@@ -37,17 +40,23 @@ export default function Login() {
     // send request to the server
     if (isFormValid) {
       try {
-        const response = await axios.post('/api/auth', JSON.stringify({ email, password }), {
-          headers: { 'Content-Type': 'application/json' },
-          withCredentials: true,
-        });
+        const response = await axios.post(
+          '/api/auth',
+          JSON.stringify({ email, password }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            withCredentials: true,
+          },
+        );
         setAuth(response.data);
         router.push('/task');
       } catch (error) {
         console.log(error.response.data.message);
         if (!error?.response) setErrorMessage('No server response');
-        else if (error.response?.status === 400) setErrorMessage(error.response.data.message);
-        else if (error.response?.status === 401) setErrorMessage(error.response.data.message);
+        else if (error.response?.status === 400)
+          setErrorMessage(error.response.data.message);
+        else if (error.response?.status === 401)
+          setErrorMessage(error.response.data.message);
         else setErrorMessage('Login failed');
       }
     }
@@ -57,7 +66,10 @@ export default function Login() {
     <div className="text-lg justify-center px-8">
       <p className="text-left text-xl font-semibold">Login</p>
       <p>{errorMessage ? errorMessage : ''}</p>
-      <form className="flex flex-col mt-14 space-y-4" onSubmit={handleFormSubmit}>
+      <form
+        className="flex flex-col mt-14 space-y-4"
+        onSubmit={handleFormSubmit}
+      >
         <input
           placeholder="Email Address"
           type="text"
