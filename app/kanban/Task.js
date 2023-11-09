@@ -3,6 +3,7 @@ import { useStore } from '../store/store';
 
 export default function Task({ title, status }) {
   const deleteTask = useStore((store) => store.deleteTask);
+  const setDraggedTask = useStore((store) => store.setDraggedTask);
 
   let bgStatus = '';
   const bgPlanned = 'bg-pink-400 text-pink-900';
@@ -19,6 +20,7 @@ export default function Task({ title, status }) {
     <div
       className="flex flex-col justify-between text-black bg-gray-300 rounded-lg p-3 h-24 w-full"
       draggable
+      onDragStart={() => setDraggedTask(title)}
     >
       <div className="text-md first-letter:capitalize font-medium">{title}</div>
       <div>

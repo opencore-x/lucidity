@@ -5,6 +5,9 @@ import { useStore } from '../store/store';
 import { shallow } from 'zustand/shallow';
 
 export default function Column({ status }) {
+  const setDraggedTask = useStore((store) => store.setDraggedTask);
+  const draggedTask = useStore((store) => store.draggedTask);
+
   const [task, setTask] = useState('');
   const [isEnterTaskVisible, setIsEnterTaskVisible] = useState(false);
   const newTaskInput = useRef(null);
@@ -14,6 +17,7 @@ export default function Column({ status }) {
     shallow,
   );
   const addTask = useStore((store) => store.addTask);
+  const moveTask = useStore((store) => store.moveTask);
 
   useEffect(() => {
     if (isEnterTaskVisible) newTaskInput.current.focus();
@@ -24,6 +28,10 @@ export default function Column({ status }) {
       <div
         className="flex flex-col justify-between gap-6 w-full h-fit p-4 min-h-[350px] bg-gray-600  rounded-xl"
         onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          moveTask(draggedTask, status);
+          setDraggedTask(null);
+        }}
       >
         <div>
           <div className="flex justify-between mb-6">
