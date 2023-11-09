@@ -6,6 +6,8 @@ const store = (set) => ({
     { title: 'get coco', status: 'ONGOING' },
     { title: 'study zustand', status: 'ONGOING' },
   ],
+  addTask: (title, status) =>
+    set((store) => ({ tasks: [...store.tasks, { title, status }] })),
 });
 
 export const useStore = create(store);
