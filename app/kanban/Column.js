@@ -21,7 +21,10 @@ export default function Column({ status }) {
 
   return (
     <>
-      <div className="flex flex-col justify-between gap-6 w-full h-fit p-4 min-h-[350px] bg-gray-600  rounded-xl">
+      <div
+        className="flex flex-col justify-between gap-6 w-full h-fit p-4 min-h-[350px] bg-gray-600  rounded-xl"
+        onDragOver={(e) => e.preventDefault()}
+      >
         <div>
           <div className="flex justify-between mb-6">
             <div></div>

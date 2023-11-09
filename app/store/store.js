@@ -8,6 +8,10 @@ const store = (set) => ({
   ],
   addTask: (title, status) =>
     set((store) => ({ tasks: [...store.tasks, { title, status }] })),
+  deleteTask: (title) =>
+    set((store) => ({
+      tasks: store.tasks.filter((task) => task.title !== title),
+    })),
 });
 
 export const useStore = create(store);
