@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useContext, useEffect } from 'react';
-import Context from '../context/Context';
 import axios from '../api/axios';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '../store/auth';
 
 export default function Login() {
-  const { setAuth } = useContext(Context);
   const router = useRouter();
+  const logIn = useAuthStore((store) => store.logIn);
 
   const [email, setEmail] = useState('');
   const [isEmailValid, setIsEmailValid] = useState(false);
@@ -48,10 +48,18 @@ export default function Login() {
             withCredentials: true,
           },
         );
-        setAuth(response.data);
+        const user = response.data;
+        logIn({
+          _id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          token: user.token,
+        });
         router.push('/task');
       } catch (error) {
-        console.log(error.response.data.message);
+        console.log('entered catch');
+        console.log(error.response?.data.message);
         if (!error?.response) setErrorMessage('No server response');
         else if (error.response?.status === 400)
           setErrorMessage(error.response.data.message);
@@ -68,6 +76,7 @@ export default function Login() {
       <p>{errorMessage ? errorMessage : ''}</p>
       <form
         className="flex flex-col mt-14 space-y-4"
+        method="post"
         onSubmit={handleFormSubmit}
       >
         <input

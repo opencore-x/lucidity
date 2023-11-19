@@ -5,6 +5,7 @@ const store = (set) => ({
     { title: 'get milk', status: 'PLANNED' },
     { title: 'get coco', status: 'ONGOING' },
     { title: 'study zustand', status: 'ONGOING' },
+    { title: 'done kanban implementation', status: 'DONE' },
   ],
   draggedTask: null,
   addTask: (title, status) =>
