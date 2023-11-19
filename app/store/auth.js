@@ -17,7 +17,14 @@ export const useAuthStore = create(
           email: user.email,
           token: user.token,
         }),
-      logOut: () => set({}),
+      logOut: () =>
+        set({
+          _id: '',
+          firstName: '',
+          lastName: '',
+          email: '',
+          token: '',
+        }),
     }),
     { name: 'auth-store' },
   ),

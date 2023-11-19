@@ -1,8 +1,10 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
+import { useAuthStore } from '../store/auth';
 import Project from '../components/Project';
 import 'react-datepicker/dist/react-datepicker.css';
+import { useRouter } from 'next/navigation';
 
 export default function Task() {
   const [taskName, setTaskName] = useState('');
@@ -13,10 +15,30 @@ export default function Task() {
   const [isAddProjectVisible, setIsAddProjectVisible] = useState(false);
   const [isDescriptionVisible, setIsDescriptionVisible] = useState(false);
 
+  const router = useRouter();
+
+  const token = useAuthStore((store) => store.token);
+  const logOut = useAuthStore((store) => store.logOut);
+
+  useEffect(() => {
+    if (!token) router.push('/login');
+  }, [token]);
+
   return (
     <div className="justify-center text-lg px-8">
       <p className="text-left text-xl font-semibold">Task</p>
-      <form className="flex flex-col w-full space-y-4 mt-14" onSubmit={(e) => e.preventDefault()}>
+      <button
+        onClick={() => {
+          console.log('clicked');
+          logOut();
+        }}
+      >
+        Logout
+      </button>
+      <form
+        className="flex flex-col w-full space-y-4 mt-14"
+        onSubmit={(e) => e.preventDefault()}
+      >
         <input
           type="text"
           placeholder="Enter task"
@@ -56,25 +78,39 @@ export default function Task() {
             onChange={(e) => setPriority(e.target.value)}
             value={priority}
           />
-          <button className="bg-pink-900 w-20 rounded-xl" onClick={() => setPriority(1)}>
+          <button
+            className="bg-pink-900 w-20 rounded-xl"
+            onClick={() => setPriority(1)}
+          >
             1
           </button>
-          <button className="bg-pink-900 w-20 rounded-xl" onClick={() => setPriority(2)}>
+          <button
+            className="bg-pink-900 w-20 rounded-xl"
+            onClick={() => setPriority(2)}
+          >
             2
           </button>
-          <button className="bg-pink-900 w-20 rounded-xl" onClick={() => setPriority(3)}>
+          <button
+            className="bg-pink-900 w-20 rounded-xl"
+            onClick={() => setPriority(3)}
+          >
             3
           </button>
         </div>
         <div>
           <p className="ml-2 mb-3 text-base text-gray-400">Due Date</p>
           <div className="flex gap-3">
-            <button className="px-3 bg-pink-900 h-14 rounded-xl" onClick={() => setDueDate(new Date())}>
+            <button
+              className="px-3 bg-pink-900 h-14 rounded-xl"
+              onClick={() => setDueDate(new Date())}
+            >
               Today
             </button>
             <button
               className="px-3 bg-pink-900 h-14 rounded-xl"
-              onClick={() => setDueDate(new Date(new Date().getTime() + 24 * 60 * 60 * 1000))}
+              onClick={() =>
+                setDueDate(new Date(new Date().getTime() + 24 * 60 * 60 * 1000))
+              }
             >
               Tomorrow
             </button>
@@ -88,7 +124,10 @@ export default function Task() {
           </div>
         </div>
         {!isDescriptionVisible && (
-          <button className="text-gray-400 text-left" onClick={() => setIsDescriptionVisible(true)}>
+          <button
+            className="text-gray-400 text-left"
+            onClick={() => setIsDescriptionVisible(true)}
+          >
             + add a description for this task
           </button>
         )}

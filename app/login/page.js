@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/auth';
 
 export default function Login() {
   const router = useRouter();
+  const token = useAuthStore((store) => store.token);
   const logIn = useAuthStore((store) => store.logIn);
 
   const [email, setEmail] = useState('');
@@ -34,6 +35,10 @@ export default function Login() {
     [isEmailValid, isPasswordValid],
   );
 
+  useEffect(() => {
+    if (token) router.push('/task');
+  }, [token]);
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
 
@@ -56,7 +61,6 @@ export default function Login() {
           email: user.email,
           token: user.token,
         });
-        router.push('/task');
       } catch (error) {
         console.log('entered catch');
         console.log(error.response?.data.message);
