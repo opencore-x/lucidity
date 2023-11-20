@@ -44,8 +44,13 @@ export default function Task() {
     };
 
     try {
-      const task = await axios.post('/api/tasks', data, config);
-      console.log(task);
+      const response = await axios.post('/api/tasks', data, config);
+      console.log(response.data);
+      setTitle('');
+      setProject('');
+      setDescription('');
+      setDueDate('');
+      setPriority('');
     } catch (error) {
       console.log(error.response.data.message);
       if (!error?.response) setErrorMessage('No server response');
@@ -77,6 +82,7 @@ export default function Task() {
           type="text"
           placeholder="Enter task"
           className="p-6 h-16 rounded-xl bg-[#3B3B3B]"
+          value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
         <div className="flex h-16 gap-3">
@@ -175,6 +181,7 @@ export default function Task() {
           <textarea
             className="p-4 h-32 rounded-xl bg-[#3B3B3B]"
             placeholder="Description"
+            value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
         )}
