@@ -61,7 +61,6 @@ export default function Task() {
       <p>{errorMessage}</p>
       <button
         onClick={() => {
-          console.log('clicked');
           logOut();
         }}
       >
@@ -83,6 +82,7 @@ export default function Task() {
         <div className="flex h-16 gap-3">
           <button
             className="w-20 bg-pink-900 rounded-xl font-semibold"
+            type="button"
             onClick={() => setIsAddProjectVisible(!isAddProjectVisible)}
           >
             {isAddProjectVisible ? '-' : '+'}
@@ -115,18 +115,21 @@ export default function Task() {
           />
           <button
             className="bg-pink-900 w-20 rounded-xl"
+            type="button"
             onClick={() => setPriority(1)}
           >
             1
           </button>
           <button
             className="bg-pink-900 w-20 rounded-xl"
+            type="button"
             onClick={() => setPriority(2)}
           >
             2
           </button>
           <button
             className="bg-pink-900 w-20 rounded-xl"
+            type="button"
             onClick={() => setPriority(3)}
           >
             3
@@ -137,12 +140,14 @@ export default function Task() {
           <div className="flex gap-3">
             <button
               className="px-3 bg-pink-900 h-14 rounded-xl"
+              type="button"
               onClick={() => setDueDate(new Date())}
             >
               Today
             </button>
             <button
               className="px-3 bg-pink-900 h-14 rounded-xl"
+              type="button"
               onClick={() =>
                 setDueDate(new Date(new Date().getTime() + 24 * 60 * 60 * 1000))
               }
@@ -173,7 +178,9 @@ export default function Task() {
             onChange={(e) => setDescription(e.target.value)}
           />
         )}
-        <button className="h-16 bg-pink-900 rounded-xl">add task</button>
+        <button type="submit" className="h-16 bg-pink-900 rounded-xl">
+          add task
+        </button>
       </form>
     </div>
   );

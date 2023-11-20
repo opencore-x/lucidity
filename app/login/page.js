@@ -98,6 +98,7 @@ export default function Login() {
           />
           <button
             className="bg-pink-900 w-20 px-4 rounded-lg"
+            type="button"
             onClick={() => setIsPasswordVisible(!isPasswordVisible)}
           >
             Show
@@ -106,7 +107,11 @@ export default function Login() {
         {isFormValid ? (
           <button className="h-16 bg-pink-900 rounded-lg">Login</button>
         ) : (
-          <button className="h-16 bg-pink-900 rounded-lg opacity-40" disabled>
+          <button
+            className="h-16 bg-pink-900 rounded-lg opacity-40"
+            type="submit"
+            disabled
+          >
             Login
           </button>
         )}
