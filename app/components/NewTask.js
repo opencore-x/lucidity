@@ -2,12 +2,12 @@
 import React, { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import { useAuthStore } from '../store/auth';
-import Project from '../components/Project';
+import Project from './Project';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useRouter } from 'next/navigation';
 import axios from '../api/axios';
 
-export default function Task() {
+export default function NewTask() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [project, setProject] = useState('');
@@ -45,7 +45,6 @@ export default function Task() {
 
     try {
       const response = await axios.post('/api/tasks', data, config);
-      console.log(response.data);
       setTitle('');
       setProject('');
       setDescription('');
