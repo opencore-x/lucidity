@@ -5,15 +5,19 @@ import { useAuthStore } from '../store/auth';
 import Project from '../components/Project';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useRouter } from 'next/navigation';
+import axios from '../api/axios';
 
 export default function Task() {
-  const [taskName, setTaskName] = useState('');
+  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [project, setProject] = useState('');
   const [priority, setPriority] = useState('');
   const [dueDate, setDueDate] = useState();
+
   const [isAddProjectVisible, setIsAddProjectVisible] = useState(false);
   const [isDescriptionVisible, setIsDescriptionVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(true);
 
   const router = useRouter();
 
@@ -24,9 +28,37 @@ export default function Task() {
     if (!token) router.push('/login');
   }, [token]);
 
+  const saveTask = async () => {
+    const data = {
+      title,
+      description,
+      project,
+      priority,
+      dueDate,
+    };
+    const config = {
+      headers: {
+        authorization: 'Bearer ' + token,
+        'Content-Type': 'application/json',
+      },
+    };
+
+    try {
+      const task = await axios.post('/api/tasks', data, config);
+      console.log(task);
+    } catch (error) {
+      console.log(error.response.data.message);
+      if (!error?.response) setErrorMessage('No server response');
+      else if (error.response?.status === 400 || error.response?.status === 401)
+        setErrorMessage(error.response.data.message);
+      else setErrorMessage('Login failed');
+    }
+  };
+
   return (
     <div className="justify-center text-lg px-8">
       <p className="text-left text-xl font-semibold">Task</p>
+      <p>{errorMessage}</p>
       <button
         onClick={() => {
           console.log('clicked');
@@ -37,13 +69,16 @@ export default function Task() {
       </button>
       <form
         className="flex flex-col w-full space-y-4 mt-14"
-        onSubmit={(e) => e.preventDefault()}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (isFormValid) saveTask();
+        }}
       >
         <input
           type="text"
           placeholder="Enter task"
           className="p-6 h-16 rounded-xl bg-[#3B3B3B]"
-          onChange={(e) => setTaskName(e.target.value)}
+          onChange={(e) => setTitle(e.target.value)}
         />
         <div className="flex h-16 gap-3">
           <button
