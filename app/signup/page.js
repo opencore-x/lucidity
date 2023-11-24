@@ -1,11 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useAuthStore } from '../store/auth';
-import Router from 'next/router';
+import React, { useState } from 'react';
 
 export default function Signup() {
-  const token = useAuthStore((state) => state.token);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -13,12 +10,6 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [agreeToTerms, setAgreeToTerm] = useState(false);
-
-  const router = Router();
-
-  useEffect(() => {
-    if (!token) router.push('/login');
-  }, [token, router]);
 
   return (
     <div className="px-8 text-lg justify-center">
