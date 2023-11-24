@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useAuthStore } from '../store/auth';
+import Router from 'next/router';
 
 export default function Signup() {
+  const token = useAuthStore((state) => state.token);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -11,11 +14,20 @@ export default function Signup() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [agreeToTerms, setAgreeToTerm] = useState(false);
 
+  const router = Router();
+
+  useEffect(() => {
+    if (!token) router.push('/login');
+  }, [token, router]);
+
   return (
     <div className="px-8 text-lg justify-center">
       <p className="text-left text-xl font-semibold">Signup</p>
 
-      <form className="flex flex-col mt-14 space-y-4" onSubmit={(e) => e.preventDefault()}>
+      <form
+        className="flex flex-col mt-14 space-y-4"
+        onSubmit={(e) => e.preventDefault()}
+      >
         <input
           placeholder="First Name"
           type="text"
@@ -54,7 +66,10 @@ export default function Signup() {
           className="p-4 h-16 rounded-lg bg-[#3B3B3B]"
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
-        <div className="flex gap-3 items-center" onClick={() => setAgreeToTerm(!agreeToTerms)}>
+        <div
+          className="flex gap-3 items-center"
+          onClick={() => setAgreeToTerm(!agreeToTerms)}
+        >
           <input
             className=""
             type="checkbox"

@@ -36,7 +36,7 @@ export default function Login() {
   );
 
   useEffect(() => {
-    if (token) router.push('/task');
+    if (token) router.push('/');
   }, [token]);
 
   const handleFormSubmit = async (e) => {

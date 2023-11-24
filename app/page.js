@@ -8,6 +8,7 @@ import TaskRow from './components/TaskRow';
 export default function Home() {
   const [isAddNewTaskVisible, setIsAddNewTaskVisible] = useState(false);
   const [tasks, setTasks] = useState([]);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const getTasks = async () => {
     try {
@@ -15,6 +16,12 @@ export default function Home() {
       setTasks(response.data.tasks);
     } catch (error) {
       console.log(error);
+      if (!error?.response) setErrorMessage('No server response');
+      else if (error.response?.status === 400)
+        setErrorMessage(error.response.data?.message);
+      else if (error.response?.status === 401)
+        setErrorMessage(error.response.data?.message);
+      else setErrorMessage('Failed to get tasks');
     }
   };
 
@@ -44,6 +51,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col justify-center gap-4 text-lg px-8">
+      {errorMessage}
       {isAddNewTaskVisible ? closeButton : openButton}
       {isAddNewTaskVisible && <NewTask />}
       <button
