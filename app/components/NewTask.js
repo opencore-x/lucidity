@@ -20,9 +20,7 @@ export default function NewTask() {
   const [isFormValid, setIsFormValid] = useState(true);
 
   const router = useRouter();
-
   const token = useAuthStore((store) => store.token);
-  c;
   const logOut = useAuthStore((store) => store.logOut);
 
   useEffect(() => {
