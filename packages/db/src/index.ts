@@ -1,8 +1,8 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
-import * as schema from './schema';
+import * as schema from './schema/index.js';
 
-export * from './schema/tasks';
+export * from './schema/tasks.js';
 
 // Re-export drizzle-orm helpers
 export { eq, and, or, desc, asc, isNull, isNotNull } from 'drizzle-orm';
