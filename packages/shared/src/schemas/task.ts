@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TASK_STATUS_VALUES, PRIORITY_MIN, PRIORITY_MAX } from '../constants';
+import { TASK_STATUS_VALUES, PRIORITY_MIN, PRIORITY_MAX } from '../constants.js';
 
 export const TaskSchema = z.object({
   id: z.uuidv7(),
