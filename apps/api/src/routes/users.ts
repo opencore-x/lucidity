@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
-import { UserSchema, CreateUserSchema } from '@opentask/shared';
+import { uuidv7 } from 'uuidv7';
+import { CreateUserSchema } from '@opentask/shared';
 import { eq, users } from '@opentask/db';
 import { db } from '../lib/db.js';
 
@@ -24,8 +25,12 @@ router.post('/', async (c) => {
 
   if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
 
-  const [newUser] = await db.insert(users).values(parsed.data).returning();
-  return c.json(newUser);
+  const id = uuidv7();
+  const [newUser] = await db
+    .insert(users)
+    .values({ ...parsed.data, id })
+    .returning();
+  return c.json(newUser, 201);
 });
 
 export default router;

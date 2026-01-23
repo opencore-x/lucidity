@@ -32,6 +32,9 @@ importers:
       hono:
         specifier: ^4.11.4
         version: 4.11.4
+      uuidv7:
+        specifier: ^1.1.0
+        version: 1.1.0
       zod:
         specifier: ^4.3.5
         version: 4.3.5
@@ -3889,6 +3892,10 @@ packages:
 
   uuid@7.0.3:
     resolution: {integrity: sha512-DPSke0pXhTZgoF/d+WSt2QaKMCFSfx7QegxEWT+JOuHF5aWrKEn0G+ztjuJg/gG8/ItK+rbPCD/yNv8yyih6Cg==}
+    hasBin: true
+
+  uuidv7@1.1.0:
+    resolution: {integrity: sha512-2VNnOC0+XQlwogChUDzy6pe8GQEys9QFZBGOh54l6qVfwoCUwwRvk7rDTgaIsRgsF5GFa5oiNg8LqXE3jofBBg==}
     hasBin: true
 
   validate-npm-package-name@5.0.1:
@@ -8339,6 +8346,8 @@ snapshots:
   utils-merge@1.0.1: {}
 
   uuid@7.0.3: {}
+
+  uuidv7@1.1.0: {}
 
   validate-npm-package-name@5.0.1: {}
 

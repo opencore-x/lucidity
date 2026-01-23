@@ -15,7 +15,7 @@ const statusEnum = pgEnum('task_status', [
 ]);
 
 export const tasks = pgTable('tasks', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: uuid('id').primaryKey(),
   title: varchar('title', { length: 500 }).notNull(),
   description: text('description'),
   status: statusEnum('status').default('pending'),

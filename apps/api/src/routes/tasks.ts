@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { uuidv7 } from 'uuidv7';
 import { db } from '../lib/db.js';
 import { tasks, eq } from '@opentask/db';
 import { CreateTaskSchema, UpdateTaskSchema } from '@opentask/shared';
@@ -16,8 +17,12 @@ router.post('/', async (c) => {
 
   if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
 
-  const [newTask] = await db.insert(tasks).values(parsed.data).returning();
-  return c.json({ newTask }, 201);
+  const id = uuidv7();
+  const [newTask] = await db
+    .insert(tasks)
+    .values({ ...parsed.data, id })
+    .returning();
+  return c.json(newTask, 201);
 });
 
 router.get('/:id', async (c) => {
@@ -26,7 +31,7 @@ router.get('/:id', async (c) => {
 
   if (!task.length) return c.json({ error: 'Task not found' }, 404);
 
-  return c.json(task[0], 200);
+  return c.json(task[0]);
 });
 
 router.patch('/:id', async (c) => {
@@ -44,7 +49,7 @@ router.patch('/:id', async (c) => {
 
   if (!updated) return c.json({ error: 'Task not found' }, 404);
 
-  return c.json({ updated });
+  return c.json(updated);
 });
 
 router.delete('/:id', async (c) => {
@@ -54,10 +59,9 @@ router.delete('/:id', async (c) => {
 
   if (!deleted) return c.json({ error: 'Task not found' }, 404);
 
-  return c.json({ message: 'Task Deleted' });
+  return c.body(null, 204);
 });
 
-router.patch('/:id/reorder', async (c) => {});
 router.patch('/:id/complete', async (c) => {
   const id = c.req.param('id');
 
@@ -74,5 +78,7 @@ router.patch('/:id/complete', async (c) => {
 
   return c.json(updated);
 });
+
+// router.patch('/:id/reorder', async (c) => {});
 
 export default router;
