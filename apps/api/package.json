@@ -11,6 +11,7 @@
     "@opentask/db": "workspace:^",
     "@opentask/shared": "workspace:^",
     "hono": "^4.11.4",
+    "uuidv7": "^1.1.0",
     "zod": "^4.3.5"
   },
   "devDependencies": {
