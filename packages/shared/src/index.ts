@@ -19,6 +19,12 @@ export {
   UpdateUserSchema,
 } from './schemas/user.js';
 
+export {
+  ProjectSchema,
+  CreateProjectSchema,
+  UpdateProjectSchema,
+} from './schemas/project.js';
+
 // Types
 export type {
   Task,
@@ -27,4 +33,7 @@ export type {
   User,
   CreateUser,
   UpdateUser,
+  Project,
+  CreateProject,
+  UpdateProject,
 } from './types.js';

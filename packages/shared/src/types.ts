@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import {
   TaskSchema,
   CreateTaskSchema,
@@ -10,6 +11,12 @@ import {
   UpdateUserSchema,
 } from './schemas/user.js';
 
+import {
+  ProjectSchema,
+  CreateProjectSchema,
+  UpdateProjectSchema,
+} from './schemas/project.js';
+
 export type Task = z.infer<typeof TaskSchema>;
 export type CreateTask = z.infer<typeof CreateTaskSchema>;
 export type UpdateTask = z.infer<typeof UpdateTaskSchema>;
@@ -17,3 +24,7 @@ export type UpdateTask = z.infer<typeof UpdateTaskSchema>;
 export type User = z.infer<typeof UserSchema>;
 export type CreateUser = z.infer<typeof CreateUserSchema>;
 export type UpdateUser = z.infer<typeof UpdateUserSchema>;
+
+export type Project = z.infer<typeof ProjectSchema>;
+export type CreateProject = z.infer<typeof CreateProjectSchema>;
+export type UpdateProject = z.infer<typeof UpdateProjectSchema>;
