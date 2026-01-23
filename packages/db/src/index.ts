@@ -3,6 +3,7 @@ import { neon } from '@neondatabase/serverless';
 import * as schema from './schema/index.js';
 
 export * from './schema/tasks.js';
+export * from './schema/users.js';
 
 // Re-export drizzle-orm helpers
 export { eq, and, or, desc, asc, isNull, isNotNull } from 'drizzle-orm';

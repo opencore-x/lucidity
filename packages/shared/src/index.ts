@@ -13,5 +13,18 @@ export {
   UpdateTaskSchema,
 } from './schemas/task.js';
 
+export {
+  UserSchema,
+  CreateUserSchema,
+  UpdateUserSchema,
+} from './schemas/user.js';
+
 // Types
-export type { Task, CreateTask, UpdateTask } from './types.js';
+export type {
+  Task,
+  CreateTask,
+  UpdateTask,
+  User,
+  CreateUser,
+  UpdateUser,
+} from './types.js';

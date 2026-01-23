@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-// import { z } from 'zod';
 import { db } from '../lib/db.js';
 import { tasks, eq } from '@opentask/db';
 import { CreateTaskSchema, UpdateTaskSchema } from '@opentask/shared';
