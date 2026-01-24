@@ -30,7 +30,6 @@ router.get('/:id', async (c) => {
   const task = await db.select().from(tasks).where(eq(tasks.id, id));
 
   if (!task.length) return c.json({ error: 'Task not found' }, 404);
-
   return c.json(task[0]);
 });
 
@@ -48,7 +47,6 @@ router.patch('/:id', async (c) => {
     .returning();
 
   if (!updated) return c.json({ error: 'Task not found' }, 404);
-
   return c.json(updated);
 });
 
@@ -58,7 +56,6 @@ router.delete('/:id', async (c) => {
   const [deleted] = await db.delete(tasks).where(eq(tasks.id, id)).returning();
 
   if (!deleted) return c.json({ error: 'Task not found' }, 404);
-
   return c.body(null, 204);
 });
 
@@ -75,7 +72,6 @@ router.patch('/:id/complete', async (c) => {
     .set({ status: taskStatus })
     .where(eq(tasks.id, id))
     .returning();
-
   return c.json(updated);
 });
 
