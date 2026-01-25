@@ -25,6 +25,15 @@ export const CreateTaskSchema = TaskSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  projectId: z.uuidv7().optional(),
+  parentTaskId: z.uuidv7().optional(),
+  description: z.string().optional(),
+  status: z.enum(TASK_STATUS_VALUES).default('pending'),
+  priority: z.number().min(PRIORITY_MIN).max(PRIORITY_MAX).default(500),
+  position: z.number().optional(),
+  completedAt: z.coerce.date().optional(),
+  dueDate: z.coerce.date().optional(),
 });
 
 export const UpdateTaskSchema = CreateTaskSchema.partial();

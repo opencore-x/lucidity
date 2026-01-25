@@ -16,6 +16,10 @@ export const CreateProjectSchema = ProjectSchema.omit({
   // userId: true, TODO: uncomment after auth is implemented
   createdAt: true,
   updatedAt: true,
+}).extend({
+  color: z.string().length(7).optional(),
+  description: z.string().optional(),
+  isArchived: z.boolean().optional(),
 });
 
 export const UpdateProjectSchema = ProjectSchema.partial();
