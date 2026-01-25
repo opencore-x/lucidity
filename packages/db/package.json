@@ -6,7 +6,10 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "db:push": "NODE_OPTIONS='--import tsx' drizzle-kit push",
+    "db:migrate": "NODE_OPTIONS='--import tsx' drizzle-kit migrate",
+    "db:studio": "NODE_OPTIONS='--import tsx' drizzle-kit studio",
+    "db:generate": "NODE_OPTIONS='--import tsx' drizzle-kit generate"
   },
   "keywords": [],
   "dependencies": {
@@ -14,6 +17,8 @@
     "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.8"
+    "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.31.8",
+    "tsx": "^4.21.0"
   }
 }
