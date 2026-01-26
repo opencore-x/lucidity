@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 // What client sends when creating a project
 export const CreateProjectSchema = z.object({
-  userId: z.uuidv7(), // TODO: remove after auth - will come from session
   name: z.string().max(255),
   color: z.string().length(7).optional(),
   description: z.string().optional(),
@@ -12,6 +11,7 @@ export const CreateProjectSchema = z.object({
 // Full project schema (database representation)
 export const ProjectSchema = CreateProjectSchema.extend({
   id: z.uuidv7(),
+  userId: z.uuidv7(),
   color: z.string().length(7).nullable(),
   description: z.string().nullable(),
   createdAt: z.coerce.date(),
