@@ -1,23 +1,23 @@
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
-export type AppError = {
-  type: 'APP_ERROR';
+export class AppError extends Error {
+  type = 'APP_ERROR' as const;
   code: string;
-  message: string;
   statusCode: ContentfulStatusCode;
-};
+
+  constructor(code: string, message: string, statusCode: ContentfulStatusCode) {
+    super(message);
+    this.code = code;
+    this.statusCode = statusCode;
+  }
+}
 
 // Factory functions to create errors
 export const createError = (
   code: string,
   message: string,
   statusCode: ContentfulStatusCode,
-): AppError => ({
-  type: 'APP_ERROR',
-  code,
-  message,
-  statusCode,
-});
+): AppError => new AppError(code, message, statusCode);
 
 // Pre-defined error factories
 export const unauthorizedError = (message = 'Unauthorized') =>
@@ -31,7 +31,4 @@ export const badRequestError = (message = 'Bad Request') =>
 
 // Type guard to check if something is an AppError
 export const isAppError = (error: unknown): error is AppError =>
-  typeof error === 'object' &&
-  error !== null &&
-  'type' in error &&
-  error.type === 'APP_ERROR';
+  error instanceof AppError;
