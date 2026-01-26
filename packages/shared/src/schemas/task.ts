@@ -7,7 +7,6 @@ import {
 
 // What client sends when creating a task
 export const CreateTaskSchema = z.object({
-  userId: z.uuidv7(), // TODO: remove after auth - will come from session
   title: z.string().min(1).max(500),
   projectId: z.uuidv7().optional(),
   parentTaskId: z.uuidv7().optional(),
@@ -22,6 +21,7 @@ export const CreateTaskSchema = z.object({
 // Full task schema (database representation)
 export const TaskSchema = CreateTaskSchema.extend({
   id: z.uuidv7(),
+  userId: z.uuidv7(),
   projectId: z.uuidv7().nullable(),
   parentTaskId: z.uuidv7().nullable(),
   description: z.string().nullable(),
