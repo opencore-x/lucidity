@@ -1,4 +1,3 @@
-import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 const getApiUrl = () => {
@@ -12,11 +11,19 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
+export type TokenGetter = () => Promise<string | null>;
+
+let tokenGetter: TokenGetter | null = null;
+
+export function setTokenGetter(getter: TokenGetter) {
+  tokenGetter = getter;
+}
+
 export async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = await SecureStore.getItemAsync('__clerk_client_jwt');
+  const token = tokenGetter ? await tokenGetter() : null;
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
