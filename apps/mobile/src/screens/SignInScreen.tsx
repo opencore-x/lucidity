@@ -1,11 +1,13 @@
 import * as React from 'react';
-import { View, Alert } from 'react-native';
+import { View, Alert, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSignIn, useSignUp, useOAuth } from '@clerk/clerk-expo';
+import { useColorScheme } from 'nativewind';
 import * as WebBrowser from 'expo-web-browser';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Sun, Moon } from '@/lib/icons';
 
 // Warm up the browser for OAuth
 WebBrowser.maybeCompleteAuthSession();
@@ -15,10 +17,13 @@ export function SignInScreen() {
   const { signUp, setActive: setSignUpActive, isLoaded: signUpLoaded } = useSignUp();
   const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
 
+  const { colorScheme, toggleColorScheme } = useColorScheme();
+  const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [isSignUp, setIsSignUp] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const isDark = colorScheme === 'dark';
 
   const handleEmailAuth = async () => {
     if (!signInLoaded || !signUpLoaded) return;
@@ -27,8 +32,14 @@ export function SignInScreen() {
       setLoading(true);
 
       if (isSignUp) {
-        // Sign up flow
+        // Sign up flow - split name into first/last
+        const nameParts = name.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || undefined;
+
         const result = await signUp.create({
+          firstName,
+          lastName,
           emailAddress: email,
           password,
         });
@@ -73,6 +84,20 @@ export function SignInScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      {/* Theme Toggle */}
+      <View className="absolute top-4 right-4 z-10">
+        <Pressable
+          onPress={toggleColorScheme}
+          className="p-2 rounded-full bg-secondary"
+        >
+          {isDark ? (
+            <Sun size={20} className="text-foreground" />
+          ) : (
+            <Moon size={20} className="text-foreground" />
+          )}
+        </Pressable>
+      </View>
+
       <View className="flex-1 px-6 justify-center">
         {/* Logo/Header */}
         <View className="items-center mb-8">
@@ -102,6 +127,15 @@ export function SignInScreen() {
 
         {/* Email/Password Form */}
         <View className="gap-4">
+          {isSignUp && (
+            <Input
+              placeholder="Full Name"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              autoComplete="name"
+            />
+          )}
           <Input
             placeholder="Email"
             value={email}
@@ -123,7 +157,7 @@ export function SignInScreen() {
         <Button
           className="mt-6 h-12"
           onPress={handleEmailAuth}
-          disabled={loading || !email || !password}
+          disabled={loading || !email || !password || (isSignUp && !name.trim())}
         >
           {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
         </Button>
@@ -136,7 +170,10 @@ export function SignInScreen() {
           <Button
             variant="link"
             className="p-0 h-auto"
-            onPress={() => setIsSignUp(!isSignUp)}
+            onPress={() => {
+              setIsSignUp(!isSignUp);
+              setName('');
+            }}
           >
             <Text className="text-primary font-semibold">
               {isSignUp ? 'Sign In' : 'Sign Up'}
