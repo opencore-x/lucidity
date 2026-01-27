@@ -8,6 +8,7 @@ import { ClerkProvider, ClerkLoaded, SignedIn, SignedOut } from '@clerk/clerk-ex
 import * as SecureStore from 'expo-secure-store';
 import { HomeScreen } from '@/screens/HomeScreen';
 import { SignInScreen } from '@/screens/SignInScreen';
+import { ApiProvider } from '@/providers/ApiProvider';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,19 +55,21 @@ export default function App() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
-        <QueryClientProvider client={queryClient}>
-          <SafeAreaProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <SignedIn>
-                <HomeScreen />
-              </SignedIn>
-              <SignedOut>
-                <SignInScreen />
-              </SignedOut>
-              <StatusBar style="auto" />
-            </GestureHandlerRootView>
-          </SafeAreaProvider>
-        </QueryClientProvider>
+        <ApiProvider>
+          <QueryClientProvider client={queryClient}>
+            <SafeAreaProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <SignedIn>
+                  <HomeScreen />
+                </SignedIn>
+                <SignedOut>
+                  <SignInScreen />
+                </SignedOut>
+                <StatusBar style="auto" />
+              </GestureHandlerRootView>
+            </SafeAreaProvider>
+          </QueryClientProvider>
+        </ApiProvider>
       </ClerkLoaded>
     </ClerkProvider>
   );
