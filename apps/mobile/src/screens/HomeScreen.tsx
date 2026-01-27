@@ -1,7 +1,8 @@
 import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth, useUser } from '@clerk/clerk-expo';
+import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { ProjectGroup } from '@/components/ProjectGroup';
@@ -13,11 +14,14 @@ import { useTasks, useToggleTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { groupTasksByProject } from '@/utils/helpers';
+import { Sun, Moon } from '@/lib/icons';
 import type { Task } from '@opentask/shared';
 
 export function HomeScreen() {
   const { signOut } = useAuth();
   const { user } = useUser();
+  const { colorScheme, toggleColorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const [refreshing, setRefreshing] = React.useState(false);
@@ -86,13 +90,25 @@ export function HomeScreen() {
       <View className="px-4 py-4 border-b border-border">
         <View className="flex-row items-center justify-between">
           <Text className="text-2xl font-bold">Tasks</Text>
-          <Button variant="ghost" size="sm" onPress={() => signOut()}>
-            Sign Out
-          </Button>
+          <View className="flex-row items-center gap-2">
+            <Pressable
+              onPress={toggleColorScheme}
+              className="p-2 rounded-full bg-secondary"
+            >
+              {isDark ? (
+                <Sun size={18} className="text-foreground" />
+              ) : (
+                <Moon size={18} className="text-foreground" />
+              )}
+            </Pressable>
+            <Button variant="ghost" size="sm" onPress={() => signOut()}>
+              Sign Out
+            </Button>
+          </View>
         </View>
-        {user?.primaryEmailAddress && (
+        {user && (
           <Text className="text-sm text-muted-foreground mt-1">
-            {user.primaryEmailAddress.emailAddress}
+            {user.fullName || user.primaryEmailAddress?.emailAddress}
           </Text>
         )}
       </View>
