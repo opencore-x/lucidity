@@ -1,11 +1,14 @@
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth, useUser } from '@clerk/clerk-expo';
 import { Text } from '@/components/ui/text';
+import { Button } from '@/components/ui/button';
 import { ProjectGroup } from '@/components/ProjectGroup';
 import { EmptyState } from '@/components/EmptyState';
 import { FAB } from '@/components/FAB';
 import { TaskSheet } from '@/components/TaskSheet';
+import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { useTasks, useToggleTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
@@ -13,9 +16,12 @@ import { groupTasksByProject } from '@/utils/helpers';
 import type { Task } from '@opentask/shared';
 
 export function HomeScreen() {
+  const { signOut } = useAuth();
+  const { user } = useUser();
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const [refreshing, setRefreshing] = React.useState(false);
+  const [showCreateProject, setShowCreateProject] = React.useState(false);
 
   const { openSheet, openCreateSheet } = useSheetStore();
   const toggleTask = useToggleTask();
@@ -78,7 +84,28 @@ export function HomeScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       {/* Header */}
       <View className="px-4 py-4 border-b border-border">
-        <Text className="text-2xl font-bold">Tasks</Text>
+        <View className="flex-row items-center justify-between">
+          <Text className="text-2xl font-bold">Tasks</Text>
+          <Button variant="ghost" size="sm" onPress={() => signOut()}>
+            Sign Out
+          </Button>
+        </View>
+        {user?.primaryEmailAddress && (
+          <Text className="text-sm text-muted-foreground mt-1">
+            {user.primaryEmailAddress.emailAddress}
+          </Text>
+        )}
+      </View>
+
+      {/* Action Bar */}
+      <View className="px-4 py-3 flex-row justify-end border-b border-border">
+        <Button
+          variant="outline"
+          size="sm"
+          onPress={() => setShowCreateProject(true)}
+        >
+          + New Project
+        </Button>
       </View>
 
       {/* Content */}
@@ -119,6 +146,12 @@ export function HomeScreen() {
 
       {/* Task Sheet */}
       <TaskSheet tasks={tasks} projects={projects} />
+
+      {/* Create Project Modal */}
+      <CreateProjectModal
+        visible={showCreateProject}
+        onClose={() => setShowCreateProject(false)}
+      />
     </SafeAreaView>
   );
 }
