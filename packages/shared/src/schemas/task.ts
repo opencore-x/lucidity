@@ -8,7 +8,7 @@ import {
 // What client sends when creating a task
 export const CreateTaskSchema = z.object({
   title: z.string().min(1).max(500),
-  projectId: z.uuidv7().optional(),
+  projectId: z.uuidv7(),
   parentTaskId: z.uuidv7().optional(),
   description: z.string().optional(),
   status: z.enum(TASK_STATUS_VALUES).default('pending'),
@@ -22,7 +22,7 @@ export const CreateTaskSchema = z.object({
 export const TaskSchema = CreateTaskSchema.extend({
   id: z.uuidv7(),
   userId: z.uuidv7(),
-  projectId: z.uuidv7().nullable(),
+  projectId: z.uuidv7(),
   parentTaskId: z.uuidv7().nullable(),
   description: z.string().nullable(),
   status: z.enum(TASK_STATUS_VALUES),
