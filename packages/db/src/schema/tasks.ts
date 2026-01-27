@@ -22,7 +22,9 @@ export const tasks = pgTable('tasks', {
   userId: uuid('user_id')
     .references(() => users.id)
     .notNull(),
-  projectId: uuid('project_id').references(() => projects.id),
+  projectId: uuid('project_id')
+    .references(() => projects.id)
+    .notNull(),
   parentTaskId: uuid('parent_task_id').references((): AnyPgColumn => tasks.id),
   title: varchar('title', { length: 500 }).notNull(),
   description: text('description'),
