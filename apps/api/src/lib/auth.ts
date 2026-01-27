@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { getAuth } from '@hono/clerk-auth';
-import { users, eq } from '@opentask/db';
+import { users, projects, eq } from '@opentask/db';
 import { db } from './db.js';
 import { uuidv7 } from 'uuidv7';
 import { unauthorizedError } from './errors.js';
@@ -35,6 +35,13 @@ export async function getCurrentUser(c: Context) {
       name: (auth.sessionClaims?.name as string) ?? 'User',
     })
     .returning();
+
+  // Create default "Todo" project for new user
+  await db.insert(projects).values({
+    id: uuidv7(),
+    userId: newUser.id,
+    name: 'Todo',
+  });
 
   return newUser;
 }
