@@ -4,7 +4,7 @@ import { Text } from '@/components/ui/text';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { GripVertical } from '@/lib/icons';
-import type { Task } from '@opentask/shared';
+import type { Task } from '@lucidity/shared';
 
 interface SubtaskItemProps {
   task: Task;

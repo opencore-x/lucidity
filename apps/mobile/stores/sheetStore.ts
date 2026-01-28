@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Task } from '@opentask/shared';
+import type { Task } from '@lucidity/shared';
 
 interface SheetState {
   isOpen: boolean;

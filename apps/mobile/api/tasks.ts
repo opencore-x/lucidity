@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Task, CreateTask, UpdateTask } from '@opentask/shared';
+import type { Task, CreateTask, UpdateTask } from '@lucidity/shared';
 
 export const tasksApi = {
   list: () => apiClient<Task[]>('/api/tasks'),

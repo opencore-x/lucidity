@@ -1,4 +1,4 @@
-import type { Task, Project } from '@opentask/shared';
+import type { Task, Project } from '@lucidity/shared';
 
 /**
  * Group root tasks (no parentTaskId) by project

@@ -25,16 +25,20 @@ app.onError((err, c) => {
   return c.json({ error: 'Internal Server Error' }, 500);
 });
 
+app.get('/', (c) => c.json({ status: 'ok' }));
+
 app.route('/api/tasks', taskRouter);
 app.route('/api/users', userRouter);
 app.route('/api/projects', projectRouter);
 
+const port = Number(process.env.PORT) || 3000;
+
 serve(
   {
     fetch: app.fetch,
-    port: 3000,
+    port,
   },
   (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`);
+    console.log(`Server running on port ${info.port}`);
   },
 );
