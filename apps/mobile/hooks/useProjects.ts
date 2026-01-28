@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi } from '@/api/projects';
-import type { CreateProject, UpdateProject } from '@opentask/shared';
+import type { CreateProject, UpdateProject } from '@lucidity/shared';
 
 export function useProjects() {
   return useQuery({

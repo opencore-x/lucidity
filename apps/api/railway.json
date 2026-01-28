@@ -1,0 +1,18 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter @lucidity/db build && pnpm --filter @lucidity/shared build && pnpm --filter @lucidity/api build",
+    "watchPatterns": [
+      "apps/api/**",
+      "packages/db/**",
+      "packages/shared/**",
+      "pnpm-lock.yaml"
+    ]
+  },
+  "deploy": {
+    "startCommand": "node dist/index.js",
+    "healthcheckPath": "/",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
