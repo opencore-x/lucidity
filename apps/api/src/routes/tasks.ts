@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { uuidv7 } from 'uuidv7';
 import { db } from '../lib/db.js';
-import { tasks, eq, and } from '@opentask/db';
-import { CreateTaskSchema, UpdateTaskSchema } from '@opentask/shared';
+import { tasks, eq, and } from '@lucidity/db';
+import { CreateTaskSchema, UpdateTaskSchema } from '@lucidity/shared';
 import { getCurrentUser } from '../lib/auth.js';
 
 const router = new Hono();

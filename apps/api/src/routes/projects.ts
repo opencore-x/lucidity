@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { db } from '../lib/db.js';
-import { eq, and, projects } from '@opentask/db';
-import { CreateProjectSchema, UpdateProjectSchema } from '@opentask/shared';
+import { eq, and, projects } from '@lucidity/db';
+import { CreateProjectSchema, UpdateProjectSchema } from '@lucidity/shared';
 import { uuidv7 } from 'uuidv7';
 import { getCurrentUser } from '../lib/auth.js';
 

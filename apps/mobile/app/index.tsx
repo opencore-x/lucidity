@@ -18,7 +18,7 @@ import { useTasks, useToggleTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { groupTasksByProject } from '@/utils/helpers';
-import type { Task } from '@opentask/shared';
+import type { Task } from '@lucidity/shared';
 
 const SCREEN_OPTIONS = {
   headerShown: false,

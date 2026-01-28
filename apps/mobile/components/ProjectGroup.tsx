@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
 import { getSubtaskProgress } from '@/utils/helpers';
-import type { Task, Project } from '@opentask/shared';
+import type { Task, Project } from '@lucidity/shared';
 
 interface ProjectGroupProps {
   project: Project;

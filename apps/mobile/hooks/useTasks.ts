@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tasksApi } from '@/api/tasks';
-import type { CreateTask, UpdateTask } from '@opentask/shared';
+import type { CreateTask, UpdateTask } from '@lucidity/shared';
 
 export function useTasks() {
   return useQuery({
