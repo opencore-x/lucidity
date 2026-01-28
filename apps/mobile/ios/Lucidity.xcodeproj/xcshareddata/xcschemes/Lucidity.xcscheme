@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "OpenTask.app"
-               BlueprintName = "OpenTask"
-               ReferencedContainer = "container:OpenTask.xcodeproj">
+               BuildableName = "Lucidity.app"
+               BlueprintName = "Lucidity"
+               ReferencedContainer = "container:Lucidity.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "OpenTaskTests.xctest"
-               BlueprintName = "OpenTaskTests"
-               ReferencedContainer = "container:OpenTask.xcodeproj">
+               BuildableName = "LucidityTests.xctest"
+               BlueprintName = "LucidityTests"
+               ReferencedContainer = "container:Lucidity.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "OpenTask.app"
-            BlueprintName = "OpenTask"
-            ReferencedContainer = "container:OpenTask.xcodeproj">
+            BuildableName = "Lucidity.app"
+            BlueprintName = "Lucidity"
+            ReferencedContainer = "container:Lucidity.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "OpenTask.app"
-            BlueprintName = "OpenTask"
-            ReferencedContainer = "container:OpenTask.xcodeproj">
+            BuildableName = "Lucidity.app"
+            BlueprintName = "Lucidity"
+            ReferencedContainer = "container:Lucidity.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
