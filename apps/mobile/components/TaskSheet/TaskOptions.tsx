@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { Calendar, Clock, Folder, Flag, Activity } from '@/lib/icons';
 import { formatDate, formatStatus } from '@/utils/helpers';
 import { getPriorityLabel } from '@/utils/constants';
-import type { Task, Project } from '@opentask/shared';
+import type { Task, Project } from '@lucidity/shared';
 
 interface TaskOptionsProps {
   task: Task;

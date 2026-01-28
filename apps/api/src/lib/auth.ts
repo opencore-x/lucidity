@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { getAuth } from '@hono/clerk-auth';
-import { users, projects, eq } from '@opentask/db';
+import { users, projects, eq } from '@lucidity/db';
 import { db } from './db.js';
 import { uuidv7 } from 'uuidv7';
 import { unauthorizedError } from './errors.js';

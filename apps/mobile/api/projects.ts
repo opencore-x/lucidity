@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Project, CreateProject, UpdateProject } from '@opentask/shared';
+import type { Project, CreateProject, UpdateProject } from '@lucidity/shared';
 
 export const projectsApi = {
   list: () => apiClient<Project[]>('/api/projects'),

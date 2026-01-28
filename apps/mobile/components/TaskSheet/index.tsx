@@ -16,7 +16,7 @@ import { ChevronLeft, Plus } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtasks, getSubtaskProgress } from '@/utils/helpers';
 import { useToggleTask, useCreateTask, useUpdateTask } from '@/hooks/useTasks';
-import type { Task, Project } from '@opentask/shared';
+import type { Task, Project } from '@lucidity/shared';
 
 interface TaskSheetProps {
   tasks: Task[];
