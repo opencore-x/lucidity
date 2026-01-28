@@ -3,10 +3,11 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "dev": "expo start -c",
-    "android": "expo start -c --android",
-    "ios": "expo start -c --ios",
-    "web": "expo start -c --web",
+    "dev": "expo start -c --env-file ../../.env",
+    "android": "expo start -c --android --env-file ../../.env",
+    "ios": "expo start -c --ios --env-file ../../.env",
+    "web": "expo start -c --web --env-file ../../.env",
+    "build:ios": "expo run:ios --configuration Release --env-file ../../.env.production",
     "clean": "rm -rf .expo node_modules"
   },
   "dependencies": {
