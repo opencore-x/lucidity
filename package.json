@@ -5,11 +5,11 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "dev:api": "pnpm --filter @lucidity/api dev",
+    "dev:mobile": "pnpm --filter @lucidity/mobile dev",
+    "build:ios": "pnpm --filter @lucidity/mobile build:ios",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types",
-    "android": "expo run:android",
-    "ios": "expo run:ios"
+    "check-types": "turbo run check-types"
   },
   "devDependencies": {
     "prettier": "^3.7.4",
