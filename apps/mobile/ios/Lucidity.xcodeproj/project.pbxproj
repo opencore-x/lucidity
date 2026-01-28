@@ -8,28 +8,28 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		1633025C0C3BEB94BC87F94D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184E9996408B8D194EA3FD82 /* ExpoModulesProvider.swift */; };
-		2D127EA4AE2E33E27908E00D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D66DE1AF1022DAB54DBF2F94 /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
+		90E035DB0D74A4735E3EFAF6 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D479EFEFF130BF6EFF0D0D /* ExpoModulesProvider.swift */; };
+		A7AD2C8A6C85F20CA334B11A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 46F5E057B243A0134E98C4EA /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		FE81CEC477790711A4F60130 /* libPods-OpenTask.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B0BAB26E5FD9D1CC44B341C /* libPods-OpenTask.a */; };
+		F99F1BD2CA4064FC337EFEBF /* libPods-Lucidity.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 08FD34CC01CAED203C7FA3C7 /* libPods-Lucidity.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		13B07F961A680F5B00A75B9A /* OpenTask.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OpenTask.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = OpenTask/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = OpenTask/Info.plist; sourceTree = "<group>"; };
-		184E9996408B8D194EA3FD82 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-OpenTask/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		3B0BAB26E5FD9D1CC44B341C /* libPods-OpenTask.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-OpenTask.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		7E9F711B15A34D3C633A313D /* Pods-OpenTask.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OpenTask.debug.xcconfig"; path = "Target Support Files/Pods-OpenTask/Pods-OpenTask.debug.xcconfig"; sourceTree = "<group>"; };
-		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = OpenTask/SplashScreen.storyboard; sourceTree = "<group>"; };
+		08FD34CC01CAED203C7FA3C7 /* libPods-Lucidity.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Lucidity.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07F961A680F5B00A75B9A /* Lucidity.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lucidity.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Lucidity/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Lucidity/Info.plist; sourceTree = "<group>"; };
+		1C243BA70AD85CCE63C1C499 /* Pods-Lucidity.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Lucidity.debug.xcconfig"; path = "Target Support Files/Pods-Lucidity/Pods-Lucidity.debug.xcconfig"; sourceTree = "<group>"; };
+		46F5E057B243A0134E98C4EA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Lucidity/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		96C5788A4F8D777CA2F91A62 /* Pods-Lucidity.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Lucidity.release.xcconfig"; path = "Target Support Files/Pods-Lucidity/Pods-Lucidity.release.xcconfig"; sourceTree = "<group>"; };
+		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Lucidity/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		C23449725130A83FC8A604C6 /* Pods-OpenTask.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-OpenTask.release.xcconfig"; path = "Target Support Files/Pods-OpenTask/Pods-OpenTask.release.xcconfig"; sourceTree = "<group>"; };
-		D66DE1AF1022DAB54DBF2F94 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = OpenTask/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		D2D479EFEFF130BF6EFF0D0D /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Lucidity/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = OpenTask/AppDelegate.swift; sourceTree = "<group>"; };
-		F11748442D0722820044C1D9 /* OpenTask-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "OpenTask-Bridging-Header.h"; path = "OpenTask/OpenTask-Bridging-Header.h"; sourceTree = "<group>"; };
+		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Lucidity/AppDelegate.swift; sourceTree = "<group>"; };
+		F11748442D0722820044C1D9 /* Lucidity-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Lucidity-Bridging-Header.h"; path = "Lucidity/Lucidity-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,40 +37,50 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FE81CEC477790711A4F60130 /* libPods-OpenTask.a in Frameworks */,
+				F99F1BD2CA4064FC337EFEBF /* libPods-Lucidity.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		13B07FAE1A68108700A75B9A /* OpenTask */ = {
+		061B2393FEDCE4F823CAD014 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				1C243BA70AD85CCE63C1C499 /* Pods-Lucidity.debug.xcconfig */,
+				96C5788A4F8D777CA2F91A62 /* Pods-Lucidity.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		13B07FAE1A68108700A75B9A /* Lucidity */ = {
 			isa = PBXGroup;
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
-				F11748442D0722820044C1D9 /* OpenTask-Bridging-Header.h */,
+				F11748442D0722820044C1D9 /* Lucidity-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				D66DE1AF1022DAB54DBF2F94 /* PrivacyInfo.xcprivacy */,
+				46F5E057B243A0134E98C4EA /* PrivacyInfo.xcprivacy */,
 			);
-			name = OpenTask;
+			name = Lucidity;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				3B0BAB26E5FD9D1CC44B341C /* libPods-OpenTask.a */,
+				08FD34CC01CAED203C7FA3C7 /* libPods-Lucidity.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		6B35B86B15B4D574A3127561 /* ExpoModulesProviders */ = {
+		6436A5ECC1C139FB333D0EE9 /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				8AC635F853F13E73127576C6 /* OpenTask */,
+				BED5191C82D6E2452929DC97 /* Lucidity */,
 			);
 			name = ExpoModulesProviders;
 			sourceTree = "<group>";
@@ -85,12 +95,12 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				13B07FAE1A68108700A75B9A /* OpenTask */,
+				13B07FAE1A68108700A75B9A /* Lucidity */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				B9F537EB65442A2D078DCAAE /* Pods */,
-				6B35B86B15B4D574A3127561 /* ExpoModulesProviders */,
+				061B2393FEDCE4F823CAD014 /* Pods */,
+				6436A5ECC1C139FB333D0EE9 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -100,26 +110,9 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* OpenTask.app */,
+				13B07F961A680F5B00A75B9A /* Lucidity.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		8AC635F853F13E73127576C6 /* OpenTask */ = {
-			isa = PBXGroup;
-			children = (
-				184E9996408B8D194EA3FD82 /* ExpoModulesProvider.swift */,
-			);
-			name = OpenTask;
-			sourceTree = "<group>";
-		};
-		B9F537EB65442A2D078DCAAE /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				7E9F711B15A34D3C633A313D /* Pods-OpenTask.debug.xcconfig */,
-				C23449725130A83FC8A604C6 /* Pods-OpenTask.release.xcconfig */,
-			);
-			path = Pods;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -128,32 +121,40 @@
 				BB2F792C24A3F905000567C9 /* Expo.plist */,
 			);
 			name = Supporting;
-			path = OpenTask/Supporting;
+			path = Lucidity/Supporting;
+			sourceTree = "<group>";
+		};
+		BED5191C82D6E2452929DC97 /* Lucidity */ = {
+			isa = PBXGroup;
+			children = (
+				D2D479EFEFF130BF6EFF0D0D /* ExpoModulesProvider.swift */,
+			);
+			name = Lucidity;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* OpenTask */ = {
+		13B07F861A680F5B00A75B9A /* Lucidity */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "OpenTask" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Lucidity" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				5340C832F662C46C01A09338 /* [Expo] Configure project */,
+				55A06909480716E1E9B406D9 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				1848A5CB51A28C7B4F0ED66B /* [CP] Embed Pods Frameworks */,
+				17F79C21F9D508401E8E79D2 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = OpenTask;
-			productName = OpenTask;
-			productReference = 13B07F961A680F5B00A75B9A /* OpenTask.app */;
+			name = Lucidity;
+			productName = Lucidity;
+			productReference = 13B07F961A680F5B00A75B9A /* Lucidity.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -165,11 +166,13 @@
 				LastUpgradeCheck = 1130;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
+						DevelopmentTeam = H4JB3X394X;
 						LastSwiftMigration = 1250;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "OpenTask" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Lucidity" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -182,7 +185,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* OpenTask */,
+				13B07F861A680F5B00A75B9A /* Lucidity */,
 			);
 		};
 /* End PBXProject section */
@@ -195,7 +198,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				2D127EA4AE2E33E27908E00D /* PrivacyInfo.xcprivacy in Resources */,
+				A7AD2C8A6C85F20CA334B11A /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -234,20 +237,20 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-OpenTask-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-Lucidity-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		1848A5CB51A28C7B4F0ED66B /* [CP] Embed Pods Frameworks */ = {
+		17F79C21F9D508401E8E79D2 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-OpenTask/Pods-OpenTask-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-Lucidity/Pods-Lucidity-frameworks.sh",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
@@ -260,10 +263,10 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-OpenTask/Pods-OpenTask-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Lucidity/Pods-Lucidity-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		5340C832F662C46C01A09338 /* [Expo] Configure project */ = {
+		55A06909480716E1E9B406D9 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -274,18 +277,18 @@
 			inputPaths = (
 				"$(SRCROOT)/.xcode.env",
 				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/OpenTask/OpenTask.entitlements",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-OpenTask/expo-configure-project.sh",
+				"$(SRCROOT)/Lucidity/Lucidity.entitlements",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-Lucidity/expo-configure-project.sh",
 			);
 			name = "[Expo] Configure project";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-OpenTask/ExpoModulesProvider.swift",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-Lucidity/ExpoModulesProvider.swift",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-OpenTask/expo-configure-project.sh\"\n";
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Lucidity/expo-configure-project.sh\"\n";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -293,7 +296,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-OpenTask/Pods-OpenTask-resources.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-Lucidity/Pods-Lucidity-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXApplication/ExpoApplication_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
@@ -316,7 +319,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-OpenTask/Pods-OpenTask-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Lucidity/Pods-Lucidity-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -327,7 +330,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				1633025C0C3BEB94BC87F94D /* ExpoModulesProvider.swift in Sources */,
+				90E035DB0D74A4735E3EFAF6 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -336,11 +339,13 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7E9F711B15A34D3C633A313D /* Pods-OpenTask.debug.xcconfig */;
+			baseConfigurationReference = 1C243BA70AD85CCE63C1C499 /* Pods-Lucidity.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = OpenTask/OpenTask.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Lucidity/Lucidity.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = H4JB3X394X;
 				ENABLE_BITCODE = NO;
@@ -348,7 +353,7 @@
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
-				INFOPLIST_FILE = OpenTask/Info.plist;
+				INFOPLIST_FILE = Lucidity/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -361,9 +366,9 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
-				PRODUCT_BUNDLE_IDENTIFIER = com.anonymous.opentask;
-				PRODUCT_NAME = OpenTask;
-				SWIFT_OBJC_BRIDGING_HEADER = "OpenTask/OpenTask-Bridging-Header.h";
+				PRODUCT_BUNDLE_IDENTIFIER = com.lucidity.app;
+				PRODUCT_NAME = Lucidity;
+				SWIFT_OBJC_BRIDGING_HEADER = "Lucidity/Lucidity-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -373,14 +378,16 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C23449725130A83FC8A604C6 /* Pods-OpenTask.release.xcconfig */;
+			baseConfigurationReference = 96C5788A4F8D777CA2F91A62 /* Pods-Lucidity.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = OpenTask/OpenTask.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Lucidity/Lucidity.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = H4JB3X394X;
-				INFOPLIST_FILE = OpenTask/Info.plist;
+				INFOPLIST_FILE = Lucidity/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -393,9 +400,9 @@
 					"-lc++",
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
-				PRODUCT_BUNDLE_IDENTIFIER = com.anonymous.opentask;
-				PRODUCT_NAME = OpenTask;
-				SWIFT_OBJC_BRIDGING_HEADER = "OpenTask/OpenTask-Bridging-Header.h";
+				PRODUCT_BUNDLE_IDENTIFIER = com.lucidity.app;
+				PRODUCT_NAME = Lucidity;
+				SWIFT_OBJC_BRIDGING_HEADER = "Lucidity/Lucidity-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
@@ -523,7 +530,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "OpenTask" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Lucidity" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -532,7 +539,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "OpenTask" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Lucidity" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
