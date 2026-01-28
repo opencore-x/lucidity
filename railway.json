@@ -2,7 +2,7 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter @lucidity/db build && pnpm --filter @lucidity/shared build && pnpm --filter @lucidity/api build",
+    "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @lucidity/db build && pnpm --filter @lucidity/shared build && pnpm --filter @lucidity/api build",
     "watchPatterns": [
       "apps/api/**",
       "packages/db/**",
@@ -11,7 +11,7 @@
     ]
   },
   "deploy": {
-    "startCommand": "node dist/index.js",
+    "startCommand": "node apps/api/dist/index.js",
     "healthcheckPath": "/",
     "restartPolicyType": "ON_FAILURE"
   }
