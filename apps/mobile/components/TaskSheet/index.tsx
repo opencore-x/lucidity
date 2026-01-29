@@ -44,6 +44,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
     closeSheet,
     drillDown,
     goBack,
+    updateCurrentTask,
   } = useSheetStore();
 
   const task = currentTask();
@@ -122,9 +123,16 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const handleUpdateField = React.useCallback(
     (data: Partial<UpdateTask>) => {
       if (!task) return;
-      updateTask.mutate({ id: task.id, data });
+      updateTask.mutate(
+        { id: task.id, data },
+        {
+          onSuccess: (updatedTask) => {
+            updateCurrentTask(updatedTask);
+          },
+        }
+      );
     },
-    [task, updateTask]
+    [task, updateTask, updateCurrentTask]
   );
 
   const renderBackdrop = React.useCallback(
