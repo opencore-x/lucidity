@@ -5,6 +5,7 @@ import BottomSheet, {
   BottomSheetScrollView,
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
+import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,7 +17,9 @@ import { ChevronLeft, Plus } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtasks, getSubtaskProgress } from '@/utils/helpers';
 import { useToggleTask, useCreateTask, useUpdateTask } from '@/hooks/useTasks';
-import type { Task, Project } from '@lucidity/shared';
+import { THEME } from '@/lib/theme';
+import Constants from 'expo-constants';
+import type { Task, Project, UpdateTask } from '@lucidity/shared';
 
 interface TaskSheetProps {
   tasks: Task[];
@@ -27,6 +30,8 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = React.useState('');
   const [newTaskTitle, setNewTaskTitle] = React.useState('');
+  const { colorScheme } = useColorScheme();
+  const theme = THEME[colorScheme ?? 'light'];
 
   const {
     isOpen,
@@ -113,6 +118,14 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
     );
   }, [newTaskTitle, createProjectId, createTask, closeSheet]);
 
+  const handleUpdateField = React.useCallback(
+    (data: Partial<UpdateTask>) => {
+      if (!task) return;
+      updateTask.mutate({ id: task.id, data });
+    },
+    [task, updateTask]
+  );
+
   const renderBackdrop = React.useCallback(
     (props: any) => (
       <BottomSheetBackdrop
@@ -141,8 +154,8 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
         onChange={handleSheetChange}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
-        backgroundStyle={{ backgroundColor: '#FFFFFF' }}
-        handleIndicatorStyle={{ backgroundColor: '#D1D5DB' }}
+        backgroundStyle={{ backgroundColor: theme.card }}
+        handleIndicatorStyle={{ backgroundColor: theme.border }}
       >
         <BottomSheetView className="flex-1 p-4">
           <Text className="text-lg font-semibold mb-4">
@@ -180,8 +193,8 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
         onChange={handleSheetChange}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
-        backgroundStyle={{ backgroundColor: '#FFFFFF' }}
-        handleIndicatorStyle={{ backgroundColor: '#D1D5DB' }}
+        backgroundStyle={{ backgroundColor: theme.card }}
+        handleIndicatorStyle={{ backgroundColor: theme.border }}
       >
         <BottomSheetView>{null}</BottomSheetView>
       </BottomSheet>
@@ -199,8 +212,8 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
       onChange={handleSheetChange}
       enablePanDownToClose
       backdropComponent={renderBackdrop}
-      backgroundStyle={{ backgroundColor: '#FFFFFF' }}
-      handleIndicatorStyle={{ backgroundColor: '#D1D5DB' }}
+      backgroundStyle={{ backgroundColor: theme.card }}
+      handleIndicatorStyle={{ backgroundColor: theme.border }}
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
     >
@@ -242,13 +255,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
         <Separator />
 
-        {/* Subtasks section */}
-        <View className="px-4 py-3">
-          <Text className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-2">
-            Subtasks
-          </Text>
-        </View>
-
+        {/* Subtasks */}
         {subtasks.map((subtask) => (
           <SubtaskItem
             key={subtask.id}
@@ -260,10 +267,13 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
         ))}
 
         {/* Add subtask input */}
-        <View className="flex-row items-center px-4 py-3 border-b border-border">
-          <Plus size={20} color="#9CA3AF" className="mr-2" />
+        <View className="flex-row items-center px-4 border-b border-border" style={{ minHeight: 48 }}>
+          <View className="mr-3">
+            <Plus size={20} color="#9CA3AF" />
+          </View>
           <TextInput
             className="flex-1 text-base text-foreground"
+            style={{ height: 48 }}
             placeholder="Add subtask"
             placeholderTextColor="#9CA3AF"
             value={newSubtaskTitle}
@@ -274,7 +284,19 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
         </View>
 
         {/* Task options */}
-        <TaskOptions task={task} project={project} />
+        <TaskOptions
+          task={task}
+          project={project}
+          projects={projects}
+          onUpdate={handleUpdateField}
+        />
+
+        {/* API URL debug info */}
+        <View className="px-4 py-3 mt-4">
+          <Text className="text-xs text-muted-foreground/50 text-center">
+            API: {Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000'}
+          </Text>
+        </View>
       </BottomSheetScrollView>
     </BottomSheet>
   );
