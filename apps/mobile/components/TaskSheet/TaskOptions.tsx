@@ -11,8 +11,6 @@ import {
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Calendar, Folder, Flag, Activity, Type, FileText } from '@/lib/icons';
-import { formatStatus } from '@/utils/helpers';
-import { getPriorityLabel } from '@/utils/constants';
 import type { Task, Project, UpdateTask } from '@lucidity/shared';
 import type { Option } from '@rn-primitives/select';
 
@@ -215,11 +213,10 @@ export function TaskOptions({ task, project, projects, onUpdate, onDescriptionCh
             className="border-0 bg-transparent px-0 flex-1"
             style={{ height: ROW_HEIGHT }}
           >
-            <SelectValue placeholder="Select project">
-              <Text className="text-base text-muted-foreground">
-                {currentProject?.label || 'Unknown'}
-              </Text>
-            </SelectValue>
+            <SelectValue
+              className="text-base text-muted-foreground native:text-base"
+              placeholder="Select project"
+            />
           </SelectTrigger>
           <SelectContent>
             {projectOptions.map((p) => (
@@ -251,11 +248,10 @@ export function TaskOptions({ task, project, projects, onUpdate, onDescriptionCh
             className="border-0 bg-transparent px-0 flex-1"
             style={{ height: ROW_HEIGHT }}
           >
-            <SelectValue placeholder="Select status">
-              <Text className="text-base text-muted-foreground">
-                {formatStatus(task.status)}
-              </Text>
-            </SelectValue>
+            <SelectValue
+              className="text-base text-muted-foreground native:text-base"
+              placeholder="Select status"
+            />
           </SelectTrigger>
           <SelectContent>
             {STATUS_OPTIONS.map((s) => (
@@ -274,11 +270,10 @@ export function TaskOptions({ task, project, projects, onUpdate, onDescriptionCh
             className="border-0 bg-transparent px-0 flex-1"
             style={{ height: ROW_HEIGHT }}
           >
-            <SelectValue placeholder="Select priority">
-              <Text className="text-base text-muted-foreground">
-                {getPriorityLabel(task.priority)}
-              </Text>
-            </SelectValue>
+            <SelectValue
+              className="text-base text-muted-foreground native:text-base"
+              placeholder="Select priority"
+            />
           </SelectTrigger>
           <SelectContent>
             {PRIORITY_OPTIONS.map((p) => (
