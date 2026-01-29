@@ -40,7 +40,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     output: "static",
     favicon: "./assets/images/favicon.png",
   },
-  plugins: ["expo-router", "expo-secure-store", "expo-web-browser"],
+  plugins: [
+    "expo-router",
+    "expo-secure-store",
+    "expo-web-browser",
+    "@react-native-community/datetimepicker",
+  ],
   experiments: {
     typedRoutes: true,
   },

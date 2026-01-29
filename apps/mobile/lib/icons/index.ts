@@ -13,6 +13,8 @@ import {
   X,
   Sun,
   Moon,
+  Type,
+  FileText,
 } from 'lucide-react-native';
 
 export {
@@ -30,4 +32,6 @@ export {
   X,
   Sun,
   Moon,
+  Type,
+  FileText,
 };
