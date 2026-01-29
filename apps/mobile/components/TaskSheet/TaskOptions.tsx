@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, Pressable, TextInput } from 'react-native';
+import { View, Pressable, TextInput, Keyboard } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -11,8 +11,6 @@ import {
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Calendar, Folder, Flag, Activity, Type, FileText } from '@/lib/icons';
-import { formatStatus } from '@/utils/helpers';
-import { getPriorityLabel } from '@/utils/constants';
 import type { Task, Project, UpdateTask } from '@lucidity/shared';
 import type { Option } from '@rn-primitives/select';
 
@@ -21,6 +19,7 @@ interface TaskOptionsProps {
   project: Project | undefined;
   projects: Project[];
   onUpdate: (data: Partial<UpdateTask>) => void;
+  onDescriptionChange?: (value: string | null) => void;
 }
 
 const iconColor = '#6B7280';
@@ -59,7 +58,7 @@ const ROW_HEIGHT = 48;
 function OptionRow({ icon, label, children }: OptionRowProps) {
   return (
     <View className="flex-row items-center px-4" style={{ minHeight: ROW_HEIGHT }}>
-      <View className="mr-3">{icon}</View>
+      <View className="w-5 mr-3 items-center">{icon}</View>
       <Text className="w-28 text-base text-foreground">{label}</Text>
       <View className="flex-1 justify-center" style={{ minHeight: ROW_HEIGHT }}>
         {children}
@@ -68,7 +67,7 @@ function OptionRow({ icon, label, children }: OptionRowProps) {
   );
 }
 
-export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsProps) {
+export function TaskOptions({ task, project, projects, onUpdate, onDescriptionChange }: TaskOptionsProps) {
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
   const [isEditingDescription, setIsEditingDescription] = React.useState(false);
   const [titleValue, setTitleValue] = React.useState(task.title);
@@ -86,6 +85,7 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
       setTitleValue(task.title);
     }
     setIsEditingTitle(false);
+    Keyboard.dismiss();
   };
 
   const handleDescriptionSubmit = () => {
@@ -94,6 +94,8 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
       onUpdate({ description: newDescription });
     }
     setIsEditingDescription(false);
+    onDescriptionChange?.(null);
+    Keyboard.dismiss();
   };
 
   const handleProjectChange = (option: Option) => {
@@ -143,13 +145,14 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
         {isEditingTitle ? (
           <TextInput
             className="flex-1 text-base text-foreground"
-            style={{ height: ROW_HEIGHT }}
+            style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
             value={titleValue}
             onChangeText={setTitleValue}
             onBlur={handleTitleSubmit}
             onSubmitEditing={handleTitleSubmit}
             autoFocus
             returnKeyType="done"
+            blurOnSubmit
           />
         ) : (
           <Pressable
@@ -171,13 +174,17 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
         {isEditingDescription ? (
           <TextInput
             className="flex-1 text-base text-foreground"
-            style={{ height: ROW_HEIGHT }}
+            style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
             value={descriptionValue}
-            onChangeText={setDescriptionValue}
+            onChangeText={(text) => {
+              setDescriptionValue(text);
+              onDescriptionChange?.(text);
+            }}
             onBlur={handleDescriptionSubmit}
             onSubmitEditing={handleDescriptionSubmit}
             autoFocus
             returnKeyType="done"
+            blurOnSubmit
             placeholder="Add description..."
             placeholderTextColor="#9CA3AF"
           />
@@ -206,11 +213,10 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
             className="border-0 bg-transparent px-0 flex-1"
             style={{ height: ROW_HEIGHT }}
           >
-            <SelectValue placeholder="Select project">
-              <Text className="text-base text-muted-foreground">
-                {currentProject?.label || 'Unknown'}
-              </Text>
-            </SelectValue>
+            <SelectValue
+              className="text-base text-muted-foreground native:text-base"
+              placeholder="Select project"
+            />
           </SelectTrigger>
           <SelectContent>
             {projectOptions.map((p) => (
@@ -242,11 +248,10 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
             className="border-0 bg-transparent px-0 flex-1"
             style={{ height: ROW_HEIGHT }}
           >
-            <SelectValue placeholder="Select status">
-              <Text className="text-base text-muted-foreground">
-                {formatStatus(task.status)}
-              </Text>
-            </SelectValue>
+            <SelectValue
+              className="text-base text-muted-foreground native:text-base"
+              placeholder="Select status"
+            />
           </SelectTrigger>
           <SelectContent>
             {STATUS_OPTIONS.map((s) => (
@@ -265,11 +270,10 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
             className="border-0 bg-transparent px-0 flex-1"
             style={{ height: ROW_HEIGHT }}
           >
-            <SelectValue placeholder="Select priority">
-              <Text className="text-base text-muted-foreground">
-                {getPriorityLabel(task.priority)}
-              </Text>
-            </SelectValue>
+            <SelectValue
+              className="text-base text-muted-foreground native:text-base"
+              placeholder="Select priority"
+            />
           </SelectTrigger>
           <SelectContent>
             {PRIORITY_OPTIONS.map((p) => (

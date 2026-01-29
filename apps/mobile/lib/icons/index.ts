@@ -15,6 +15,8 @@ import {
   Moon,
   Type,
   FileText,
+  Archive,
+  Palette,
 } from 'lucide-react-native';
 
 export {
@@ -34,4 +36,6 @@ export {
   Moon,
   Type,
   FileText,
+  Archive,
+  Palette,
 };
