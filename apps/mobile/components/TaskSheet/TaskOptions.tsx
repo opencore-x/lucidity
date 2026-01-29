@@ -1,70 +1,283 @@
 import * as React from 'react';
-import { View } from 'react-native';
+import { View, Pressable, TextInput } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Clock, Folder, Flag, Activity } from '@/lib/icons';
-import { formatDate, formatStatus } from '@/utils/helpers';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Calendar, Folder, Flag, Activity, Type, FileText } from '@/lib/icons';
+import { formatStatus } from '@/utils/helpers';
 import { getPriorityLabel } from '@/utils/constants';
-import type { Task, Project } from '@lucidity/shared';
+import type { Task, Project, UpdateTask } from '@lucidity/shared';
+import type { Option } from '@rn-primitives/select';
 
 interface TaskOptionsProps {
   task: Task;
   project: Project | undefined;
+  projects: Project[];
+  onUpdate: (data: Partial<UpdateTask>) => void;
+}
+
+const iconColor = '#6B7280';
+const iconSize = 20;
+
+const STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'completed', label: 'Completed' },
+];
+
+const PRIORITY_OPTIONS = [
+  { value: '1', label: 'Lowest' },
+  { value: '250', label: 'Low' },
+  { value: '500', label: 'Normal' },
+  { value: '750', label: 'High' },
+  { value: '1000', label: 'Highest' },
+];
+
+function getPriorityValue(priority: number): string {
+  if (priority <= 125) return '1';
+  if (priority <= 375) return '250';
+  if (priority <= 625) return '500';
+  if (priority <= 875) return '750';
+  return '1000';
 }
 
 interface OptionRowProps {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  children: React.ReactNode;
 }
 
-function OptionRow({ icon, label, value }: OptionRowProps) {
+const ROW_HEIGHT = 48;
+
+function OptionRow({ icon, label, children }: OptionRowProps) {
   return (
-    <View className="flex-row items-center py-3 px-4">
+    <View className="flex-row items-center px-4" style={{ minHeight: ROW_HEIGHT }}>
       <View className="mr-3">{icon}</View>
-      <Text className="flex-1 text-base text-foreground">{label}</Text>
-      <Text className="text-base text-muted-foreground">{value}</Text>
+      <Text className="w-28 text-base text-foreground">{label}</Text>
+      <View className="flex-1 justify-center" style={{ minHeight: ROW_HEIGHT }}>
+        {children}
+      </View>
     </View>
   );
 }
 
-export function TaskOptions({ task, project }: TaskOptionsProps) {
-  const iconColor = '#6B7280';
-  const iconSize = 20;
+export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsProps) {
+  const [isEditingTitle, setIsEditingTitle] = React.useState(false);
+  const [isEditingDescription, setIsEditingDescription] = React.useState(false);
+  const [titleValue, setTitleValue] = React.useState(task.title);
+  const [descriptionValue, setDescriptionValue] = React.useState(task.description || '');
+
+  React.useEffect(() => {
+    setTitleValue(task.title);
+    setDescriptionValue(task.description || '');
+  }, [task.id, task.title, task.description]);
+
+  const handleTitleSubmit = () => {
+    if (titleValue.trim() && titleValue !== task.title) {
+      onUpdate({ title: titleValue.trim() });
+    } else {
+      setTitleValue(task.title);
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleDescriptionSubmit = () => {
+    const newDescription = descriptionValue.trim() || undefined;
+    if (newDescription !== (task.description || undefined)) {
+      onUpdate({ description: newDescription });
+    }
+    setIsEditingDescription(false);
+  };
+
+  const handleProjectChange = (option: Option) => {
+    if (option?.value && option.value !== task.projectId) {
+      onUpdate({ projectId: option.value });
+    }
+  };
+
+  const handleDueDateChange = (date: Date | undefined) => {
+    onUpdate({ dueDate: date });
+  };
+
+  const handleStatusChange = (option: Option) => {
+    if (option?.value && option.value !== task.status) {
+      onUpdate({ status: option.value as 'pending' | 'in_progress' | 'completed' });
+    }
+  };
+
+  const handlePriorityChange = (option: Option) => {
+    if (option?.value) {
+      const newPriority = parseInt(option.value, 10);
+      if (newPriority !== task.priority) {
+        onUpdate({ priority: newPriority });
+      }
+    }
+  };
+
+  const projectOptions = projects.map((p) => ({
+    value: p.id,
+    label: p.name,
+  }));
+
+  const currentProject = project
+    ? { value: project.id, label: project.name }
+    : undefined;
+
+  const currentStatus = STATUS_OPTIONS.find((s) => s.value === task.status);
+  const currentPriorityValue = getPriorityValue(task.priority);
+  const currentPriority = PRIORITY_OPTIONS.find((p) => p.value === currentPriorityValue);
 
   return (
     <View className="mt-4">
       <Separator />
 
-      <OptionRow
-        icon={<Folder size={iconSize} color={iconColor} />}
-        label="Project"
-        value={project?.name || 'Unknown'}
-      />
+      {/* Title */}
+      <OptionRow icon={<Type size={iconSize} color={iconColor} />} label="Title">
+        {isEditingTitle ? (
+          <TextInput
+            className="flex-1 text-base text-foreground"
+            style={{ height: ROW_HEIGHT }}
+            value={titleValue}
+            onChangeText={setTitleValue}
+            onBlur={handleTitleSubmit}
+            onSubmitEditing={handleTitleSubmit}
+            autoFocus
+            returnKeyType="done"
+          />
+        ) : (
+          <Pressable
+            onPress={() => setIsEditingTitle(true)}
+            className="flex-1 flex-row items-center"
+            style={{ height: ROW_HEIGHT }}
+          >
+            <Text className="text-base text-muted-foreground" numberOfLines={1}>
+              {task.title}
+            </Text>
+          </Pressable>
+        )}
+      </OptionRow>
 
       <Separator />
 
-      <OptionRow
-        icon={<Calendar size={iconSize} color={iconColor} />}
-        label="Due Date"
-        value={formatDate(task.dueDate)}
-      />
+      {/* Description */}
+      <OptionRow icon={<FileText size={iconSize} color={iconColor} />} label="Description">
+        {isEditingDescription ? (
+          <TextInput
+            className="flex-1 text-base text-foreground"
+            style={{ height: ROW_HEIGHT }}
+            value={descriptionValue}
+            onChangeText={setDescriptionValue}
+            onBlur={handleDescriptionSubmit}
+            onSubmitEditing={handleDescriptionSubmit}
+            autoFocus
+            returnKeyType="done"
+            placeholder="Add description..."
+            placeholderTextColor="#9CA3AF"
+          />
+        ) : (
+          <Pressable
+            onPress={() => setIsEditingDescription(true)}
+            className="flex-1 flex-row items-center"
+            style={{ height: ROW_HEIGHT }}
+          >
+            <Text
+              className={`text-base ${task.description ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}
+              numberOfLines={1}
+            >
+              {task.description || 'Add description...'}
+            </Text>
+          </Pressable>
+        )}
+      </OptionRow>
 
       <Separator />
 
-      <OptionRow
-        icon={<Activity size={iconSize} color={iconColor} />}
-        label="Status"
-        value={formatStatus(task.status)}
-      />
+      {/* Project */}
+      <OptionRow icon={<Folder size={iconSize} color={iconColor} />} label="Project">
+        <Select value={currentProject} onValueChange={handleProjectChange}>
+          <SelectTrigger
+            className="border-0 bg-transparent px-0 flex-1"
+            style={{ height: ROW_HEIGHT }}
+          >
+            <SelectValue placeholder="Select project">
+              <Text className="text-base text-muted-foreground">
+                {currentProject?.label || 'Unknown'}
+              </Text>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {projectOptions.map((p) => (
+              <SelectItem key={p.value} value={p.value} label={p.label} />
+            ))}
+          </SelectContent>
+        </Select>
+      </OptionRow>
 
       <Separator />
 
-      <OptionRow
-        icon={<Flag size={iconSize} color={iconColor} />}
-        label="Priority"
-        value={getPriorityLabel(task.priority)}
-      />
+      {/* Due Date */}
+      <OptionRow icon={<Calendar size={iconSize} color={iconColor} />} label="Due Date">
+        <DatePicker
+          value={task.dueDate ? new Date(task.dueDate) : undefined}
+          onChange={handleDueDateChange}
+          placeholder="None"
+          className="flex-1"
+          height={ROW_HEIGHT}
+        />
+      </OptionRow>
+
+      <Separator />
+
+      {/* Status */}
+      <OptionRow icon={<Activity size={iconSize} color={iconColor} />} label="Status">
+        <Select value={currentStatus} onValueChange={handleStatusChange}>
+          <SelectTrigger
+            className="border-0 bg-transparent px-0 flex-1"
+            style={{ height: ROW_HEIGHT }}
+          >
+            <SelectValue placeholder="Select status">
+              <Text className="text-base text-muted-foreground">
+                {formatStatus(task.status)}
+              </Text>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {STATUS_OPTIONS.map((s) => (
+              <SelectItem key={s.value} value={s.value} label={s.label} />
+            ))}
+          </SelectContent>
+        </Select>
+      </OptionRow>
+
+      <Separator />
+
+      {/* Priority */}
+      <OptionRow icon={<Flag size={iconSize} color={iconColor} />} label="Priority">
+        <Select value={currentPriority} onValueChange={handlePriorityChange}>
+          <SelectTrigger
+            className="border-0 bg-transparent px-0 flex-1"
+            style={{ height: ROW_HEIGHT }}
+          >
+            <SelectValue placeholder="Select priority">
+              <Text className="text-base text-muted-foreground">
+                {getPriorityLabel(task.priority)}
+              </Text>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {PRIORITY_OPTIONS.map((p) => (
+              <SelectItem key={p.value} value={p.value} label={p.label} />
+            ))}
+          </SelectContent>
+        </Select>
+      </OptionRow>
 
       <Separator />
     </View>
