@@ -4,6 +4,7 @@ import { NAV_THEME } from '@/lib/theme';
 import { ApiProvider } from '@/providers/ApiProvider';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { tokenCache } from '@clerk/clerk-expo/token-cache';
+import Constants from 'expo-constants';
 import { ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PortalHost } from '@rn-primitives/portal';
@@ -26,7 +27,10 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ClerkProvider tokenCache={tokenCache}>
+      <ClerkProvider
+          publishableKey={Constants.expoConfig?.extra?.clerkPublishableKey}
+          tokenCache={tokenCache}
+        >
         <QueryClientProvider client={queryClient}>
           <ApiProvider>
             <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>

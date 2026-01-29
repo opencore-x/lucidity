@@ -3,11 +3,11 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "dev": "expo start -c --env-file ../../.env",
-    "android": "expo start -c --android --env-file ../../.env",
-    "ios": "expo start -c --ios --env-file ../../.env",
-    "web": "expo start -c --web --env-file ../../.env",
-    "build:ios": "expo run:ios --configuration Release --env-file ../../.env.production",
+    "dev": "expo start -c",
+    "android": "expo start -c --android",
+    "ios": "expo start -c --ios",
+    "web": "expo start -c --web",
+    "build:ios": "APP_ENV=production expo run:ios --device --configuration Release",
     "clean": "rm -rf .expo node_modules"
   },
   "dependencies": {
@@ -55,6 +55,7 @@
   "devDependencies": {
     "@babel/core": "^7.26.0",
     "@types/react": "~19.1.0",
+    "dotenv": "^17.2.3",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "typescript": "~5.9.2"
