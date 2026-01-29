@@ -268,12 +268,12 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
         {/* Add subtask input */}
         <View className="flex-row items-center px-4 border-b border-border" style={{ minHeight: 48 }}>
-          <View className="mr-3">
+          <View className="w-5 mr-3 items-center">
             <Plus size={20} color="#9CA3AF" />
           </View>
           <TextInput
             className="flex-1 text-base text-foreground"
-            style={{ height: 48 }}
+            style={{ height: 48, padding: 0, margin: 0 }}
             placeholder="Add subtask"
             placeholderTextColor="#9CA3AF"
             value={newSubtaskTitle}

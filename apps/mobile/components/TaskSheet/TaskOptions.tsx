@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, Pressable, TextInput } from 'react-native';
+import { View, Pressable, TextInput, Keyboard } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -59,7 +59,7 @@ const ROW_HEIGHT = 48;
 function OptionRow({ icon, label, children }: OptionRowProps) {
   return (
     <View className="flex-row items-center px-4" style={{ minHeight: ROW_HEIGHT }}>
-      <View className="mr-3">{icon}</View>
+      <View className="w-5 mr-3 items-center">{icon}</View>
       <Text className="w-28 text-base text-foreground">{label}</Text>
       <View className="flex-1 justify-center" style={{ minHeight: ROW_HEIGHT }}>
         {children}
@@ -86,6 +86,7 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
       setTitleValue(task.title);
     }
     setIsEditingTitle(false);
+    Keyboard.dismiss();
   };
 
   const handleDescriptionSubmit = () => {
@@ -94,6 +95,7 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
       onUpdate({ description: newDescription });
     }
     setIsEditingDescription(false);
+    Keyboard.dismiss();
   };
 
   const handleProjectChange = (option: Option) => {
@@ -143,13 +145,14 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
         {isEditingTitle ? (
           <TextInput
             className="flex-1 text-base text-foreground"
-            style={{ height: ROW_HEIGHT }}
+            style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
             value={titleValue}
             onChangeText={setTitleValue}
             onBlur={handleTitleSubmit}
             onSubmitEditing={handleTitleSubmit}
             autoFocus
             returnKeyType="done"
+            blurOnSubmit
           />
         ) : (
           <Pressable
@@ -171,13 +174,14 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
         {isEditingDescription ? (
           <TextInput
             className="flex-1 text-base text-foreground"
-            style={{ height: ROW_HEIGHT }}
+            style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
             value={descriptionValue}
             onChangeText={setDescriptionValue}
             onBlur={handleDescriptionSubmit}
             onSubmitEditing={handleDescriptionSubmit}
             autoFocus
             returnKeyType="done"
+            blurOnSubmit
             placeholder="Add description..."
             placeholderTextColor="#9CA3AF"
           />

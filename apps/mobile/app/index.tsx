@@ -6,6 +6,7 @@ import { ProjectGroup } from '@/components/ProjectGroup';
 import { EmptyState } from '@/components/EmptyState';
 import { FAB } from '@/components/FAB';
 import { TaskSheet } from '@/components/TaskSheet';
+import { ProjectSheet } from '@/components/ProjectSheet';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { useUser } from '@clerk/clerk-expo';
 import { Stack } from 'expo-router';
@@ -17,8 +18,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTasks, useToggleTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
+import { useProjectSheetStore } from '@/stores/projectSheetStore';
 import { groupTasksByProject } from '@/utils/helpers';
-import type { Task } from '@lucidity/shared';
+import type { Task, Project } from '@lucidity/shared';
 
 const SCREEN_OPTIONS = {
   headerShown: false,
@@ -30,9 +32,16 @@ export default function HomeScreen() {
   const [showCreateProject, setShowCreateProject] = React.useState(false);
 
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
-  const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
+  const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const toggleTask = useToggleTask();
   const { openSheet, openCreateSheet } = useSheetStore();
+  const { openSheet: openProjectSheet } = useProjectSheetStore();
+
+  // Filter out archived projects
+  const projects = React.useMemo(
+    () => allProjects.filter((p) => !p.isArchived),
+    [allProjects]
+  );
 
   const isLoading = tasksLoading || projectsLoading;
   const [refreshing, setRefreshing] = React.useState(false);
@@ -48,6 +57,13 @@ export default function HomeScreen() {
       openSheet(task);
     },
     [openSheet]
+  );
+
+  const handleProjectPress = React.useCallback(
+    (project: Project) => {
+      openProjectSheet(project);
+    },
+    [openProjectSheet]
   );
 
   const handleTaskToggle = React.useCallback(
@@ -143,6 +159,7 @@ export default function HomeScreen() {
                 tasks={projectTasks}
                 allTasks={tasks}
                 onAddTask={handleAddTask}
+                onProjectPress={handleProjectPress}
                 onTaskPress={handleTaskPress}
                 onTaskToggle={handleTaskToggle}
               />
@@ -157,6 +174,9 @@ export default function HomeScreen() {
 
         {/* Task Sheet */}
         <TaskSheet tasks={tasks} projects={projects} />
+
+        {/* Project Sheet */}
+        <ProjectSheet />
 
         {/* Create Project Modal */}
         <CreateProjectModal
