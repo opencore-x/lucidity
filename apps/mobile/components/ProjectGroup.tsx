@@ -12,6 +12,7 @@ interface ProjectGroupProps {
   tasks: Task[];
   allTasks: Task[];
   onAddTask: (projectId: string) => void;
+  onProjectPress: (project: Project) => void;
   onTaskPress: (task: Task) => void;
   onTaskToggle: (taskId: string) => void;
 }
@@ -21,6 +22,7 @@ export function ProjectGroup({
   tasks,
   allTasks,
   onAddTask,
+  onProjectPress,
   onTaskPress,
   onTaskToggle,
 }: ProjectGroupProps) {
@@ -28,12 +30,15 @@ export function ProjectGroup({
     <View className="mb-4">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-2 bg-background">
-        <View className="flex-row items-center">
+        <Pressable
+          className="flex-row items-center flex-1"
+          onPress={() => onProjectPress(project)}
+        >
           <Text className="text-lg font-semibold">{project.name}</Text>
           <Text className="ml-2 text-sm text-muted-foreground">
             {tasks.length}
           </Text>
-        </View>
+        </Pressable>
         <Button
           variant="ghost"
           size="icon"
@@ -53,15 +58,6 @@ export function ProjectGroup({
           subtaskProgress={getSubtaskProgress(allTasks, task.id)}
         />
       ))}
-
-      {/* Empty state for this project */}
-      {tasks.length === 0 && (
-        <View className="px-4 py-6 items-center">
-          <Text className="text-muted-foreground text-sm">
-            No tasks in this project
-          </Text>
-        </View>
-      )}
     </View>
   );
 }

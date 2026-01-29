@@ -30,6 +30,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = React.useState('');
   const [newTaskTitle, setNewTaskTitle] = React.useState('');
+  const [editingDescription, setEditingDescription] = React.useState<string | null>(null);
   const { colorScheme } = useColorScheme();
   const theme = THEME[colorScheme ?? 'light'];
 
@@ -43,6 +44,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
     closeSheet,
     drillDown,
     goBack,
+    updateCurrentTask,
   } = useSheetStore();
 
   const task = currentTask();
@@ -121,9 +123,16 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const handleUpdateField = React.useCallback(
     (data: Partial<UpdateTask>) => {
       if (!task) return;
-      updateTask.mutate({ id: task.id, data });
+      updateTask.mutate(
+        { id: task.id, data },
+        {
+          onSuccess: (updatedTask) => {
+            updateCurrentTask(updatedTask);
+          },
+        }
+      );
     },
-    [task, updateTask]
+    [task, updateTask, updateCurrentTask]
   );
 
   const renderBackdrop = React.useCallback(
@@ -245,9 +254,9 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
             >
               {task.title}
             </Text>
-            {task.description && (
+            {(editingDescription ?? task.description) && (
               <Text className="text-muted-foreground mt-1">
-                {task.description}
+                {editingDescription ?? task.description}
               </Text>
             )}
           </View>
@@ -268,12 +277,12 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
         {/* Add subtask input */}
         <View className="flex-row items-center px-4 border-b border-border" style={{ minHeight: 48 }}>
-          <View className="mr-3">
+          <View className="w-5 mr-3 items-center">
             <Plus size={20} color="#9CA3AF" />
           </View>
           <TextInput
             className="flex-1 text-base text-foreground"
-            style={{ height: 48 }}
+            style={{ height: 48, padding: 0, margin: 0 }}
             placeholder="Add subtask"
             placeholderTextColor="#9CA3AF"
             value={newSubtaskTitle}
@@ -289,6 +298,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
           project={project}
           projects={projects}
           onUpdate={handleUpdateField}
+          onDescriptionChange={setEditingDescription}
         />
 
         {/* API URL debug info */}

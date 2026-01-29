@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { uuidv7 } from 'uuidv7';
 import { db } from '../lib/db.js';
-import { tasks, eq, and } from '@lucidity/db';
+import { tasks, eq, and, asc } from '@lucidity/db';
 import { CreateTaskSchema, UpdateTaskSchema } from '@lucidity/shared';
 import { getCurrentUser } from '../lib/auth.js';
 
@@ -12,7 +12,8 @@ router.get('/', async (c) => {
   const allTasks = await db
     .select()
     .from(tasks)
-    .where(eq(tasks.userId, user.id));
+    .where(eq(tasks.userId, user.id))
+    .orderBy(asc(tasks.createdAt));
   return c.json(allTasks);
 });
 
