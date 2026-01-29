@@ -210,6 +210,9 @@ importers:
         specifier: ^0.45.1
         version: 0.45.1(@neondatabase/serverless@1.0.2)(@types/pg@8.16.0)
     devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
       dotenv:
         specifier: ^17.2.3
         version: 17.2.3
@@ -219,6 +222,9 @@ importers:
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.2
 
   packages/eslint-config:
     devDependencies:
@@ -261,6 +267,13 @@ importers:
       zod:
         specifier: ^4.3.5
         version: 4.3.5
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.2
 
   packages/typescript-config: {}
 
