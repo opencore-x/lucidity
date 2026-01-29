@@ -22,8 +22,8 @@ export function useCreateTask() {
 
   return useMutation({
     mutationFn: (data: CreateTask) => tasksApi.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    onSettled: async () => {
+      await queryClient.refetchQueries({ queryKey: ['tasks'] });
     },
   });
 }
