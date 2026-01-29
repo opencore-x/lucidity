@@ -30,6 +30,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = React.useState('');
   const [newTaskTitle, setNewTaskTitle] = React.useState('');
+  const [editingDescription, setEditingDescription] = React.useState<string | null>(null);
   const { colorScheme } = useColorScheme();
   const theme = THEME[colorScheme ?? 'light'];
 
@@ -245,9 +246,9 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
             >
               {task.title}
             </Text>
-            {task.description && (
+            {(editingDescription ?? task.description) && (
               <Text className="text-muted-foreground mt-1">
-                {task.description}
+                {editingDescription ?? task.description}
               </Text>
             )}
           </View>
@@ -289,6 +290,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
           project={project}
           projects={projects}
           onUpdate={handleUpdateField}
+          onDescriptionChange={setEditingDescription}
         />
 
         {/* API URL debug info */}

@@ -21,6 +21,7 @@ interface TaskOptionsProps {
   project: Project | undefined;
   projects: Project[];
   onUpdate: (data: Partial<UpdateTask>) => void;
+  onDescriptionChange?: (value: string | null) => void;
 }
 
 const iconColor = '#6B7280';
@@ -68,7 +69,7 @@ function OptionRow({ icon, label, children }: OptionRowProps) {
   );
 }
 
-export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsProps) {
+export function TaskOptions({ task, project, projects, onUpdate, onDescriptionChange }: TaskOptionsProps) {
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
   const [isEditingDescription, setIsEditingDescription] = React.useState(false);
   const [titleValue, setTitleValue] = React.useState(task.title);
@@ -95,6 +96,7 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
       onUpdate({ description: newDescription });
     }
     setIsEditingDescription(false);
+    onDescriptionChange?.(null);
     Keyboard.dismiss();
   };
 
@@ -176,7 +178,10 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
             className="flex-1 text-base text-foreground"
             style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
             value={descriptionValue}
-            onChangeText={setDescriptionValue}
+            onChangeText={(text) => {
+              setDescriptionValue(text);
+              onDescriptionChange?.(text);
+            }}
             onBlur={handleDescriptionSubmit}
             onSubmitEditing={handleDescriptionSubmit}
             autoFocus
