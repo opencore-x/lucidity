@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { uuidv7 } from 'uuidv7';
 import { db } from '../lib/db.js';
-import { tasks, eq, and, asc } from '@lucidity/db';
+import { tasks, eq, and, asc, sql } from '@lucidity/db';
 import { CreateTaskSchema, UpdateTaskSchema } from '@lucidity/shared';
 import { getCurrentUser } from '../lib/auth.js';
 
@@ -13,7 +13,7 @@ router.get('/', async (c) => {
     .select()
     .from(tasks)
     .where(eq(tasks.userId, user.id))
-    .orderBy(asc(tasks.createdAt));
+    .orderBy(sql`${tasks.position} ASC NULLS LAST`, asc(tasks.createdAt));
   return c.json(allTasks);
 });
 
@@ -96,6 +96,27 @@ router.patch('/:id/complete', async (c) => {
   return c.json(updated);
 });
 
-// router.patch('/:id/reorder', async (c) => {});
+router.patch('/reorder', async (c) => {
+  const user = await getCurrentUser(c);
+  const body = await c.req.json();
+  const { taskIds } = body as { taskIds: string[] };
+
+  if (!Array.isArray(taskIds)) {
+    return c.json({ error: 'taskIds must be an array' }, 400);
+  }
+
+  // Update position for each task based on array index
+  const updates = await Promise.all(
+    taskIds.map((id, index) =>
+      db
+        .update(tasks)
+        .set({ position: index })
+        .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
+        .returning()
+    )
+  );
+
+  return c.json({ updated: updates.flat().length });
+});
 
 export default router;

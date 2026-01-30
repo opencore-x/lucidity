@@ -23,4 +23,10 @@ export const tasksApi = {
 
   toggleComplete: (id: string) =>
     apiClient<Task>(`/api/tasks/${id}/complete`, { method: 'PATCH' }),
+
+  reorder: (taskIds: string[]) =>
+    apiClient<{ updated: number }>('/api/tasks/reorder', {
+      method: 'PATCH',
+      body: JSON.stringify({ taskIds }),
+    }),
 };
