@@ -5,7 +5,7 @@ import * as path from "path";
 const APP_ENV = process.env.APP_ENV || "development";
 
 const envFile = APP_ENV === "production" ? ".env.production" : ".env";
-dotenv.config({ path: path.resolve(__dirname, "../..", envFile) });
+dotenv.config({ path: path.resolve(__dirname, "../..", envFile), override: true });
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -20,7 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   splash: {
     image: "./assets/images/splash.png",
     resizeMode: "contain",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#2d2d2d",
   },
   assetBundlePatterns: ["**/*"],
   ios: {
@@ -31,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     edgeToEdgeEnabled: true,
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
-      backgroundColor: "#ffffff",
+      backgroundColor: "#2d2d2d",
     },
     package: "com.lucidity.app",
   },
