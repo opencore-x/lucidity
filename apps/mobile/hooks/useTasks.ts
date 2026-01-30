@@ -61,3 +61,14 @@ export function useDeleteTask() {
     },
   });
 }
+
+export function useReorderTasks() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (taskIds: string[]) => tasksApi.reorder(taskIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+}
