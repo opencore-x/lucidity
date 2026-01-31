@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
@@ -49,7 +49,7 @@ export function TaskItem({
         </Text>
       )}
 
-      {/* Drag handle (visual only for now) */}
+      {/* Drag handle - long press anywhere on item to drag */}
       <GripVertical size={20} color="#9CA3AF" />
     </Pressable>
   );

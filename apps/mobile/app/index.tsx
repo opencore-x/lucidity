@@ -15,7 +15,7 @@ import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTasks, useToggleTask } from '@/hooks/useTasks';
+import { useTasks, useToggleTask, useReorderTasks, useDeleteTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { useProjectSheetStore } from '@/stores/projectSheetStore';
@@ -34,6 +34,8 @@ export default function HomeScreen() {
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const toggleTask = useToggleTask();
+  const reorderTasks = useReorderTasks();
+  const deleteTask = useDeleteTask();
   const { openSheet, openCreateSheet } = useSheetStore();
   const { openSheet: openProjectSheet } = useProjectSheetStore();
 
@@ -87,10 +89,43 @@ export default function HomeScreen() {
     }
   }, [projects, openCreateSheet]);
 
+  const handleReorderTasks = React.useCallback(
+    (taskIds: string[]) => {
+      reorderTasks.mutate(taskIds);
+    },
+    [reorderTasks]
+  );
+
+  const handleDeleteTask = React.useCallback(
+    (taskId: string) => {
+      deleteTask.mutate(taskId);
+    },
+    [deleteTask]
+  );
+
   const groupedTasks = React.useMemo(
     () => groupTasksByProject(tasks, projects),
     [tasks, projects]
   );
+
+  // Get current sheet data for stale validation
+  const { project: sheetProject } = useProjectSheetStore();
+  const { currentTask } = useSheetStore();
+  const sheetTask = currentTask();
+
+  // Close project sheet if project was archived/deleted
+  React.useEffect(() => {
+    if (sheetProject && !projects.find((p) => p.id === sheetProject.id)) {
+      useProjectSheetStore.getState().closeSheet();
+    }
+  }, [sheetProject, projects]);
+
+  // Close task sheet if task was deleted
+  React.useEffect(() => {
+    if (sheetTask && !tasks.find((t) => t.id === sheetTask.id)) {
+      useSheetStore.getState().closeSheet();
+    }
+  }, [sheetTask, tasks]);
 
   const displayName = user?.firstName
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}`
@@ -162,6 +197,8 @@ export default function HomeScreen() {
                 onProjectPress={handleProjectPress}
                 onTaskPress={handleTaskPress}
                 onTaskToggle={handleTaskToggle}
+                onReorderTasks={handleReorderTasks}
+                onDeleteTask={handleDeleteTask}
               />
             ))}
             {/* Bottom padding for FAB */}

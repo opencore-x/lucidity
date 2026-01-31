@@ -34,5 +34,8 @@ export const TaskSchema = CreateTaskSchema.extend({
   updatedAt: z.coerce.date(),
 });
 
-// Partial schema for updates
-export const UpdateTaskSchema = CreateTaskSchema.partial();
+// Partial schema for updates - allows null for clearable fields
+export const UpdateTaskSchema = CreateTaskSchema.partial().extend({
+  description: z.string().nullable().optional(),
+  dueDate: z.coerce.date().nullable().optional(),
+});

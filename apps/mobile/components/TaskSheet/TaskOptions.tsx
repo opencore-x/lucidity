@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, Pressable, TextInput, Keyboard } from 'react-native';
+import { View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Calendar, Folder, Flag, Activity, Type, FileText } from '@/lib/icons';
+import { Calendar, Folder, Flag, Activity } from '@/lib/icons';
 import type { Task, Project, UpdateTask } from '@lucidity/shared';
 import type { Option } from '@rn-primitives/select';
 
@@ -19,7 +19,6 @@ interface TaskOptionsProps {
   project: Project | undefined;
   projects: Project[];
   onUpdate: (data: Partial<UpdateTask>) => void;
-  onDescriptionChange?: (value: string | null) => void;
 }
 
 const iconColor = '#6B7280';
@@ -67,37 +66,7 @@ function OptionRow({ icon, label, children }: OptionRowProps) {
   );
 }
 
-export function TaskOptions({ task, project, projects, onUpdate, onDescriptionChange }: TaskOptionsProps) {
-  const [isEditingTitle, setIsEditingTitle] = React.useState(false);
-  const [isEditingDescription, setIsEditingDescription] = React.useState(false);
-  const [titleValue, setTitleValue] = React.useState(task.title);
-  const [descriptionValue, setDescriptionValue] = React.useState(task.description || '');
-
-  React.useEffect(() => {
-    setTitleValue(task.title);
-    setDescriptionValue(task.description || '');
-  }, [task.id, task.title, task.description]);
-
-  const handleTitleSubmit = () => {
-    if (titleValue.trim() && titleValue !== task.title) {
-      onUpdate({ title: titleValue.trim() });
-    } else {
-      setTitleValue(task.title);
-    }
-    setIsEditingTitle(false);
-    Keyboard.dismiss();
-  };
-
-  const handleDescriptionSubmit = () => {
-    const newDescription = descriptionValue.trim() || undefined;
-    if (newDescription !== (task.description || undefined)) {
-      onUpdate({ description: newDescription });
-    }
-    setIsEditingDescription(false);
-    onDescriptionChange?.(null);
-    Keyboard.dismiss();
-  };
-
+export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsProps) {
   const handleProjectChange = (option: Option) => {
     if (option?.value && option.value !== task.projectId) {
       onUpdate({ projectId: option.value });
@@ -138,72 +107,6 @@ export function TaskOptions({ task, project, projects, onUpdate, onDescriptionCh
 
   return (
     <View className="mt-4">
-      <Separator />
-
-      {/* Title */}
-      <OptionRow icon={<Type size={iconSize} color={iconColor} />} label="Title">
-        {isEditingTitle ? (
-          <TextInput
-            className="flex-1 text-base text-foreground"
-            style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
-            value={titleValue}
-            onChangeText={setTitleValue}
-            onBlur={handleTitleSubmit}
-            onSubmitEditing={handleTitleSubmit}
-            autoFocus
-            returnKeyType="done"
-            blurOnSubmit
-          />
-        ) : (
-          <Pressable
-            onPress={() => setIsEditingTitle(true)}
-            className="flex-1 flex-row items-center"
-            style={{ height: ROW_HEIGHT }}
-          >
-            <Text className="text-base text-muted-foreground" numberOfLines={1}>
-              {task.title}
-            </Text>
-          </Pressable>
-        )}
-      </OptionRow>
-
-      <Separator />
-
-      {/* Description */}
-      <OptionRow icon={<FileText size={iconSize} color={iconColor} />} label="Description">
-        {isEditingDescription ? (
-          <TextInput
-            className="flex-1 text-base text-foreground"
-            style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
-            value={descriptionValue}
-            onChangeText={(text) => {
-              setDescriptionValue(text);
-              onDescriptionChange?.(text);
-            }}
-            onBlur={handleDescriptionSubmit}
-            onSubmitEditing={handleDescriptionSubmit}
-            autoFocus
-            returnKeyType="done"
-            blurOnSubmit
-            placeholder="Add description..."
-            placeholderTextColor="#9CA3AF"
-          />
-        ) : (
-          <Pressable
-            onPress={() => setIsEditingDescription(true)}
-            className="flex-1 flex-row items-center"
-            style={{ height: ROW_HEIGHT }}
-          >
-            <Text
-              className={`text-base ${task.description ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}
-              numberOfLines={1}
-            >
-              {task.description || 'Add description...'}
-            </Text>
-          </Pressable>
-        )}
-      </OptionRow>
-
       <Separator />
 
       {/* Project */}

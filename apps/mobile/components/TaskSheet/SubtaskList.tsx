@@ -10,39 +10,34 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { Text } from '@/components/ui/text';
-import { Button } from '@/components/ui/button';
-import { Plus, Trash2 } from '@/lib/icons';
-import { TaskItem } from './TaskItem';
+import { SubtaskItem } from './SubtaskItem';
+import { Trash2 } from '@/lib/icons';
 import { getSubtaskProgress } from '@/utils/helpers';
-import type { Task, Project } from '@lucidity/shared';
+import { useReorderTasks } from '@/hooks/useTasks';
+import type { Task } from '@lucidity/shared';
 
-const ITEM_HEIGHT = 56;
+const ITEM_HEIGHT = 52;
 
-interface ProjectGroupProps {
-  project: Project;
-  tasks: Task[];
+interface SubtaskListProps {
+  subtasks: Task[];
   allTasks: Task[];
-  onAddTask: (projectId: string) => void;
-  onProjectPress: (project: Project) => void;
-  onTaskPress: (task: Task) => void;
-  onTaskToggle: (taskId: string) => void;
-  onReorderTasks: (taskIds: string[]) => void;
-  onDeleteTask: (taskId: string) => void;
+  onSubtaskPress: (task: Task) => void;
+  onSubtaskToggle: (taskId: string) => void;
+  onDeleteSubtask: (taskId: string) => void;
 }
 
-interface DraggableTaskProps {
+interface DraggableSubtaskProps {
   task: Task;
   index: number;
   tasksCount: number;
   allTasks: Task[];
-  onTaskPress: (task: Task) => void;
-  onTaskToggle: (taskId: string) => void;
+  onPress: () => void;
+  onToggle: () => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
   onDragStart: () => void;
   onDragUpdate: (targetIndex: number) => void;
   onDragEnd: () => void;
-  onDeleteTask: (taskId: string) => void;
+  onDelete: (taskId: string) => void;
 }
 
 function RightAction({
@@ -68,26 +63,26 @@ function RightAction({
   );
 }
 
-function DraggableTask({
+function DraggableSubtask({
   task,
   index,
   tasksCount,
   allTasks,
-  onTaskPress,
-  onTaskToggle,
+  onPress,
+  onToggle,
   onReorder,
   onDragStart,
   onDragUpdate,
   onDragEnd,
-  onDeleteTask,
-}: DraggableTaskProps) {
+  onDelete,
+}: DraggableSubtaskProps) {
   const swipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
   const translateY = useSharedValue(0);
   const isActive = useSharedValue(false);
 
   const handleDelete = React.useCallback(() => {
     Alert.alert(
-      'Delete Task',
+      'Delete Subtask',
       `Are you sure you want to delete "${task.title}"?`,
       [
         {
@@ -98,11 +93,11 @@ function DraggableTask({
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => onDeleteTask(task.id),
+          onPress: () => onDelete(task.id),
         },
       ]
     );
-  }, [task.id, task.title, onDeleteTask]);
+  }, [task.id, task.title, onDelete]);
 
   const renderRightActions = React.useCallback(
     (_prog: SharedValue<number>, drag: SharedValue<number>) => {
@@ -159,10 +154,10 @@ function DraggableTask({
     >
       <GestureDetector gesture={gesture}>
         <Animated.View style={animatedStyle}>
-          <TaskItem
+          <SubtaskItem
             task={task}
-            onPress={() => onTaskPress(task)}
-            onToggle={() => onTaskToggle(task.id)}
+            onPress={onPress}
+            onToggle={onToggle}
             subtaskProgress={getSubtaskProgress(allTasks, task.id)}
           />
         </Animated.View>
@@ -190,35 +185,33 @@ function DropIndicator({ visible }: { visible: boolean }) {
   );
 }
 
-export function ProjectGroup({
-  project,
-  tasks,
+export function SubtaskList({
+  subtasks,
   allTasks,
-  onAddTask,
-  onProjectPress,
-  onTaskPress,
-  onTaskToggle,
-  onReorderTasks,
-  onDeleteTask,
-}: ProjectGroupProps) {
-  const [localTasks, setLocalTasks] = React.useState(tasks);
+  onSubtaskPress,
+  onSubtaskToggle,
+  onDeleteSubtask,
+}: SubtaskListProps) {
+  const [localSubtasks, setLocalSubtasks] = React.useState(subtasks);
   const [isDragging, setIsDragging] = React.useState(false);
   const [dropIndex, setDropIndex] = React.useState<number | null>(null);
   const [dragFromIndex, setDragFromIndex] = React.useState<number | null>(null);
 
+  const reorderTasks = useReorderTasks();
+
   React.useEffect(() => {
-    setLocalTasks(tasks);
-  }, [tasks]);
+    setLocalSubtasks(subtasks);
+  }, [subtasks]);
 
   const handleReorder = React.useCallback(
     (fromIndex: number, toIndex: number) => {
-      const newTasks = [...localTasks];
-      const [moved] = newTasks.splice(fromIndex, 1);
-      newTasks.splice(toIndex, 0, moved);
-      setLocalTasks(newTasks);
-      onReorderTasks(newTasks.map((t) => t.id));
+      const newSubtasks = [...localSubtasks];
+      const [moved] = newSubtasks.splice(fromIndex, 1);
+      newSubtasks.splice(toIndex, 0, moved);
+      setLocalSubtasks(newSubtasks);
+      reorderTasks.mutate(newSubtasks.map((t) => t.id));
     },
-    [localTasks, onReorderTasks]
+    [localSubtasks, reorderTasks]
   );
 
   const handleDragStart = React.useCallback((index: number) => {
@@ -237,31 +230,14 @@ export function ProjectGroup({
     setDragFromIndex(null);
   }, []);
 
-  return (
-    <View className="mb-4">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-2 bg-background">
-        <Pressable
-          className="flex-row items-center flex-1"
-          onPress={() => onProjectPress(project)}
-        >
-          <Text className="text-lg font-semibold">{project.name}</Text>
-          <Text className="ml-2 text-sm text-muted-foreground">
-            {tasks.length}
-          </Text>
-        </Pressable>
-        <Button
-          variant="ghost"
-          size="icon"
-          onPress={() => onAddTask(project.id)}
-        >
-          <Plus size={20} color="#3B82F6" />
-        </Button>
-      </View>
+  if (localSubtasks.length === 0) {
+    return null;
+  }
 
-      {/* Tasks with drop indicators */}
-      {localTasks.map((task, index) => (
-        <React.Fragment key={task.id}>
+  return (
+    <View>
+      {localSubtasks.map((subtask, index) => (
+        <React.Fragment key={subtask.id}>
           {/* Drop indicator above this item */}
           <DropIndicator
             visible={
@@ -271,18 +247,18 @@ export function ProjectGroup({
               dragFromIndex > index
             }
           />
-          <DraggableTask
-            task={task}
+          <DraggableSubtask
+            task={subtask}
             index={index}
-            tasksCount={localTasks.length}
+            tasksCount={localSubtasks.length}
             allTasks={allTasks}
-            onTaskPress={onTaskPress}
-            onTaskToggle={onTaskToggle}
+            onPress={() => onSubtaskPress(subtask)}
+            onToggle={() => onSubtaskToggle(subtask.id)}
             onReorder={handleReorder}
             onDragStart={() => handleDragStart(index)}
             onDragUpdate={handleDragUpdate}
             onDragEnd={handleDragEnd}
-            onDeleteTask={onDeleteTask}
+            onDelete={onDeleteSubtask}
           />
           {/* Drop indicator below this item */}
           <DropIndicator
@@ -299,9 +275,9 @@ export function ProjectGroup({
       <DropIndicator
         visible={
           isDragging &&
-          dropIndex === localTasks.length - 1 &&
+          dropIndex === localSubtasks.length - 1 &&
           dragFromIndex !== null &&
-          dragFromIndex < localTasks.length - 1
+          dragFromIndex < localSubtasks.length - 1
         }
       />
     </View>
