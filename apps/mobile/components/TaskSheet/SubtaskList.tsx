@@ -1,14 +1,17 @@
 import * as React from 'react';
-import { View } from 'react-native';
+import { View, Pressable, Alert } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
   runOnJS,
+  SharedValue,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { SubtaskItem } from './SubtaskItem';
+import { Trash2 } from '@/lib/icons';
 import { getSubtaskProgress } from '@/utils/helpers';
 import { useReorderTasks } from '@/hooks/useTasks';
 import type { Task } from '@lucidity/shared';
@@ -20,6 +23,7 @@ interface SubtaskListProps {
   allTasks: Task[];
   onSubtaskPress: (task: Task) => void;
   onSubtaskToggle: (taskId: string) => void;
+  onDeleteSubtask: (taskId: string) => void;
 }
 
 interface DraggableSubtaskProps {
@@ -33,6 +37,30 @@ interface DraggableSubtaskProps {
   onDragStart: () => void;
   onDragUpdate: (targetIndex: number) => void;
   onDragEnd: () => void;
+  onDelete: (taskId: string) => void;
+}
+
+function RightAction({
+  drag,
+  onDelete,
+}: {
+  drag: SharedValue<number>;
+  onDelete: () => void;
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: drag.value + 80 }],
+  }));
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        onPress={onDelete}
+        className="bg-destructive justify-center items-center w-20 h-full"
+      >
+        <Trash2 size={24} color="#FFFFFF" />
+      </Pressable>
+    </Animated.View>
+  );
 }
 
 function DraggableSubtask({
@@ -46,9 +74,37 @@ function DraggableSubtask({
   onDragStart,
   onDragUpdate,
   onDragEnd,
+  onDelete,
 }: DraggableSubtaskProps) {
+  const swipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
   const translateY = useSharedValue(0);
   const isActive = useSharedValue(false);
+
+  const handleDelete = React.useCallback(() => {
+    Alert.alert(
+      'Delete Subtask',
+      `Are you sure you want to delete "${task.title}"?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => swipeableRef.current?.close(),
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => onDelete(task.id),
+        },
+      ]
+    );
+  }, [task.id, task.title, onDelete]);
+
+  const renderRightActions = React.useCallback(
+    (_prog: SharedValue<number>, drag: SharedValue<number>) => {
+      return <RightAction drag={drag} onDelete={handleDelete} />;
+    },
+    [handleDelete]
+  );
 
   const gesture = Gesture.Pan()
     .activateAfterLongPress(200)
@@ -89,16 +145,24 @@ function DraggableSubtask({
   }));
 
   return (
-    <GestureDetector gesture={gesture}>
-      <Animated.View style={animatedStyle}>
-        <SubtaskItem
-          task={task}
-          onPress={onPress}
-          onToggle={onToggle}
-          subtaskProgress={getSubtaskProgress(allTasks, task.id)}
-        />
-      </Animated.View>
-    </GestureDetector>
+    <ReanimatedSwipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      overshootRight={false}
+      friction={2}
+      rightThreshold={40}
+    >
+      <GestureDetector gesture={gesture}>
+        <Animated.View style={animatedStyle}>
+          <SubtaskItem
+            task={task}
+            onPress={onPress}
+            onToggle={onToggle}
+            subtaskProgress={getSubtaskProgress(allTasks, task.id)}
+          />
+        </Animated.View>
+      </GestureDetector>
+    </ReanimatedSwipeable>
   );
 }
 
@@ -126,6 +190,7 @@ export function SubtaskList({
   allTasks,
   onSubtaskPress,
   onSubtaskToggle,
+  onDeleteSubtask,
 }: SubtaskListProps) {
   const [localSubtasks, setLocalSubtasks] = React.useState(subtasks);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -193,6 +258,7 @@ export function SubtaskList({
             onDragStart={() => handleDragStart(index)}
             onDragUpdate={handleDragUpdate}
             onDragEnd={handleDragEnd}
+            onDelete={onDeleteSubtask}
           />
           {/* Drop indicator below this item */}
           <DropIndicator
