@@ -17,7 +17,7 @@ import { TaskOptions } from './TaskOptions';
 import { ChevronLeft, Plus, FileText } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtasks } from '@/utils/helpers';
-import { useToggleTask, useCreateTask, useUpdateTask } from '@/hooks/useTasks';
+import { useToggleTask, useCreateTask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 import { THEME } from '@/lib/theme';
 import Constants from 'expo-constants';
 import type { Task, Project, UpdateTask } from '@lucidity/shared';
@@ -57,6 +57,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const toggleTask = useToggleTask();
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
 
   const snapPoints = React.useMemo(() => ['50%', '90%'], []);
 
@@ -81,6 +82,13 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
       toggleTask.mutate(taskId);
     },
     [toggleTask]
+  );
+
+  const handleDeleteSubtask = React.useCallback(
+    (taskId: string) => {
+      deleteTask.mutate(taskId);
+    },
+    [deleteTask]
   );
 
   const handleAddSubtask = React.useCallback(() => {
@@ -306,6 +314,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
           allTasks={tasks}
           onSubtaskPress={drillDown}
           onSubtaskToggle={handleToggle}
+          onDeleteSubtask={handleDeleteSubtask}
         />
 
         {/* Add subtask input */}

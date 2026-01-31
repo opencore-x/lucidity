@@ -1,16 +1,18 @@
 import * as React from 'react';
-import { View, Pressable } from 'react-native';
+import { View, Pressable, Alert } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
   runOnJS,
+  SharedValue,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
-import { Plus } from '@/lib/icons';
+import { Plus, Trash2 } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
 import { getSubtaskProgress } from '@/utils/helpers';
 import type { Task, Project } from '@lucidity/shared';
@@ -26,6 +28,7 @@ interface ProjectGroupProps {
   onTaskPress: (task: Task) => void;
   onTaskToggle: (taskId: string) => void;
   onReorderTasks: (taskIds: string[]) => void;
+  onDeleteTask: (taskId: string) => void;
 }
 
 interface DraggableTaskProps {
@@ -39,6 +42,30 @@ interface DraggableTaskProps {
   onDragStart: () => void;
   onDragUpdate: (targetIndex: number) => void;
   onDragEnd: () => void;
+  onDeleteTask: (taskId: string) => void;
+}
+
+function RightAction({
+  drag,
+  onDelete,
+}: {
+  drag: SharedValue<number>;
+  onDelete: () => void;
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: drag.value + 80 }],
+  }));
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        onPress={onDelete}
+        className="bg-destructive justify-center items-center w-20 h-full"
+      >
+        <Trash2 size={24} color="#FFFFFF" />
+      </Pressable>
+    </Animated.View>
+  );
 }
 
 function DraggableTask({
@@ -52,9 +79,37 @@ function DraggableTask({
   onDragStart,
   onDragUpdate,
   onDragEnd,
+  onDeleteTask,
 }: DraggableTaskProps) {
+  const swipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
   const translateY = useSharedValue(0);
   const isActive = useSharedValue(false);
+
+  const handleDelete = React.useCallback(() => {
+    Alert.alert(
+      'Delete Task',
+      `Are you sure you want to delete "${task.title}"?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => swipeableRef.current?.close(),
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => onDeleteTask(task.id),
+        },
+      ]
+    );
+  }, [task.id, task.title, onDeleteTask]);
+
+  const renderRightActions = React.useCallback(
+    (_prog: SharedValue<number>, drag: SharedValue<number>) => {
+      return <RightAction drag={drag} onDelete={handleDelete} />;
+    },
+    [handleDelete]
+  );
 
   const gesture = Gesture.Pan()
     .activateAfterLongPress(200)
@@ -95,16 +150,24 @@ function DraggableTask({
   }));
 
   return (
-    <GestureDetector gesture={gesture}>
-      <Animated.View style={animatedStyle}>
-        <TaskItem
-          task={task}
-          onPress={() => onTaskPress(task)}
-          onToggle={() => onTaskToggle(task.id)}
-          subtaskProgress={getSubtaskProgress(allTasks, task.id)}
-        />
-      </Animated.View>
-    </GestureDetector>
+    <ReanimatedSwipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      overshootRight={false}
+      friction={2}
+      rightThreshold={40}
+    >
+      <GestureDetector gesture={gesture}>
+        <Animated.View style={animatedStyle}>
+          <TaskItem
+            task={task}
+            onPress={() => onTaskPress(task)}
+            onToggle={() => onTaskToggle(task.id)}
+            subtaskProgress={getSubtaskProgress(allTasks, task.id)}
+          />
+        </Animated.View>
+      </GestureDetector>
+    </ReanimatedSwipeable>
   );
 }
 
@@ -136,6 +199,7 @@ export function ProjectGroup({
   onTaskPress,
   onTaskToggle,
   onReorderTasks,
+  onDeleteTask,
 }: ProjectGroupProps) {
   const [localTasks, setLocalTasks] = React.useState(tasks);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -218,6 +282,7 @@ export function ProjectGroup({
             onDragStart={() => handleDragStart(index)}
             onDragUpdate={handleDragUpdate}
             onDragEnd={handleDragEnd}
+            onDeleteTask={onDeleteTask}
           />
           {/* Drop indicator below this item */}
           <DropIndicator

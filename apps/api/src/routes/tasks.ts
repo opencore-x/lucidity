@@ -91,12 +91,31 @@ router.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const user = await getCurrentUser(c);
 
-  const [deleted] = await db
-    .delete(tasks)
-    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
-    .returning();
+  // Verify task exists and belongs to user
+  const [task] = await db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
 
-  if (!deleted) return c.json({ error: 'Task not found' }, 404);
+  if (!task) return c.json({ error: 'Task not found' }, 404);
+
+  // Recursively delete all descendants using a CTE
+  await db.execute(sql`
+    WITH RECURSIVE descendants AS (
+      SELECT id FROM tasks WHERE parent_task_id = ${id} AND user_id = ${user.id}
+      UNION ALL
+      SELECT t.id FROM tasks t
+      JOIN descendants d ON t.parent_task_id = d.id
+      WHERE t.user_id = ${user.id}
+    )
+    DELETE FROM tasks WHERE id IN (SELECT id FROM descendants)
+  `);
+
+  // Delete the parent task
+  await db
+    .delete(tasks)
+    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+
   return c.body(null, 204);
 });
 

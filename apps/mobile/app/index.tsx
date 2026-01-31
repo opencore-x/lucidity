@@ -15,7 +15,7 @@ import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTasks, useToggleTask, useReorderTasks } from '@/hooks/useTasks';
+import { useTasks, useToggleTask, useReorderTasks, useDeleteTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { useProjectSheetStore } from '@/stores/projectSheetStore';
@@ -35,6 +35,7 @@ export default function HomeScreen() {
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const toggleTask = useToggleTask();
   const reorderTasks = useReorderTasks();
+  const deleteTask = useDeleteTask();
   const { openSheet, openCreateSheet } = useSheetStore();
   const { openSheet: openProjectSheet } = useProjectSheetStore();
 
@@ -93,6 +94,13 @@ export default function HomeScreen() {
       reorderTasks.mutate(taskIds);
     },
     [reorderTasks]
+  );
+
+  const handleDeleteTask = React.useCallback(
+    (taskId: string) => {
+      deleteTask.mutate(taskId);
+    },
+    [deleteTask]
   );
 
   const groupedTasks = React.useMemo(
@@ -190,6 +198,7 @@ export default function HomeScreen() {
                 onTaskPress={handleTaskPress}
                 onTaskToggle={handleTaskToggle}
                 onReorderTasks={handleReorderTasks}
+                onDeleteTask={handleDeleteTask}
               />
             ))}
             {/* Bottom padding for FAB */}
