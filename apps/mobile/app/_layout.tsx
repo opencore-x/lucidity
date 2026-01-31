@@ -28,22 +28,22 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
-        <ClerkProvider
-            publishableKey={Constants.expoConfig?.extra?.clerkPublishableKey}
-            tokenCache={tokenCache}
-          >
-          <QueryClientProvider client={queryClient}>
-            <ApiProvider>
-              <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
+      <ClerkProvider
+        publishableKey={Constants.expoConfig?.extra?.clerkPublishableKey}
+        tokenCache={tokenCache}
+      >
+        <QueryClientProvider client={queryClient}>
+          <ApiProvider>
+            <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
+              <BottomSheetModalProvider>
                 <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
                 <Routes />
                 <PortalHost />
-              </ThemeProvider>
-            </ApiProvider>
-          </QueryClientProvider>
-        </ClerkProvider>
-      </BottomSheetModalProvider>
+              </BottomSheetModalProvider>
+            </ThemeProvider>
+          </ApiProvider>
+        </QueryClientProvider>
+      </ClerkProvider>
     </GestureHandlerRootView>
   );
 }
