@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, ScrollView, Pressable, TextInput, Keyboard } from 'react-native';
+import { View, Pressable, TextInput, Keyboard } from 'react-native';
 import BottomSheet, {
   BottomSheetView,
   BottomSheetScrollView,
@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { SubtaskItem } from './SubtaskItem';
 import { TaskOptions } from './TaskOptions';
-import { ChevronLeft, Plus } from '@/lib/icons';
+import { ChevronLeft, Plus, FileText } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtasks, getSubtaskProgress } from '@/utils/helpers';
 import { useToggleTask, useCreateTask, useUpdateTask } from '@/hooks/useTasks';
@@ -30,7 +30,10 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const bottomSheetRef = React.useRef<BottomSheet>(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = React.useState('');
   const [newTaskTitle, setNewTaskTitle] = React.useState('');
-  const [editingDescription, setEditingDescription] = React.useState<string | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = React.useState(false);
+  const [isEditingDescription, setIsEditingDescription] = React.useState(false);
+  const [titleValue, setTitleValue] = React.useState('');
+  const [descriptionValue, setDescriptionValue] = React.useState('');
   const { colorScheme } = useColorScheme();
   const theme = THEME[colorScheme ?? 'light'];
 
@@ -55,6 +58,14 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const updateTask = useUpdateTask();
 
   const snapPoints = React.useMemo(() => ['50%', '90%'], []);
+
+  // Sync title/description values when task changes
+  React.useEffect(() => {
+    if (task) {
+      setTitleValue(task.title);
+      setDescriptionValue(task.description || '');
+    }
+  }, [task?.id, task?.title, task?.description]);
 
   // Handle sheet open/close
   React.useEffect(() => {
@@ -134,6 +145,29 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
     },
     [task, updateTask, updateCurrentTask]
   );
+
+  const handleTitleSubmit = React.useCallback(() => {
+    if (!task) return;
+    if (titleValue.trim() && titleValue !== task.title) {
+      handleUpdateField({ title: titleValue.trim() });
+    } else {
+      setTitleValue(task.title);
+    }
+    setIsEditingTitle(false);
+    Keyboard.dismiss();
+  }, [task, titleValue, handleUpdateField]);
+
+  const handleDescriptionSubmit = React.useCallback(() => {
+    if (!task) return;
+    const trimmed = descriptionValue.trim();
+    const newDescription = trimmed || null;
+    const currentDescription = task.description || null;
+    if (newDescription !== currentDescription) {
+      handleUpdateField({ description: newDescription });
+    }
+    setIsEditingDescription(false);
+    Keyboard.dismiss();
+  }, [task, descriptionValue, handleUpdateField]);
 
   const renderBackdrop = React.useCallback(
     (props: any) => (
@@ -249,16 +283,64 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
             />
           </Pressable>
           <View className="flex-1">
-            <Text
-              className={`text-xl font-semibold ${isCompleted ? 'line-through text-muted-foreground' : ''}`}
-            >
-              {task.title}
-            </Text>
-            {(editingDescription ?? task.description) && (
-              <Text className="text-muted-foreground mt-1">
-                {editingDescription ?? task.description}
-              </Text>
-            )}
+            {/* Title row with optional description icon */}
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 mr-2">
+                {isEditingTitle ? (
+                  <TextInput
+                    className="text-xl font-semibold text-foreground"
+                    style={{ padding: 0, margin: 0, minHeight: 28 }}
+                    value={titleValue}
+                    onChangeText={setTitleValue}
+                    onBlur={handleTitleSubmit}
+                    onSubmitEditing={handleTitleSubmit}
+                    autoFocus
+                    returnKeyType="done"
+                    blurOnSubmit
+                  />
+                ) : (
+                  <Pressable onPress={() => setIsEditingTitle(true)}>
+                    <Text
+                      className={`text-xl font-semibold ${isCompleted ? 'line-through text-muted-foreground' : ''}`}
+                    >
+                      {task.title}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+              {/* Show add description icon only when no description and not editing */}
+              {!task.description && !isEditingDescription && (
+                <Pressable
+                  onPress={() => setIsEditingDescription(true)}
+                  className="p-2"
+                  hitSlop={8}
+                >
+                  <FileText size={20} color="#9CA3AF" />
+                </Pressable>
+              )}
+            </View>
+
+            {/* Description section */}
+            {isEditingDescription ? (
+              <TextInput
+                className="text-muted-foreground mt-2"
+                style={{ padding: 0, margin: 0, minHeight: 20 }}
+                value={descriptionValue}
+                onChangeText={setDescriptionValue}
+                onBlur={handleDescriptionSubmit}
+                onSubmitEditing={handleDescriptionSubmit}
+                autoFocus
+                returnKeyType="done"
+                blurOnSubmit
+                placeholder="Add description..."
+                placeholderTextColor="#9CA3AF"
+                multiline
+              />
+            ) : task.description ? (
+              <Pressable onPress={() => setIsEditingDescription(true)} className="mt-1">
+                <Text className="text-muted-foreground">{task.description}</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
 
@@ -298,7 +380,6 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
           project={project}
           projects={projects}
           onUpdate={handleUpdateField}
-          onDescriptionChange={setEditingDescription}
         />
 
         {/* API URL debug info */}
