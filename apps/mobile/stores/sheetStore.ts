@@ -1,11 +1,15 @@
+import { createRef } from 'react';
 import { create } from 'zustand';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import type { Task } from '@lucidity/shared';
 
+const sheetRef = createRef<BottomSheetModal>();
+
 interface SheetState {
-  isOpen: boolean;
   taskStack: Task[];
   mode: 'view' | 'create';
   createProjectId: string | null;
+  sheetRef: typeof sheetRef;
 
   // Computed getters
   currentTask: () => Task | null;
@@ -16,16 +20,17 @@ interface SheetState {
   openSheet: (task: Task) => void;
   openCreateSheet: (projectId: string) => void;
   closeSheet: () => void;
+  resetState: () => void;
   drillDown: (task: Task) => void;
   goBack: () => void;
   updateCurrentTask: (task: Task) => void;
 }
 
 export const useSheetStore = create<SheetState>((set, get) => ({
-  isOpen: false,
   taskStack: [],
   mode: 'view',
   createProjectId: null,
+  sheetRef,
 
   currentTask: () => {
     const stack = get().taskStack;
@@ -39,29 +44,23 @@ export const useSheetStore = create<SheetState>((set, get) => ({
 
   canGoBack: () => get().taskStack.length > 1,
 
-  openSheet: (task) =>
-    set({
-      isOpen: true,
-      taskStack: [task],
-      mode: 'view',
-      createProjectId: null,
-    }),
+  openSheet: (task) => {
+    set({ taskStack: [task], mode: 'view', createProjectId: null });
+    sheetRef.current?.present();
+  },
 
-  openCreateSheet: (projectId) =>
-    set({
-      isOpen: true,
-      taskStack: [],
-      mode: 'create',
-      createProjectId: projectId,
-    }),
+  openCreateSheet: (projectId) => {
+    set({ taskStack: [], mode: 'create', createProjectId: projectId });
+    sheetRef.current?.present();
+  },
 
-  closeSheet: () =>
-    set({
-      isOpen: false,
-      taskStack: [],
-      mode: 'view',
-      createProjectId: null,
-    }),
+  closeSheet: () => {
+    sheetRef.current?.dismiss();
+  },
+
+  resetState: () => {
+    set({ taskStack: [], mode: 'view', createProjectId: null });
+  },
 
   drillDown: (task) =>
     set((state) => ({

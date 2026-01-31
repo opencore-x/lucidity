@@ -7,7 +7,7 @@ export * from './schema/users.js';
 export * from './schema/projects.js';
 
 // Re-export drizzle-orm helpers
-export { eq, and, or, desc, asc, isNull, isNotNull } from 'drizzle-orm';
+export { eq, and, or, desc, asc, isNull, isNotNull, sql } from 'drizzle-orm';
 
 export function createDb(databaseUrl: string) {
   const client = neon(databaseUrl);

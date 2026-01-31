@@ -6,7 +6,8 @@
     "dev": "turbo run dev",
     "dev:api": "pnpm --filter @lucidity/api dev",
     "dev:mobile": "pnpm --filter @lucidity/mobile dev",
-    "build:ios": "pnpm --filter @lucidity/mobile build:ios",
+    "ios:local": "pnpm --filter @lucidity/mobile ios:local",
+    "ios:prod": "pnpm --filter @lucidity/mobile ios:prod",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"

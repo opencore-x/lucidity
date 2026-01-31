@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { uuidv7 } from 'uuidv7';
 import { db } from '../lib/db.js';
-import { tasks, eq, and, asc } from '@lucidity/db';
+import { tasks, eq, and, asc, sql } from '@lucidity/db';
 import { CreateTaskSchema, UpdateTaskSchema } from '@lucidity/shared';
 import { getCurrentUser } from '../lib/auth.js';
 
@@ -13,7 +13,7 @@ router.get('/', async (c) => {
     .select()
     .from(tasks)
     .where(eq(tasks.userId, user.id))
-    .orderBy(asc(tasks.createdAt));
+    .orderBy(sql`${tasks.position} ASC NULLS LAST`, asc(tasks.createdAt));
   return c.json(allTasks);
 });
 
@@ -31,6 +31,30 @@ router.post('/', async (c) => {
     .values({ ...parsed.data, id, userId: user.id })
     .returning();
   return c.json(newTask, 201);
+});
+
+// Reorder route must come before /:id to avoid matching "reorder" as a UUID
+router.patch('/reorder', async (c) => {
+  const user = await getCurrentUser(c);
+  const body = await c.req.json();
+  const { taskIds } = body as { taskIds: string[] };
+
+  if (!Array.isArray(taskIds)) {
+    return c.json({ error: 'taskIds must be an array' }, 400);
+  }
+
+  // Update position for each task based on array index
+  const updates = await Promise.all(
+    taskIds.map((id, index) =>
+      db
+        .update(tasks)
+        .set({ position: index })
+        .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
+        .returning()
+    )
+  );
+
+  return c.json({ updated: updates.flat().length });
 });
 
 router.get('/:id', async (c) => {
@@ -67,12 +91,31 @@ router.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const user = await getCurrentUser(c);
 
-  const [deleted] = await db
-    .delete(tasks)
-    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
-    .returning();
+  // Verify task exists and belongs to user
+  const [task] = await db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
 
-  if (!deleted) return c.json({ error: 'Task not found' }, 404);
+  if (!task) return c.json({ error: 'Task not found' }, 404);
+
+  // Recursively delete all descendants using a CTE
+  await db.execute(sql`
+    WITH RECURSIVE descendants AS (
+      SELECT id FROM tasks WHERE parent_task_id = ${id} AND user_id = ${user.id}
+      UNION ALL
+      SELECT t.id FROM tasks t
+      JOIN descendants d ON t.parent_task_id = d.id
+      WHERE t.user_id = ${user.id}
+    )
+    DELETE FROM tasks WHERE id IN (SELECT id FROM descendants)
+  `);
+
+  // Delete the parent task
+  await db
+    .delete(tasks)
+    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+
   return c.body(null, 204);
 });
 
@@ -95,7 +138,5 @@ router.patch('/:id/complete', async (c) => {
     .returning();
   return c.json(updated);
 });
-
-// router.patch('/:id/reorder', async (c) => {});
 
 export default router;

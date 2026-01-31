@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { View, TextInput, Alert, Keyboard } from 'react-native';
-import BottomSheet, {
+import { View, TextInput, Alert } from 'react-native';
+import {
+  BottomSheetModal,
   BottomSheetView,
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
@@ -37,11 +38,10 @@ function OptionRow({ icon, label, children }: OptionRowProps) {
 }
 
 export function ProjectSheet() {
-  const bottomSheetRef = React.useRef<BottomSheet>(null);
   const { colorScheme } = useColorScheme();
   const theme = THEME[colorScheme ?? 'light'];
 
-  const { isOpen, project, closeSheet } = useProjectSheetStore();
+  const { project, sheetRef, closeSheet, clearProject } = useProjectSheetStore();
   const updateProject = useUpdateProject();
 
   const [isEditingName, setIsEditingName] = React.useState(false);
@@ -59,16 +59,11 @@ export function ProjectSheet() {
     }
   }, [project]);
 
-  const handleSheetChange = React.useCallback(
-    (index: number) => {
-      if (index === -1) {
-        closeSheet();
-        setIsEditingName(false);
-        setIsEditingDescription(false);
-      }
-    },
-    [closeSheet]
-  );
+  const handleDismiss = React.useCallback(() => {
+    clearProject();
+    setIsEditingName(false);
+    setIsEditingDescription(false);
+  }, [clearProject]);
 
   const handleUpdate = React.useCallback(
     (data: Partial<UpdateProject>) => {
@@ -133,16 +128,12 @@ export function ProjectSheet() {
     []
   );
 
-  if (!project) {
-    return null;
-  }
-
   return (
-    <BottomSheet
-      ref={bottomSheetRef}
-      index={0}
+    <BottomSheetModal
+      ref={sheetRef}
       snapPoints={snapPoints}
-      onChange={handleSheetChange}
+      onDismiss={handleDismiss}
+      enableDismissOnClose
       enablePanDownToClose
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: theme.card }}
@@ -151,94 +142,98 @@ export function ProjectSheet() {
       keyboardBlurBehavior="restore"
     >
       <BottomSheetView className="flex-1">
-        {/* Header */}
-        <View className="px-4 py-4">
-          <Text className="text-xl font-semibold text-center">{project.name}</Text>
-        </View>
+        {project && (
+          <>
+            {/* Header */}
+            <View className="px-4 py-4">
+              <Text className="text-xl font-semibold text-center">{project.name}</Text>
+            </View>
 
-        <Separator />
+            <Separator />
 
-        {/* Name */}
-        <OptionRow icon={<Type size={iconSize} color={iconColor} />} label="Name">
-          {isEditingName ? (
-            <TextInput
-              className="flex-1 text-base text-foreground"
-              style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
-              value={nameValue}
-              onChangeText={setNameValue}
-              onBlur={handleNameSubmit}
-              onSubmitEditing={handleNameSubmit}
-              autoFocus
-              returnKeyType="done"
-              blurOnSubmit
-            />
-          ) : (
-            <Text
-              className="flex-1 text-base text-muted-foreground"
-              onPress={() => setIsEditingName(true)}
-            >
-              {project.name}
-            </Text>
-          )}
-        </OptionRow>
+            {/* Name */}
+            <OptionRow icon={<Type size={iconSize} color={iconColor} />} label="Name">
+              {isEditingName ? (
+                <TextInput
+                  className="flex-1 text-base text-foreground"
+                  style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
+                  value={nameValue}
+                  onChangeText={setNameValue}
+                  onBlur={handleNameSubmit}
+                  onSubmitEditing={handleNameSubmit}
+                  autoFocus
+                  returnKeyType="done"
+                  blurOnSubmit
+                />
+              ) : (
+                <Text
+                  className="flex-1 text-base text-muted-foreground"
+                  onPress={() => setIsEditingName(true)}
+                >
+                  {project.name}
+                </Text>
+              )}
+            </OptionRow>
 
-        <Separator />
+            <Separator />
 
-        {/* Color */}
-        <OptionRow icon={<Palette size={iconSize} color={iconColor} />} label="Color">
-          <View className="flex-row items-center">
-            <View
-              className="w-6 h-6 rounded-full mr-2"
-              style={{ backgroundColor: project.color || '#3B82F6' }}
-            />
-            <Text className="text-base text-muted-foreground">
-              {project.color || 'Blue'}
-            </Text>
-          </View>
-        </OptionRow>
+            {/* Color */}
+            <OptionRow icon={<Palette size={iconSize} color={iconColor} />} label="Color">
+              <View className="flex-row items-center">
+                <View
+                  className="w-6 h-6 rounded-full mr-2"
+                  style={{ backgroundColor: project.color || '#3B82F6' }}
+                />
+                <Text className="text-base text-muted-foreground">
+                  {project.color || 'Blue'}
+                </Text>
+              </View>
+            </OptionRow>
 
-        <Separator />
+            <Separator />
 
-        {/* Description */}
-        <OptionRow icon={<FileText size={iconSize} color={iconColor} />} label="Description">
-          {isEditingDescription ? (
-            <TextInput
-              className="flex-1 text-base text-foreground"
-              style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
-              value={descriptionValue}
-              onChangeText={setDescriptionValue}
-              onBlur={handleDescriptionSubmit}
-              onSubmitEditing={handleDescriptionSubmit}
-              autoFocus
-              returnKeyType="done"
-              blurOnSubmit
-              placeholder="Add description..."
-              placeholderTextColor="#9CA3AF"
-            />
-          ) : (
-            <Text
-              className={`flex-1 text-base ${project.description ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}
-              onPress={() => setIsEditingDescription(true)}
-            >
-              {project.description || 'Add description...'}
-            </Text>
-          )}
-        </OptionRow>
+            {/* Description */}
+            <OptionRow icon={<FileText size={iconSize} color={iconColor} />} label="Description">
+              {isEditingDescription ? (
+                <TextInput
+                  className="flex-1 text-base text-foreground"
+                  style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
+                  value={descriptionValue}
+                  onChangeText={setDescriptionValue}
+                  onBlur={handleDescriptionSubmit}
+                  onSubmitEditing={handleDescriptionSubmit}
+                  autoFocus
+                  returnKeyType="done"
+                  blurOnSubmit
+                  placeholder="Add description..."
+                  placeholderTextColor="#9CA3AF"
+                />
+              ) : (
+                <Text
+                  className={`flex-1 text-base ${project.description ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}
+                  onPress={() => setIsEditingDescription(true)}
+                >
+                  {project.description || 'Add description...'}
+                </Text>
+              )}
+            </OptionRow>
 
-        <Separator />
+            <Separator />
 
-        {/* Archive Button */}
-        <View className="px-4 py-6">
-          <Button
-            variant="outline"
-            className="border-destructive"
-            onPress={handleArchive}
-          >
-            <Archive size={18} color="#EF4444" />
-            <Text className="text-destructive ml-2">Archive Project</Text>
-          </Button>
-        </View>
+            {/* Archive Button */}
+            <View className="px-4 py-6">
+              <Button
+                variant="outline"
+                className="border-destructive"
+                onPress={handleArchive}
+              >
+                <Archive size={18} color="#EF4444" />
+                <Text className="text-destructive ml-2">Archive Project</Text>
+              </Button>
+            </View>
+          </>
+        )}
       </BottomSheetView>
-    </BottomSheet>
+    </BottomSheetModal>
   );
 }
