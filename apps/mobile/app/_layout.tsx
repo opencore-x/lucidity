@@ -8,6 +8,7 @@ import Constants from 'expo-constants';
 import { ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PortalHost } from '@rn-primitives/portal';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -27,20 +28,22 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ClerkProvider
-          publishableKey={Constants.expoConfig?.extra?.clerkPublishableKey}
-          tokenCache={tokenCache}
-        >
-        <QueryClientProvider client={queryClient}>
-          <ApiProvider>
-            <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
-              <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-              <Routes />
-              <PortalHost />
-            </ThemeProvider>
-          </ApiProvider>
-        </QueryClientProvider>
-      </ClerkProvider>
+      <BottomSheetModalProvider>
+        <ClerkProvider
+            publishableKey={Constants.expoConfig?.extra?.clerkPublishableKey}
+            tokenCache={tokenCache}
+          >
+          <QueryClientProvider client={queryClient}>
+            <ApiProvider>
+              <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
+                <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+                <Routes />
+                <PortalHost />
+              </ThemeProvider>
+            </ApiProvider>
+          </QueryClientProvider>
+        </ClerkProvider>
+      </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
 }

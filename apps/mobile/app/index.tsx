@@ -100,6 +100,25 @@ export default function HomeScreen() {
     [tasks, projects]
   );
 
+  // Get current sheet data for stale validation
+  const { project: sheetProject } = useProjectSheetStore();
+  const { currentTask } = useSheetStore();
+  const sheetTask = currentTask();
+
+  // Close project sheet if project was archived/deleted
+  React.useEffect(() => {
+    if (sheetProject && !projects.find((p) => p.id === sheetProject.id)) {
+      useProjectSheetStore.getState().closeSheet();
+    }
+  }, [sheetProject, projects]);
+
+  // Close task sheet if task was deleted
+  React.useEffect(() => {
+    if (sheetTask && !tasks.find((t) => t.id === sheetTask.id)) {
+      useSheetStore.getState().closeSheet();
+    }
+  }, [sheetTask, tasks]);
+
   const displayName = user?.firstName
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}`
     : user?.emailAddresses?.[0]?.emailAddress || 'User';
