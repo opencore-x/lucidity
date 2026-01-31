@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { View, Pressable, TextInput, Keyboard } from 'react-native';
-import BottomSheet, {
+import {
+  BottomSheetModal,
   BottomSheetView,
   BottomSheetScrollView,
   BottomSheetBackdrop,
@@ -27,7 +28,6 @@ interface TaskSheetProps {
 }
 
 export function TaskSheet({ tasks, projects }: TaskSheetProps) {
-  const bottomSheetRef = React.useRef<BottomSheet>(null);
   const [newSubtaskTitle, setNewSubtaskTitle] = React.useState('');
   const [newTaskTitle, setNewTaskTitle] = React.useState('');
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
@@ -38,12 +38,13 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const theme = THEME[colorScheme ?? 'light'];
 
   const {
-    isOpen,
     mode,
     createProjectId,
     currentTask,
     parentTask,
     canGoBack,
+    sheetRef,
+    resetState,
     closeSheet,
     drillDown,
     goBack,
@@ -67,23 +68,13 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
     }
   }, [task?.id, task?.title, task?.description]);
 
-  // Handle sheet open/close
-  React.useEffect(() => {
-    if (isOpen) {
-      bottomSheetRef.current?.expand();
-    } else {
-      bottomSheetRef.current?.close();
-    }
-  }, [isOpen]);
-
-  const handleSheetChange = React.useCallback(
-    (index: number) => {
-      if (index === -1) {
-        closeSheet();
-      }
-    },
-    [closeSheet]
-  );
+  const handleDismiss = React.useCallback(() => {
+    resetState();
+    setIsEditingTitle(false);
+    setIsEditingDescription(false);
+    setNewSubtaskTitle('');
+    setNewTaskTitle('');
+  }, [resetState]);
 
   const handleToggle = React.useCallback(
     (taskId: string) => {
@@ -187,79 +178,42 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
       ? projects.find((p) => p.id === createProjectId)
       : undefined;
 
-  // Create mode
-  if (mode === 'create') {
-    return (
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        onChange={handleSheetChange}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        backgroundStyle={{ backgroundColor: theme.card }}
-        handleIndicatorStyle={{ backgroundColor: theme.border }}
+  // Create mode content
+  const renderCreateContent = () => (
+    <BottomSheetView className="flex-1 p-4">
+      <Text className="text-lg font-semibold mb-4">
+        New Task in {project?.name || 'Project'}
+      </Text>
+
+      <Input
+        placeholder="Task title"
+        value={newTaskTitle}
+        onChangeText={setNewTaskTitle}
+        autoFocus
+        onSubmitEditing={handleCreateTask}
+        returnKeyType="done"
+      />
+
+      <Button
+        className="mt-4"
+        onPress={handleCreateTask}
+        disabled={!newTaskTitle.trim() || createTask.isPending}
       >
-        <BottomSheetView className="flex-1 p-4">
-          <Text className="text-lg font-semibold mb-4">
-            New Task in {project?.name || 'Project'}
-          </Text>
+        <Text>{createTask.isPending ? 'Creating...' : 'Create Task'}</Text>
+      </Button>
+    </BottomSheetView>
+  );
 
-          <Input
-            placeholder="Task title"
-            value={newTaskTitle}
-            onChangeText={setNewTaskTitle}
-            autoFocus
-            onSubmitEditing={handleCreateTask}
-            returnKeyType="done"
-          />
+  // View mode content
+  const renderViewContent = () => {
+    if (!task) {
+      return <BottomSheetView>{null}</BottomSheetView>;
+    }
 
-          <Button
-            className="mt-4"
-            onPress={handleCreateTask}
-            disabled={!newTaskTitle.trim() || createTask.isPending}
-          >
-            <Text>{createTask.isPending ? 'Creating...' : 'Create Task'}</Text>
-          </Button>
-        </BottomSheetView>
-      </BottomSheet>
-    );
-  }
+    const subtasks = getSubtasks(tasks, task.id);
+    const isCompleted = task.status === 'completed';
 
-  // View mode (task must exist)
-  if (!task) {
     return (
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        onChange={handleSheetChange}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        backgroundStyle={{ backgroundColor: theme.card }}
-        handleIndicatorStyle={{ backgroundColor: theme.border }}
-      >
-        <BottomSheetView>{null}</BottomSheetView>
-      </BottomSheet>
-    );
-  }
-
-  const subtasks = getSubtasks(tasks, task.id);
-  const isCompleted = task.status === 'completed';
-
-  return (
-    <BottomSheet
-      ref={bottomSheetRef}
-      index={-1}
-      snapPoints={snapPoints}
-      onChange={handleSheetChange}
-      enablePanDownToClose
-      backdropComponent={renderBackdrop}
-      backgroundStyle={{ backgroundColor: theme.card }}
-      handleIndicatorStyle={{ backgroundColor: theme.border }}
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-    >
       <BottomSheetScrollView className="flex-1">
         {/* Back button */}
         {canGoBack() && parent && (
@@ -389,6 +343,23 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
           </Text>
         </View>
       </BottomSheetScrollView>
-    </BottomSheet>
+    );
+  };
+
+  return (
+    <BottomSheetModal
+      ref={sheetRef}
+      snapPoints={snapPoints}
+      onDismiss={handleDismiss}
+      enableDismissOnClose
+      enablePanDownToClose
+      backdropComponent={renderBackdrop}
+      backgroundStyle={{ backgroundColor: theme.card }}
+      handleIndicatorStyle={{ backgroundColor: theme.border }}
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+    >
+      {mode === 'create' ? renderCreateContent() : renderViewContent()}
+    </BottomSheetModal>
   );
 }
