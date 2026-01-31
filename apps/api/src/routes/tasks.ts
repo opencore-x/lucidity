@@ -33,6 +33,30 @@ router.post('/', async (c) => {
   return c.json(newTask, 201);
 });
 
+// Reorder route must come before /:id to avoid matching "reorder" as a UUID
+router.patch('/reorder', async (c) => {
+  const user = await getCurrentUser(c);
+  const body = await c.req.json();
+  const { taskIds } = body as { taskIds: string[] };
+
+  if (!Array.isArray(taskIds)) {
+    return c.json({ error: 'taskIds must be an array' }, 400);
+  }
+
+  // Update position for each task based on array index
+  const updates = await Promise.all(
+    taskIds.map((id, index) =>
+      db
+        .update(tasks)
+        .set({ position: index })
+        .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
+        .returning()
+    )
+  );
+
+  return c.json({ updated: updates.flat().length });
+});
+
 router.get('/:id', async (c) => {
   const id = c.req.param('id');
   const user = await getCurrentUser(c);
@@ -94,29 +118,6 @@ router.patch('/:id/complete', async (c) => {
     .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
     .returning();
   return c.json(updated);
-});
-
-router.patch('/reorder', async (c) => {
-  const user = await getCurrentUser(c);
-  const body = await c.req.json();
-  const { taskIds } = body as { taskIds: string[] };
-
-  if (!Array.isArray(taskIds)) {
-    return c.json({ error: 'taskIds must be an array' }, 400);
-  }
-
-  // Update position for each task based on array index
-  const updates = await Promise.all(
-    taskIds.map((id, index) =>
-      db
-        .update(tasks)
-        .set({ position: index })
-        .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
-        .returning()
-    )
-  );
-
-  return c.json({ updated: updates.flat().length });
 });
 
 export default router;

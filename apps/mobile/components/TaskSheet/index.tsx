@@ -12,11 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { SubtaskItem } from './SubtaskItem';
+import { SubtaskList } from './SubtaskList';
 import { TaskOptions } from './TaskOptions';
 import { ChevronLeft, Plus, FileText } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
-import { getSubtasks, getSubtaskProgress } from '@/utils/helpers';
+import { getSubtasks } from '@/utils/helpers';
 import { useToggleTask, useCreateTask, useUpdateTask } from '@/hooks/useTasks';
 import { THEME } from '@/lib/theme';
 import Constants from 'expo-constants';
@@ -300,16 +300,13 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
         <Separator />
 
-        {/* Subtasks */}
-        {subtasks.map((subtask) => (
-          <SubtaskItem
-            key={subtask.id}
-            task={subtask}
-            onPress={() => drillDown(subtask)}
-            onToggle={() => handleToggle(subtask.id)}
-            subtaskProgress={getSubtaskProgress(tasks, subtask.id)}
-          />
-        ))}
+        {/* Subtasks with drag-to-reorder */}
+        <SubtaskList
+          subtasks={subtasks}
+          allTasks={tasks}
+          onSubtaskPress={drillDown}
+          onSubtaskToggle={handleToggle}
+        />
 
         {/* Add subtask input */}
         <View className="flex-row items-center px-4 border-b border-border" style={{ minHeight: 48 }}>
