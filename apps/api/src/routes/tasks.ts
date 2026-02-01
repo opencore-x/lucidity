@@ -201,9 +201,8 @@ router.patch('/:id', async (c) => {
     .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
     .returning();
 
-  // If updating recurringFrequency, propagate to all descendants (with dueDate)
-  if (updateData.recurringFrequency !== undefined) {
-    const dueDateToPropagate = updated.dueDate;
+  // Propagate dueDate to all descendants if it changed
+  if (parsed.data.dueDate !== undefined) {
     await db.execute(sql`
       WITH RECURSIVE descendants AS (
         SELECT id FROM tasks WHERE parent_task_id = ${id} AND user_id = ${user.id}
@@ -213,8 +212,23 @@ router.patch('/:id', async (c) => {
         WHERE t.user_id = ${user.id}
       )
       UPDATE tasks
-      SET recurring_frequency = ${updateData.recurringFrequency},
-          due_date = ${dueDateToPropagate}
+      SET due_date = ${updated.dueDate}
+      WHERE id IN (SELECT id FROM descendants)
+    `);
+  }
+
+  // Propagate recurringFrequency to all descendants if it changed
+  if (updateData.recurringFrequency !== undefined) {
+    await db.execute(sql`
+      WITH RECURSIVE descendants AS (
+        SELECT id FROM tasks WHERE parent_task_id = ${id} AND user_id = ${user.id}
+        UNION ALL
+        SELECT t.id FROM tasks t
+        JOIN descendants d ON t.parent_task_id = d.id
+        WHERE t.user_id = ${user.id}
+      )
+      UPDATE tasks
+      SET recurring_frequency = ${updateData.recurringFrequency}
       WHERE id IN (SELECT id FROM descendants)
     `);
   }
