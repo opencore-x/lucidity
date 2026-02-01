@@ -11,6 +11,7 @@ interface TaskItemProps {
   onPress: () => void;
   onToggle: () => void;
   subtaskProgress: { completed: number; total: number } | null;
+  isLast?: boolean;
 }
 
 export function TaskItem({
@@ -18,13 +19,17 @@ export function TaskItem({
   onPress,
   onToggle,
   subtaskProgress,
+  isLast,
 }: TaskItemProps) {
   const isCompleted = task.status === 'completed';
 
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center px-4 py-3 bg-card border-b border-border active:bg-muted"
+      className={cn(
+        'flex-row items-center px-4 py-3 bg-card active:bg-muted',
+        !isLast && 'border-b border-border'
+      )}
     >
       {/* Checkbox - stops propagation to handle its own press */}
       <Pressable onPress={onToggle} className="mr-3" hitSlop={8}>
@@ -44,18 +49,18 @@ export function TaskItem({
 
       {/* Recurring indicator */}
       {task.recurringFrequency && (
-        <RefreshCw size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
+        <RefreshCw size={16} color="#9CA3AF" style={{ marginRight: 12 }} />
       )}
 
       {/* Subtask progress */}
       {subtaskProgress && (
-        <Text className="text-sm text-muted-foreground mr-2">
-          {subtaskProgress.completed}/{subtaskProgress.total}
+        <Text className="text-sm text-muted-foreground" style={{ marginRight: 12 }}>
+          {subtaskProgress.completed} of {subtaskProgress.total}
         </Text>
       )}
 
       {/* Drag handle - long press anywhere on item to drag */}
-      <GripVertical size={20} color="#9CA3AF" />
+      <GripVertical size={20} color="#9CA3AF" style={{ marginLeft: 4 }} />
     </Pressable>
   );
 }

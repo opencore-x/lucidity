@@ -14,6 +14,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { Plus, Trash2, ChevronDown, Pencil } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
 import { getSubtaskProgress } from '@/utils/helpers';
@@ -39,6 +40,7 @@ interface DraggableTaskProps {
   index: number;
   tasksCount: number;
   allTasks: Task[];
+  isLast: boolean;
   onTaskPress: (task: Task) => void;
   onTaskToggle: (taskId: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
@@ -107,6 +109,7 @@ function DraggableTask({
   index,
   tasksCount,
   allTasks,
+  isLast,
   onTaskPress,
   onTaskToggle,
   onReorder,
@@ -198,6 +201,7 @@ function DraggableTask({
             onPress={() => onTaskPress(task)}
             onToggle={() => onTaskToggle(task.id)}
             subtaskProgress={getSubtaskProgress(allTasks, task.id)}
+            isLast={isLast}
           />
         </Animated.View>
       </GestureDetector>
@@ -324,7 +328,7 @@ export function ProjectGroup({
   }, []);
 
   return (
-    <View className="mb-4">
+    <View>
       {/* Header with swipe-to-delete */}
       <ReanimatedSwipeable
         ref={headerSwipeableRef}
@@ -333,10 +337,10 @@ export function ProjectGroup({
         friction={2}
         rightThreshold={40}
       >
-        <View className="flex-row items-center justify-between px-4 bg-background">
+        <View className="flex-row items-center justify-between pl-2 pr-4 py-3 bg-background">
           <Pressable
             onPress={() => setIsExpanded(!isExpanded)}
-            className="py-2 pr-2"
+            className="py-2 pr-3"
             hitSlop={8}
           >
             <Animated.View style={chevronStyle}>
@@ -391,6 +395,7 @@ export function ProjectGroup({
                 index={index}
                 tasksCount={localTasks.length}
                 allTasks={allTasks}
+                isLast={index === localTasks.length - 1}
                 onTaskPress={onTaskPress}
                 onTaskToggle={onTaskToggle}
                 onReorder={handleReorder}
@@ -421,6 +426,9 @@ export function ProjectGroup({
           />
         </Animated.View>
       )}
+
+      {/* Separator between projects */}
+      <Separator />
     </View>
   );
 }
