@@ -15,6 +15,13 @@
       "when": 1769510481016,
       "tag": "0001_steady_omega_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1769877439709,
+      "tag": "0002_sparkling_menace",
+      "breakpoints": true
     }
   ]
 }

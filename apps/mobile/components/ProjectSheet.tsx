@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, TextInput, Alert } from 'react-native';
+import { View, TextInput, Alert, Pressable, Keyboard } from 'react-native';
 import {
   BottomSheetModal,
   BottomSheetView,
@@ -9,7 +9,7 @@ import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Type, Palette, FileText, Archive } from '@/lib/icons';
+import { Palette, FileText, Archive } from '@/lib/icons';
 import { useProjectSheetStore } from '@/stores/projectSheetStore';
 import { useUpdateProject } from '@/hooks/useProjects';
 import { THEME } from '@/lib/theme';
@@ -81,22 +81,28 @@ export function ProjectSheet() {
     [project, updateProject]
   );
 
-  const handleNameSubmit = () => {
-    if (nameValue.trim() && nameValue !== project?.name) {
+  const handleNameSubmit = React.useCallback(() => {
+    if (!project) return;
+    if (nameValue.trim() && nameValue !== project.name) {
       handleUpdate({ name: nameValue.trim() });
     } else {
-      setNameValue(project?.name || '');
+      setNameValue(project.name);
     }
     setIsEditingName(false);
-  };
+    Keyboard.dismiss();
+  }, [project, nameValue, handleUpdate]);
 
-  const handleDescriptionSubmit = () => {
-    const newDescription = descriptionValue.trim() || undefined;
-    if (newDescription !== (project?.description || undefined)) {
-      handleUpdate({ description: newDescription });
+  const handleDescriptionSubmit = React.useCallback(() => {
+    if (!project) return;
+    const trimmed = descriptionValue.trim();
+    const newDescription = trimmed || null;
+    const currentDescription = project.description || null;
+    if (newDescription !== currentDescription) {
+      handleUpdate({ description: newDescription ?? undefined });
     }
     setIsEditingDescription(false);
-  };
+    Keyboard.dismiss();
+  }, [project, descriptionValue, handleUpdate]);
 
   const handleArchive = () => {
     Alert.alert(
@@ -144,36 +150,65 @@ export function ProjectSheet() {
       <BottomSheetView className="flex-1">
         {project && (
           <>
-            {/* Header */}
+            {/* Header with inline-editable name and description */}
             <View className="px-4 py-4">
-              <Text className="text-xl font-semibold text-center">{project.name}</Text>
-            </View>
+              {/* Name row with optional description icon */}
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1 mr-2">
+                  {isEditingName ? (
+                    <TextInput
+                      className="text-xl font-semibold text-foreground"
+                      style={{ padding: 0, margin: 0, minHeight: 28 }}
+                      value={nameValue}
+                      onChangeText={setNameValue}
+                      onBlur={handleNameSubmit}
+                      onSubmitEditing={handleNameSubmit}
+                      autoFocus
+                      returnKeyType="done"
+                      blurOnSubmit
+                    />
+                  ) : (
+                    <Pressable onPress={() => setIsEditingName(true)}>
+                      <Text className="text-xl font-semibold">
+                        {project.name}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+                {/* Show add description icon only when no description and not editing */}
+                {!project.description && !isEditingDescription && (
+                  <Pressable
+                    onPress={() => setIsEditingDescription(true)}
+                    className="p-2"
+                    hitSlop={8}
+                  >
+                    <FileText size={20} color="#9CA3AF" />
+                  </Pressable>
+                )}
+              </View>
 
-            <Separator />
-
-            {/* Name */}
-            <OptionRow icon={<Type size={iconSize} color={iconColor} />} label="Name">
-              {isEditingName ? (
+              {/* Description section */}
+              {isEditingDescription ? (
                 <TextInput
-                  className="flex-1 text-base text-foreground"
-                  style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
-                  value={nameValue}
-                  onChangeText={setNameValue}
-                  onBlur={handleNameSubmit}
-                  onSubmitEditing={handleNameSubmit}
+                  className="text-muted-foreground mt-2"
+                  style={{ padding: 0, margin: 0, minHeight: 20 }}
+                  value={descriptionValue}
+                  onChangeText={setDescriptionValue}
+                  onBlur={handleDescriptionSubmit}
+                  onSubmitEditing={handleDescriptionSubmit}
                   autoFocus
                   returnKeyType="done"
                   blurOnSubmit
+                  placeholder="Add description..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
                 />
-              ) : (
-                <Text
-                  className="flex-1 text-base text-muted-foreground"
-                  onPress={() => setIsEditingName(true)}
-                >
-                  {project.name}
-                </Text>
-              )}
-            </OptionRow>
+              ) : project.description ? (
+                <Pressable onPress={() => setIsEditingDescription(true)} className="mt-1">
+                  <Text className="text-muted-foreground">{project.description}</Text>
+                </Pressable>
+              ) : null}
+            </View>
 
             <Separator />
 
@@ -188,34 +223,6 @@ export function ProjectSheet() {
                   {project.color || 'Blue'}
                 </Text>
               </View>
-            </OptionRow>
-
-            <Separator />
-
-            {/* Description */}
-            <OptionRow icon={<FileText size={iconSize} color={iconColor} />} label="Description">
-              {isEditingDescription ? (
-                <TextInput
-                  className="flex-1 text-base text-foreground"
-                  style={{ height: ROW_HEIGHT, padding: 0, margin: 0 }}
-                  value={descriptionValue}
-                  onChangeText={setDescriptionValue}
-                  onBlur={handleDescriptionSubmit}
-                  onSubmitEditing={handleDescriptionSubmit}
-                  autoFocus
-                  returnKeyType="done"
-                  blurOnSubmit
-                  placeholder="Add description..."
-                  placeholderTextColor="#9CA3AF"
-                />
-              ) : (
-                <Text
-                  className={`flex-1 text-base ${project.description ? 'text-muted-foreground' : 'text-muted-foreground/50'}`}
-                  onPress={() => setIsEditingDescription(true)}
-                >
-                  {project.description || 'Add description...'}
-                </Text>
-              )}
             </OptionRow>
 
             <Separator />
