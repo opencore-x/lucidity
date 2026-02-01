@@ -33,6 +33,7 @@ export const tasks = pgTable('tasks', {
   position: integer('position'),
   dueDate: timestamp('due_date'),
   completedAt: timestamp('completed_at'),
+  recurringFrequency: varchar('recurring_frequency', { length: 20 }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });

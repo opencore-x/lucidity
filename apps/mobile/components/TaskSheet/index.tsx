@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { SubtaskList } from './SubtaskList';
 import { TaskOptions } from './TaskOptions';
-import { ChevronLeft, Plus, FileText } from '@/lib/icons';
+import { ChevronLeft, Plus, FileText, RefreshCw } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtasks } from '@/utils/helpers';
 import { useToggleTask, useCreateTask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
@@ -270,16 +270,23 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
                   </Pressable>
                 )}
               </View>
-              {/* Show add description icon only when no description and not editing */}
-              {!task.description && !isEditingDescription && (
-                <Pressable
-                  onPress={() => setIsEditingDescription(true)}
-                  className="p-2"
-                  hitSlop={8}
-                >
-                  <FileText size={20} color="#9CA3AF" />
-                </Pressable>
-              )}
+              {/* Header icons */}
+              <View className="flex-row items-center">
+                {/* Recurring indicator */}
+                {task.recurringFrequency && (
+                  <RefreshCw size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
+                )}
+                {/* Show add description icon only when no description and not editing */}
+                {!task.description && !isEditingDescription && (
+                  <Pressable
+                    onPress={() => setIsEditingDescription(true)}
+                    className="p-2"
+                    hitSlop={8}
+                  >
+                    <FileText size={20} color="#9CA3AF" />
+                  </Pressable>
+                )}
+              </View>
             </View>
 
             {/* Description section */}

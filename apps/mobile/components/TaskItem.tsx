@@ -3,7 +3,7 @@ import { Pressable } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { GripVertical } from '@/lib/icons';
+import { GripVertical, RefreshCw } from '@/lib/icons';
 import type { Task } from '@lucidity/shared';
 
 interface TaskItemProps {
@@ -41,6 +41,11 @@ export function TaskItem({
       >
         {task.title}
       </Text>
+
+      {/* Recurring indicator */}
+      {task.recurringFrequency && (
+        <RefreshCw size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
+      )}
 
       {/* Subtask progress */}
       {subtaskProgress && (

@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Calendar, Folder, Flag, Activity } from '@/lib/icons';
+import { Calendar, Folder, Flag, Activity, RefreshCw } from '@/lib/icons';
 import type { Task, Project, UpdateTask } from '@lucidity/shared';
 import type { Option } from '@rn-primitives/select';
 
@@ -36,6 +36,14 @@ const PRIORITY_OPTIONS = [
   { value: '500', label: 'Normal' },
   { value: '750', label: 'High' },
   { value: '1000', label: 'Highest' },
+];
+
+const REPEAT_OPTIONS = [
+  { value: '', label: 'Never' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly', label: 'Yearly' },
 ];
 
 function getPriorityValue(priority: number): string {
@@ -92,6 +100,13 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
     }
   };
 
+  const handleRepeatChange = (option: Option) => {
+    const newValue = option?.value || null;
+    if (newValue !== task.recurringFrequency) {
+      onUpdate({ recurringFrequency: newValue as 'daily' | 'weekly' | 'monthly' | 'yearly' | null });
+    }
+  };
+
   const projectOptions = projects.map((p) => ({
     value: p.id,
     label: p.name,
@@ -104,6 +119,7 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
   const currentStatus = STATUS_OPTIONS.find((s) => s.value === task.status);
   const currentPriorityValue = getPriorityValue(task.priority);
   const currentPriority = PRIORITY_OPTIONS.find((p) => p.value === currentPriorityValue);
+  const currentRepeat = REPEAT_OPTIONS.find((r) => r.value === (task.recurringFrequency ?? ''));
 
   return (
     <View className="mt-4">
@@ -187,6 +203,32 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
       </OptionRow>
 
       <Separator />
+
+      {/* Repeat - only show if due date is set */}
+      {task.dueDate && (
+        <>
+          <OptionRow icon={<RefreshCw size={iconSize} color={iconColor} />} label="Repeat">
+            <Select value={currentRepeat} onValueChange={handleRepeatChange}>
+              <SelectTrigger
+                className="border-0 bg-transparent px-0 flex-1"
+                style={{ height: ROW_HEIGHT }}
+              >
+                <SelectValue
+                  className="text-base text-muted-foreground native:text-base"
+                  placeholder="Never"
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {REPEAT_OPTIONS.map((r) => (
+                  <SelectItem key={r.value} value={r.value} label={r.label} />
+                ))}
+              </SelectContent>
+            </Select>
+          </OptionRow>
+
+          <Separator />
+        </>
+      )}
     </View>
   );
 }
