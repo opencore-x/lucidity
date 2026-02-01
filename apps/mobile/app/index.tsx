@@ -6,7 +6,6 @@ import { ProjectGroup } from '@/components/ProjectGroup';
 import { EmptyState } from '@/components/EmptyState';
 import { FAB } from '@/components/FAB';
 import { TaskSheet } from '@/components/TaskSheet';
-import { ProjectSheet } from '@/components/ProjectSheet';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { useUser } from '@clerk/clerk-expo';
 import { Stack } from 'expo-router';
@@ -16,11 +15,10 @@ import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTasks, useToggleTask, useReorderTasks, useDeleteTask } from '@/hooks/useTasks';
-import { useProjects } from '@/hooks/useProjects';
+import { useProjects, useDeleteProject } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
-import { useProjectSheetStore } from '@/stores/projectSheetStore';
 import { groupTasksByProject } from '@/utils/helpers';
-import type { Task, Project } from '@lucidity/shared';
+import type { Task } from '@lucidity/shared';
 
 const SCREEN_OPTIONS = {
   headerShown: false,
@@ -36,8 +34,8 @@ export default function HomeScreen() {
   const toggleTask = useToggleTask();
   const reorderTasks = useReorderTasks();
   const deleteTask = useDeleteTask();
+  const deleteProject = useDeleteProject();
   const { openSheet, openCreateSheet } = useSheetStore();
-  const { openSheet: openProjectSheet } = useProjectSheetStore();
 
   // Filter out archived projects
   const projects = React.useMemo(
@@ -61,11 +59,11 @@ export default function HomeScreen() {
     [openSheet]
   );
 
-  const handleProjectPress = React.useCallback(
-    (project: Project) => {
-      openProjectSheet(project);
+  const handleDeleteProject = React.useCallback(
+    (projectId: string) => {
+      deleteProject.mutate(projectId);
     },
-    [openProjectSheet]
+    [deleteProject]
   );
 
   const handleTaskToggle = React.useCallback(
@@ -109,16 +107,8 @@ export default function HomeScreen() {
   );
 
   // Get current sheet data for stale validation
-  const { project: sheetProject } = useProjectSheetStore();
   const { currentTask } = useSheetStore();
   const sheetTask = currentTask();
-
-  // Close project sheet if project was archived/deleted
-  React.useEffect(() => {
-    if (sheetProject && !projects.find((p) => p.id === sheetProject.id)) {
-      useProjectSheetStore.getState().closeSheet();
-    }
-  }, [sheetProject, projects]);
 
   // Close task sheet if task was deleted
   React.useEffect(() => {
@@ -194,7 +184,7 @@ export default function HomeScreen() {
                 tasks={projectTasks}
                 allTasks={tasks}
                 onAddTask={handleAddTask}
-                onProjectPress={handleProjectPress}
+                onDeleteProject={handleDeleteProject}
                 onTaskPress={handleTaskPress}
                 onTaskToggle={handleTaskToggle}
                 onReorderTasks={handleReorderTasks}
@@ -211,9 +201,6 @@ export default function HomeScreen() {
 
         {/* Task Sheet */}
         <TaskSheet tasks={tasks} projects={projects} />
-
-        {/* Project Sheet */}
-        <ProjectSheet />
 
         {/* Create Project Modal */}
         <CreateProjectModal

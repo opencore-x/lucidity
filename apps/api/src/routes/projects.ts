@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '../lib/db.js';
-import { eq, and, projects } from '@lucidity/db';
+import { eq, and, projects, tasks } from '@lucidity/db';
 import { CreateProjectSchema, UpdateProjectSchema } from '@lucidity/shared';
 import { uuidv7 } from 'uuidv7';
 import { getCurrentUser } from '../lib/auth.js';
@@ -70,12 +70,21 @@ router.delete('/:id', async (c) => {
   const user = await getCurrentUser(c);
   const id = c.req.param('id');
 
-  const [deletedProject] = await db
-    .delete(projects)
-    .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
-    .returning();
+  const [project] = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)));
 
-  if (!deletedProject) return c.json({ error: 'Project not found' }, 404);
+  if (!project) return c.json({ error: 'Project not found' }, 404);
+
+  await db
+    .delete(tasks)
+    .where(and(eq(tasks.projectId, id), eq(tasks.userId, user.id)));
+
+  await db
+    .delete(projects)
+    .where(and(eq(projects.id, id), eq(projects.userId, user.id)));
+
   return c.body(null, 204);
 });
 
