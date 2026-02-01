@@ -17,6 +17,7 @@ import {
   FileText,
   Archive,
   Palette,
+  RefreshCw,
 } from 'lucide-react-native';
 
 export {
@@ -38,4 +39,5 @@ export {
   FileText,
   Archive,
   Palette,
+  RefreshCw,
 };

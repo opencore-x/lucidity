@@ -1,0 +1,1 @@
+ALTER TABLE "tasks" ADD COLUMN "recurring_frequency" varchar(20);
