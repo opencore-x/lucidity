@@ -7,12 +7,14 @@ import Animated, {
   withTiming,
   runOnJS,
   SharedValue,
+  FadeIn,
+  FadeOut,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2 } from '@/lib/icons';
+import { Plus, Trash2, ChevronDown } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
 import { getSubtaskProgress } from '@/utils/helpers';
 import { useUpdateProject } from '@/hooks/useProjects';
@@ -209,8 +211,18 @@ export function ProjectGroup({
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [nameValue, setNameValue] = React.useState(project.name);
+  const [isExpanded, setIsExpanded] = React.useState(true);
   const updateProject = useUpdateProject();
   const headerSwipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
+  const chevronRotation = useSharedValue(0);
+
+  React.useEffect(() => {
+    chevronRotation.value = withTiming(isExpanded ? 0 : -90, { duration: 200 });
+  }, [isExpanded, chevronRotation]);
+
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${chevronRotation.value}deg` }],
+  }));
 
   React.useEffect(() => {
     setLocalTasks(tasks);
@@ -285,7 +297,16 @@ export function ProjectGroup({
         friction={2}
         rightThreshold={40}
       >
-        <View className="flex-row items-center justify-between px-4 py-2 bg-background">
+        <View className="flex-row items-center justify-between px-4 bg-background">
+          <Pressable
+            onPress={() => setIsExpanded(!isExpanded)}
+            className="py-2 pr-2"
+            hitSlop={8}
+          >
+            <Animated.View style={chevronStyle}>
+              <ChevronDown size={20} color="#6B7280" />
+            </Animated.View>
+          </Pressable>
           <View className="flex-row items-center flex-1">
             {isEditingName ? (
               <TextInput
@@ -316,50 +337,54 @@ export function ProjectGroup({
       </ReanimatedSwipeable>
 
       {/* Tasks with drop indicators */}
-      {localTasks.map((task, index) => (
-        <React.Fragment key={task.id}>
-          {/* Drop indicator above this item */}
+      {isExpanded && (
+        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}>
+          {localTasks.map((task, index) => (
+            <React.Fragment key={task.id}>
+              {/* Drop indicator above this item */}
+              <DropIndicator
+                visible={
+                  isDragging &&
+                  dropIndex === index &&
+                  dragFromIndex !== null &&
+                  dragFromIndex > index
+                }
+              />
+              <DraggableTask
+                task={task}
+                index={index}
+                tasksCount={localTasks.length}
+                allTasks={allTasks}
+                onTaskPress={onTaskPress}
+                onTaskToggle={onTaskToggle}
+                onReorder={handleReorder}
+                onDragStart={() => handleDragStart(index)}
+                onDragUpdate={handleDragUpdate}
+                onDragEnd={handleDragEnd}
+                onDeleteTask={onDeleteTask}
+              />
+              {/* Drop indicator below this item */}
+              <DropIndicator
+                visible={
+                  isDragging &&
+                  dropIndex === index &&
+                  dragFromIndex !== null &&
+                  dragFromIndex < index
+                }
+              />
+            </React.Fragment>
+          ))}
+          {/* Drop indicator at the very end */}
           <DropIndicator
             visible={
               isDragging &&
-              dropIndex === index &&
+              dropIndex === localTasks.length - 1 &&
               dragFromIndex !== null &&
-              dragFromIndex > index
+              dragFromIndex < localTasks.length - 1
             }
           />
-          <DraggableTask
-            task={task}
-            index={index}
-            tasksCount={localTasks.length}
-            allTasks={allTasks}
-            onTaskPress={onTaskPress}
-            onTaskToggle={onTaskToggle}
-            onReorder={handleReorder}
-            onDragStart={() => handleDragStart(index)}
-            onDragUpdate={handleDragUpdate}
-            onDragEnd={handleDragEnd}
-            onDeleteTask={onDeleteTask}
-          />
-          {/* Drop indicator below this item */}
-          <DropIndicator
-            visible={
-              isDragging &&
-              dropIndex === index &&
-              dragFromIndex !== null &&
-              dragFromIndex < index
-            }
-          />
-        </React.Fragment>
-      ))}
-      {/* Drop indicator at the very end */}
-      <DropIndicator
-        visible={
-          isDragging &&
-          dropIndex === localTasks.length - 1 &&
-          dragFromIndex !== null &&
-          dragFromIndex < localTasks.length - 1
-        }
-      />
+        </Animated.View>
+      )}
     </View>
   );
 }

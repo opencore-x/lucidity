@@ -1,5 +1,6 @@
 import {
   Check,
+  ChevronDown,
   ChevronLeft,
   Circle,
   GripVertical,
@@ -22,6 +23,7 @@ import {
 
 export {
   Check,
+  ChevronDown,
   ChevronLeft,
   Circle,
   GripVertical,
