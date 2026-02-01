@@ -14,7 +14,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, ChevronDown } from '@/lib/icons';
+import { Plus, Trash2, ChevronDown, Pencil } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
 import { getSubtaskProgress } from '@/utils/helpers';
 import { useUpdateProject } from '@/hooks/useProjects';
@@ -61,6 +61,37 @@ function RightAction({
 
   return (
     <Animated.View style={animatedStyle}>
+      <Pressable
+        onPress={onDelete}
+        className="bg-destructive justify-center items-center w-20 h-full"
+      >
+        <Trash2 size={24} color="#FFFFFF" />
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+function HeaderRightActions({
+  drag,
+  onEdit,
+  onDelete,
+}: {
+  drag: SharedValue<number>;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: drag.value + 160 }],
+  }));
+
+  return (
+    <Animated.View style={animatedStyle} className="flex-row">
+      <Pressable
+        onPress={onEdit}
+        className="bg-blue-500 justify-center items-center w-20 h-full"
+      >
+        <Pencil size={24} color="#FFFFFF" />
+      </Pressable>
       <Pressable
         onPress={onDelete}
         className="bg-destructive justify-center items-center w-20 h-full"
@@ -253,11 +284,16 @@ export function ProjectGroup({
     );
   }, [project.id, project.name, onDeleteProject]);
 
+  const handleEditProject = React.useCallback(() => {
+    headerSwipeableRef.current?.close();
+    setIsEditingName(true);
+  }, []);
+
   const renderHeaderRightActions = React.useCallback(
     (_prog: SharedValue<number>, drag: SharedValue<number>) => (
-      <RightAction drag={drag} onDelete={handleDeleteProject} />
+      <HeaderRightActions drag={drag} onEdit={handleEditProject} onDelete={handleDeleteProject} />
     ),
-    [handleDeleteProject]
+    [handleEditProject, handleDeleteProject]
   );
 
   const handleReorder = React.useCallback(
@@ -323,7 +359,7 @@ export function ProjectGroup({
             ) : (
               <Pressable
                 className="flex-row items-center flex-1"
-                onPress={() => setIsEditingName(true)}
+                onPress={() => setIsExpanded(!isExpanded)}
               >
                 <Text className="text-lg font-semibold">{project.name}</Text>
                 <Text className="ml-2 text-sm text-muted-foreground">{tasks.length}</Text>

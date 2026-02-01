@@ -18,6 +18,7 @@ import {
   FileText,
   Archive,
   Palette,
+  Pencil,
   RefreshCw,
 } from 'lucide-react-native';
 
@@ -41,5 +42,6 @@ export {
   FileText,
   Archive,
   Palette,
+  Pencil,
   RefreshCw,
 };
