@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, Pressable, Alert } from 'react-native';
+import { View, Pressable, Alert, TextInput, Keyboard } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
 import { getSubtaskProgress } from '@/utils/helpers';
+import { useUpdateProject } from '@/hooks/useProjects';
 import type { Task, Project } from '@lucidity/shared';
 
 const ITEM_HEIGHT = 56;
@@ -24,7 +25,7 @@ interface ProjectGroupProps {
   tasks: Task[];
   allTasks: Task[];
   onAddTask: (projectId: string) => void;
-  onProjectPress: (project: Project) => void;
+  onDeleteProject: (projectId: string) => void;
   onTaskPress: (task: Task) => void;
   onTaskToggle: (taskId: string) => void;
   onReorderTasks: (taskIds: string[]) => void;
@@ -195,7 +196,7 @@ export function ProjectGroup({
   tasks,
   allTasks,
   onAddTask,
-  onProjectPress,
+  onDeleteProject,
   onTaskPress,
   onTaskToggle,
   onReorderTasks,
@@ -206,9 +207,46 @@ export function ProjectGroup({
   const [dropIndex, setDropIndex] = React.useState<number | null>(null);
   const [dragFromIndex, setDragFromIndex] = React.useState<number | null>(null);
 
+  const [isEditingName, setIsEditingName] = React.useState(false);
+  const [nameValue, setNameValue] = React.useState(project.name);
+  const updateProject = useUpdateProject();
+  const headerSwipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
+
   React.useEffect(() => {
     setLocalTasks(tasks);
   }, [tasks]);
+
+  React.useEffect(() => {
+    setNameValue(project.name);
+  }, [project.name]);
+
+  const handleNameSubmit = React.useCallback(() => {
+    if (nameValue.trim() && nameValue !== project.name) {
+      updateProject.mutate({ id: project.id, data: { name: nameValue.trim() } });
+    } else {
+      setNameValue(project.name);
+    }
+    setIsEditingName(false);
+    Keyboard.dismiss();
+  }, [project.id, project.name, nameValue, updateProject]);
+
+  const handleDeleteProject = React.useCallback(() => {
+    Alert.alert(
+      'Delete Project',
+      `Delete "${project.name}" and all its tasks?`,
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => headerSwipeableRef.current?.close() },
+        { text: 'Delete', style: 'destructive', onPress: () => onDeleteProject(project.id) },
+      ]
+    );
+  }, [project.id, project.name, onDeleteProject]);
+
+  const renderHeaderRightActions = React.useCallback(
+    (_prog: SharedValue<number>, drag: SharedValue<number>) => (
+      <RightAction drag={drag} onDelete={handleDeleteProject} />
+    ),
+    [handleDeleteProject]
+  );
 
   const handleReorder = React.useCallback(
     (fromIndex: number, toIndex: number) => {
@@ -239,25 +277,43 @@ export function ProjectGroup({
 
   return (
     <View className="mb-4">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-2 bg-background">
-        <Pressable
-          className="flex-row items-center flex-1"
-          onPress={() => onProjectPress(project)}
-        >
-          <Text className="text-lg font-semibold">{project.name}</Text>
-          <Text className="ml-2 text-sm text-muted-foreground">
-            {tasks.length}
-          </Text>
-        </Pressable>
-        <Button
-          variant="ghost"
-          size="icon"
-          onPress={() => onAddTask(project.id)}
-        >
-          <Plus size={20} color="#3B82F6" />
-        </Button>
-      </View>
+      {/* Header with swipe-to-delete */}
+      <ReanimatedSwipeable
+        ref={headerSwipeableRef}
+        renderRightActions={renderHeaderRightActions}
+        overshootRight={false}
+        friction={2}
+        rightThreshold={40}
+      >
+        <View className="flex-row items-center justify-between px-4 py-2 bg-background">
+          <View className="flex-row items-center flex-1">
+            {isEditingName ? (
+              <TextInput
+                className="text-lg font-semibold text-foreground flex-1"
+                style={{ padding: 0, margin: 0, minHeight: 24 }}
+                value={nameValue}
+                onChangeText={setNameValue}
+                onBlur={handleNameSubmit}
+                onSubmitEditing={handleNameSubmit}
+                autoFocus
+                returnKeyType="done"
+                blurOnSubmit
+              />
+            ) : (
+              <Pressable
+                className="flex-row items-center flex-1"
+                onPress={() => setIsEditingName(true)}
+              >
+                <Text className="text-lg font-semibold">{project.name}</Text>
+                <Text className="ml-2 text-sm text-muted-foreground">{tasks.length}</Text>
+              </Pressable>
+            )}
+          </View>
+          <Button variant="ghost" size="icon" onPress={() => onAddTask(project.id)}>
+            <Plus size={20} color="#3B82F6" />
+          </Button>
+        </View>
+      </ReanimatedSwipeable>
 
       {/* Tasks with drop indicators */}
       {localTasks.map((task, index) => (
