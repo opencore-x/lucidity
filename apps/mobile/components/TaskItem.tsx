@@ -44,7 +44,7 @@ export function TaskItem({
 
       {/* Recurring indicator */}
       {task.recurringFrequency && (
-        <RefreshCw size={16} color="#9CA3AF" className="mr-2" />
+        <RefreshCw size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
       )}
 
       {/* Subtask progress */}
