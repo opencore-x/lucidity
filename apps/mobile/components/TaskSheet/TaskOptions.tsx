@@ -81,7 +81,7 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
     }
   };
 
-  const handleDueDateChange = (date: Date | undefined) => {
+  const handleDueDateChange = (date: Date | null) => {
     onUpdate({ dueDate: date });
   };
 
@@ -147,19 +147,6 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
 
       <Separator />
 
-      {/* Due Date */}
-      <OptionRow icon={<Calendar size={iconSize} color={iconColor} />} label="Due Date">
-        <DatePicker
-          value={task.dueDate ? new Date(task.dueDate) : undefined}
-          onChange={handleDueDateChange}
-          placeholder="None"
-          className="flex-1"
-          height={ROW_HEIGHT}
-        />
-      </OptionRow>
-
-      <Separator />
-
       {/* Status */}
       <OptionRow icon={<Activity size={iconSize} color={iconColor} />} label="Status">
         <Select value={currentStatus} onValueChange={handleStatusChange}>
@@ -204,9 +191,22 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
 
       <Separator />
 
+      {/* Due Date */}
+      <OptionRow icon={<Calendar size={iconSize} color={iconColor} />} label="Due Date">
+        <DatePicker
+          value={task.dueDate ? new Date(task.dueDate) : undefined}
+          onChange={handleDueDateChange}
+          placeholder="None"
+          className="flex-1"
+          height={ROW_HEIGHT}
+        />
+      </OptionRow>
+
       {/* Repeat - only show if due date is set */}
       {task.dueDate && (
         <>
+          <Separator />
+
           <OptionRow icon={<RefreshCw size={iconSize} color={iconColor} />} label="Repeat">
             <Select value={currentRepeat} onValueChange={handleRepeatChange}>
               <SelectTrigger
