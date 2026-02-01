@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 
 interface DatePickerProps {
   value: Date | undefined;
-  onChange: (date: Date | undefined) => void;
+  onChange: (date: Date | null) => void;
   minimumDate?: Date;
   maximumDate?: Date;
   placeholder?: string;
@@ -55,7 +55,7 @@ export function DatePicker({
   };
 
   const handleClear = () => {
-    onChange(undefined);
+    onChange(null);
     setShow(false);
   };
 
