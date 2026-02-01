@@ -1,16 +1,16 @@
 import * as React from 'react';
-import { View, Pressable, TextInput, Keyboard } from 'react-native';
+import { View, Pressable, Keyboard } from 'react-native';
 import {
   BottomSheetModal,
   BottomSheetView,
   BottomSheetScrollView,
   BottomSheetBackdrop,
+  BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { SubtaskList } from './SubtaskList';
 import { TaskOptions } from './TaskOptions';
@@ -193,8 +193,10 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
         New Task in {project?.name || 'Project'}
       </Text>
 
-      <Input
+      <BottomSheetTextInput
+        className="border border-input rounded-md px-3 py-2 text-base text-foreground bg-background"
         placeholder="Task title"
+        placeholderTextColor="#9CA3AF"
         value={newTaskTitle}
         onChangeText={setNewTaskTitle}
         autoFocus
@@ -249,7 +251,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
             <View className="flex-row items-center justify-between">
               <View className="flex-1 mr-2">
                 {isEditingTitle ? (
-                  <TextInput
+                  <BottomSheetTextInput
                     className="text-xl font-semibold text-foreground"
                     style={{ padding: 0, margin: 0, minHeight: 28 }}
                     value={titleValue}
@@ -291,7 +293,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
             {/* Description section */}
             {isEditingDescription ? (
-              <TextInput
+              <BottomSheetTextInput
                 className="text-muted-foreground mt-2"
                 style={{ padding: 0, margin: 0, minHeight: 20 }}
                 value={descriptionValue}
@@ -329,7 +331,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
           <View className="w-5 mr-3 items-center">
             <Plus size={20} color="#9CA3AF" />
           </View>
-          <TextInput
+          <BottomSheetTextInput
             className="flex-1 text-base text-foreground"
             style={{ height: 48, padding: 0, margin: 0 }}
             placeholder="Add subtask"
@@ -369,7 +371,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: theme.card }}
       handleIndicatorStyle={{ backgroundColor: theme.border }}
-      keyboardBehavior="interactive"
+      keyboardBehavior="extend"
       keyboardBlurBehavior="restore"
     >
       {mode === 'create' ? renderCreateContent() : renderViewContent()}

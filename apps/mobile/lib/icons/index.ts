@@ -1,5 +1,6 @@
 import {
   Check,
+  ChevronDown,
   ChevronLeft,
   Circle,
   GripVertical,
@@ -17,11 +18,13 @@ import {
   FileText,
   Archive,
   Palette,
+  Pencil,
   RefreshCw,
 } from 'lucide-react-native';
 
 export {
   Check,
+  ChevronDown,
   ChevronLeft,
   Circle,
   GripVertical,
@@ -39,5 +42,6 @@ export {
   FileText,
   Archive,
   Palette,
+  Pencil,
   RefreshCw,
 };
