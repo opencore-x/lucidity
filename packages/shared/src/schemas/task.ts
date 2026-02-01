@@ -3,6 +3,7 @@ import {
   TASK_STATUS_VALUES,
   PRIORITY_MIN,
   PRIORITY_MAX,
+  RECURRING_FREQUENCY_VALUES,
 } from '../constants.js';
 
 // What client sends when creating a task
@@ -16,6 +17,7 @@ export const CreateTaskSchema = z.object({
   position: z.number().optional(),
   completedAt: z.coerce.date().optional(),
   dueDate: z.coerce.date().optional(),
+  recurringFrequency: z.enum(RECURRING_FREQUENCY_VALUES).nullable().optional(),
 });
 
 // Full task schema (database representation)
@@ -30,6 +32,7 @@ export const TaskSchema = CreateTaskSchema.extend({
   position: z.number().nullable(),
   completedAt: z.coerce.date().nullable(),
   dueDate: z.coerce.date().nullable(),
+  recurringFrequency: z.enum(RECURRING_FREQUENCY_VALUES).nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });
@@ -38,4 +41,5 @@ export const TaskSchema = CreateTaskSchema.extend({
 export const UpdateTaskSchema = CreateTaskSchema.partial().extend({
   description: z.string().nullable().optional(),
   dueDate: z.coerce.date().nullable().optional(),
+  recurringFrequency: z.enum(RECURRING_FREQUENCY_VALUES).nullable().optional(),
 });

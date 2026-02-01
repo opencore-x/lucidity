@@ -11,6 +11,7 @@
     "@hono/node-server": "^1.19.9",
     "@lucidity/db": "workspace:^",
     "@lucidity/shared": "workspace:^",
+    "date-fns": "^4.1.0",
     "hono": "^4.11.4",
     "uuidv7": "^1.1.0",
     "zod": "^4.3.5"

@@ -9,3 +9,5 @@ export const TASK_STATUS = {
 export const PRIORITY_MIN = 1;
 export const PRIORITY_MAX = 1000;
 
+export const RECURRING_FREQUENCY_VALUES = ['daily', 'weekly', 'monthly', 'yearly'] as const;
+
