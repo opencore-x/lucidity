@@ -337,7 +337,7 @@ export function ProjectGroup({
         friction={2}
         rightThreshold={40}
       >
-        <View className="flex-row items-center justify-between pl-2 pr-4 py-3 bg-background">
+        <View className="flex-row items-center justify-between pl-2 pr-4 py-2 bg-background">
           <Pressable
             onPress={() => setIsExpanded(!isExpanded)}
             className="py-2 pr-3"

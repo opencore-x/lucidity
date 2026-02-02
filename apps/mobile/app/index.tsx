@@ -124,25 +124,18 @@ export default function HomeScreen() {
     <>
       <Stack.Screen options={SCREEN_OPTIONS} />
       <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-        {/* Header with avatar, greeting, theme toggle and new project button */}
-        <View className="px-4 pt-2 pb-4">
-          {/* Top row: Theme toggle on right */}
-          <View className="flex-row justify-end mb-2">
-            <ThemeToggle />
-          </View>
-
-          {/* Main header row */}
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-3">
-              <UserMenu />
-              <View>
-                <Text className="text-2xl font-bold">Hello, {displayName.split(' ')[0]}</Text>
-                <Text className="text-sm text-muted-foreground">
-                  {tasks.filter((t) => t.status !== 'completed' && !t.parentTaskId).length} tasks remaining
-                </Text>
-              </View>
+        {/* Header with avatar, greeting, and theme toggle */}
+        <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
+          <View className="flex-row items-center gap-3">
+            <UserMenu />
+            <View>
+              <Text className="text-2xl font-bold">Hello, {displayName.split(' ')[0]}</Text>
+              <Text className="text-sm text-muted-foreground">
+                {tasks.filter((t) => t.status !== 'completed' && !t.parentTaskId).length} tasks remaining
+              </Text>
             </View>
           </View>
+          <ThemeToggle />
         </View>
 
         {/* Task list */}
