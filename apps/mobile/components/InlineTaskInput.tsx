@@ -28,7 +28,7 @@ export function InlineTaskInput({
         viewRef.current?.measureLayout(
           scrollViewRef.current as any,
           (_x, y) => {
-            scrollViewRef.current?.scrollTo({ y: y - 200, animated: true });
+            scrollViewRef.current?.scrollTo({ y: y - 100, animated: true });
           },
           () => {}
         );
