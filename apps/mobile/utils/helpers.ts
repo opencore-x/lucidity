@@ -7,11 +7,11 @@ export function groupTasksByProject(
   tasks: Task[],
   projects: Project[]
 ): Map<Project, Task[]> {
-  // Sort projects: "Todo" first, then alphabetical
+  // Sort projects: "Todo" first, then by creation date (oldest first, new ones at bottom)
   const sortedProjects = [...projects].sort((a, b) => {
     if (a.name === 'Todo') return -1;
     if (b.name === 'Todo') return 1;
-    return a.name.localeCompare(b.name);
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 
   const grouped = new Map<Project, Task[]>();

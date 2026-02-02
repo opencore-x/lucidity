@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Plus, Trash2, ChevronDown, Pencil } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
+import { InlineTaskInput } from './InlineTaskInput';
 import { getSubtaskProgress } from '@/utils/helpers';
 import { useUpdateProject } from '@/hooks/useProjects';
 import type { Task, Project } from '@lucidity/shared';
@@ -27,7 +28,6 @@ interface ProjectGroupProps {
   project: Project;
   tasks: Task[];
   allTasks: Task[];
-  onAddTask: (projectId: string) => void;
   onDeleteProject: (projectId: string) => void;
   onTaskPress: (task: Task) => void;
   onTaskToggle: (taskId: string) => void;
@@ -232,7 +232,6 @@ export function ProjectGroup({
   project,
   tasks,
   allTasks,
-  onAddTask,
   onDeleteProject,
   onTaskPress,
   onTaskToggle,
@@ -243,6 +242,7 @@ export function ProjectGroup({
   const [isDragging, setIsDragging] = React.useState(false);
   const [dropIndex, setDropIndex] = React.useState<number | null>(null);
   const [dragFromIndex, setDragFromIndex] = React.useState<number | null>(null);
+  const [isAddingTask, setIsAddingTask] = React.useState(false);
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [nameValue, setNameValue] = React.useState(project.name);
@@ -370,7 +370,14 @@ export function ProjectGroup({
               </Pressable>
             )}
           </View>
-          <Button variant="ghost" size="icon" onPress={() => onAddTask(project.id)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onPress={() => {
+              if (!isExpanded) setIsExpanded(true);
+              setIsAddingTask(true);
+            }}
+          >
             <Plus size={20} color="#3B82F6" />
           </Button>
         </View>
@@ -424,6 +431,14 @@ export function ProjectGroup({
               dragFromIndex < localTasks.length - 1
             }
           />
+          {/* Inline task input */}
+          {isAddingTask && (
+            <InlineTaskInput
+              projectId={project.id}
+              onComplete={() => setIsAddingTask(false)}
+              autoFocus
+            />
+          )}
         </Animated.View>
       )}
 
