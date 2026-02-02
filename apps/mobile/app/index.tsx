@@ -4,16 +4,16 @@ import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { ProjectGroup } from '@/components/ProjectGroup';
 import { EmptyState } from '@/components/EmptyState';
-import { FAB } from '@/components/FAB';
 import { TaskSheet } from '@/components/TaskSheet';
-import { CreateProjectModal } from '@/components/CreateProjectModal';
+import { AddProjectRow } from '@/components/AddProjectRow';
 import { useUser } from '@clerk/clerk-expo';
 import { Stack } from 'expo-router';
-import { MoonStarIcon, SunIcon, Plus } from 'lucide-react-native';
+import { MoonStarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScrollProvider } from '@/contexts/ScrollContext';
 import { useTasks, useToggleTask, useReorderTasks, useDeleteTask } from '@/hooks/useTasks';
 import { useProjects, useDeleteProject } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
@@ -27,7 +27,7 @@ const SCREEN_OPTIONS = {
 export default function HomeScreen() {
   const { colorScheme } = useColorScheme();
   const { user } = useUser();
-  const [showCreateProject, setShowCreateProject] = React.useState(false);
+  const scrollViewRef = React.useRef<ScrollView>(null);
 
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
@@ -35,7 +35,7 @@ export default function HomeScreen() {
   const reorderTasks = useReorderTasks();
   const deleteTask = useDeleteTask();
   const deleteProject = useDeleteProject();
-  const { openSheet, openCreateSheet } = useSheetStore();
+  const { openSheet } = useSheetStore();
 
   // Filter out archived projects
   const projects = React.useMemo(
@@ -72,20 +72,6 @@ export default function HomeScreen() {
     },
     [toggleTask]
   );
-
-  const handleAddTask = React.useCallback(
-    (projectId: string) => {
-      openCreateSheet(projectId);
-    },
-    [openCreateSheet]
-  );
-
-  const handleFABPress = React.useCallback(() => {
-    const defaultProject = projects.find((p) => p.name === 'Todo') || projects[0];
-    if (defaultProject) {
-      openCreateSheet(defaultProject.id);
-    }
-  }, [projects, openCreateSheet]);
 
   const handleReorderTasks = React.useCallback(
     (taskIds: string[]) => {
@@ -138,75 +124,56 @@ export default function HomeScreen() {
     <>
       <Stack.Screen options={SCREEN_OPTIONS} />
       <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-        {/* Header with avatar, greeting, theme toggle and new project button */}
-        <View className="px-4 pt-2 pb-4">
-          {/* Top row: Theme toggle on right */}
-          <View className="flex-row justify-end mb-2">
-            <ThemeToggle />
-          </View>
-
-          {/* Main header row */}
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-3">
-              <UserMenu />
-              <View>
-                <Text className="text-2xl font-bold">Hello, {displayName.split(' ')[0]}</Text>
-                <Text className="text-sm text-muted-foreground">
-                  {tasks.filter((t) => t.status !== 'completed' && !t.parentTaskId).length} tasks remaining
-                </Text>
-              </View>
+        {/* Header with avatar, greeting, and theme toggle */}
+        <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
+          <View className="flex-row items-center gap-3">
+            <UserMenu />
+            <View>
+              <Text className="text-2xl font-bold">Hello, {displayName.split(' ')[0]}</Text>
+              <Text className="text-sm text-muted-foreground">
+                {tasks.filter((t) => t.status !== 'completed' && !t.parentTaskId).length} tasks remaining
+              </Text>
             </View>
-            <Button
-              variant="outline"
-              size="sm"
-              onPress={() => setShowCreateProject(true)}
-            >
-              <Icon as={Plus} className="size-4 mr-1" />
-              <Text>New Project</Text>
-            </Button>
           </View>
+          <ThemeToggle />
         </View>
 
         {/* Task list */}
         {hasNoTasks ? (
           <EmptyState />
         ) : (
-          <ScrollView
-            className="flex-1"
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          >
-            {Array.from(groupedTasks.entries()).map(([project, projectTasks]) => (
-              <ProjectGroup
-                key={project.id}
-                project={project}
-                tasks={projectTasks}
-                allTasks={tasks}
-                onAddTask={handleAddTask}
-                onDeleteProject={handleDeleteProject}
-                onTaskPress={handleTaskPress}
-                onTaskToggle={handleTaskToggle}
-                onReorderTasks={handleReorderTasks}
-                onDeleteTask={handleDeleteTask}
-              />
-            ))}
-            {/* Bottom padding for FAB */}
-            <View className="h-24" />
-          </ScrollView>
+          <ScrollProvider scrollViewRef={scrollViewRef}>
+            <ScrollView
+              ref={scrollViewRef}
+              className="flex-1"
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+              keyboardShouldPersistTaps="handled"
+            >
+              {Array.from(groupedTasks.entries()).map(([project, projectTasks]) => (
+                <ProjectGroup
+                  key={project.id}
+                  project={project}
+                  tasks={projectTasks}
+                  allTasks={tasks}
+                  onDeleteProject={handleDeleteProject}
+                  onTaskPress={handleTaskPress}
+                  onTaskToggle={handleTaskToggle}
+                  onReorderTasks={handleReorderTasks}
+                  onDeleteTask={handleDeleteTask}
+                />
+              ))}
+              {/* Add Project row */}
+              <AddProjectRow />
+              {/* Bottom padding for keyboard */}
+              <View className="h-80" />
+            </ScrollView>
+          </ScrollProvider>
         )}
-
-        {/* FAB */}
-        {projects.length > 0 && <FAB onPress={handleFABPress} />}
 
         {/* Task Sheet */}
         <TaskSheet tasks={tasks} projects={projects} />
-
-        {/* Create Project Modal */}
-        <CreateProjectModal
-          visible={showCreateProject}
-          onClose={() => setShowCreateProject(false)}
-        />
       </SafeAreaView>
     </>
   );

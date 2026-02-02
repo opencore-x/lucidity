@@ -9,7 +9,6 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { SubtaskList } from './SubtaskList';
@@ -29,7 +28,6 @@ interface TaskSheetProps {
 
 export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const [newSubtaskTitle, setNewSubtaskTitle] = React.useState('');
-  const [newTaskTitle, setNewTaskTitle] = React.useState('');
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
   const [isEditingDescription, setIsEditingDescription] = React.useState(false);
   const [titleValue, setTitleValue] = React.useState('');
@@ -38,14 +36,11 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const theme = THEME[colorScheme ?? 'light'];
 
   const {
-    mode,
-    createProjectId,
     currentTask,
     parentTask,
     canGoBack,
     sheetRef,
     resetState,
-    closeSheet,
     drillDown,
     goBack,
     updateCurrentTask,
@@ -74,7 +69,6 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
     setIsEditingTitle(false);
     setIsEditingDescription(false);
     setNewSubtaskTitle('');
-    setNewTaskTitle('');
   }, [resetState]);
 
   const handleToggle = React.useCallback(
@@ -110,25 +104,6 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
       }
     );
   }, [newSubtaskTitle, task, createTask]);
-
-  const handleCreateTask = React.useCallback(() => {
-    if (!newTaskTitle.trim() || !createProjectId) return;
-
-    createTask.mutate(
-      {
-        title: newTaskTitle.trim(),
-        projectId: createProjectId,
-        status: 'pending',
-        priority: 500,
-      },
-      {
-        onSuccess: () => {
-          setNewTaskTitle('');
-          closeSheet();
-        },
-      }
-    );
-  }, [newTaskTitle, createProjectId, createTask, closeSheet]);
 
   const handleUpdateField = React.useCallback(
     (data: Partial<UpdateTask>) => {
@@ -180,42 +155,9 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
     []
   );
 
-  const project = task
-    ? projects.find((p) => p.id === task.projectId)
-    : createProjectId
-      ? projects.find((p) => p.id === createProjectId)
-      : undefined;
+  const project = task ? projects.find((p) => p.id === task.projectId) : undefined;
 
-  // Create mode content
-  const renderCreateContent = () => (
-    <BottomSheetView className="flex-1 p-4">
-      <Text className="text-lg font-semibold mb-4">
-        New Task in {project?.name || 'Project'}
-      </Text>
-
-      <BottomSheetTextInput
-        className="border border-input rounded-md px-3 py-2 text-base text-foreground bg-background"
-        placeholder="Task title"
-        placeholderTextColor="#9CA3AF"
-        value={newTaskTitle}
-        onChangeText={setNewTaskTitle}
-        autoFocus
-        onSubmitEditing={handleCreateTask}
-        returnKeyType="done"
-      />
-
-      <Button
-        className="mt-4"
-        onPress={handleCreateTask}
-        disabled={!newTaskTitle.trim() || createTask.isPending}
-      >
-        <Text>{createTask.isPending ? 'Creating...' : 'Create Task'}</Text>
-      </Button>
-    </BottomSheetView>
-  );
-
-  // View mode content
-  const renderViewContent = () => {
+  const renderContent = () => {
     if (!task) {
       return <BottomSheetView>{null}</BottomSheetView>;
     }
@@ -374,7 +316,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
       keyboardBehavior="extend"
       keyboardBlurBehavior="restore"
     >
-      {mode === 'create' ? renderCreateContent() : renderViewContent()}
+      {renderContent()}
     </BottomSheetModal>
   );
 }
