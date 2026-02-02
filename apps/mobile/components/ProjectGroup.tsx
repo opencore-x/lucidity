@@ -211,19 +211,22 @@ function DraggableTask({
 
 function DropIndicator({ visible }: { visible: boolean }) {
   const opacity = useSharedValue(0);
+  const height = useSharedValue(0);
 
   React.useEffect(() => {
     opacity.value = withTiming(visible ? 1 : 0, { duration: 150 });
-  }, [visible, opacity]);
+    height.value = withTiming(visible ? 2 : 0, { duration: 150 });
+  }, [visible, opacity, height]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
+    height: height.value,
   }));
 
   return (
     <Animated.View
       style={animatedStyle}
-      className="h-0.5 bg-primary mx-4 rounded-full"
+      className="bg-primary mx-4 rounded-full"
     />
   );
 }
@@ -337,10 +340,10 @@ export function ProjectGroup({
         friction={2}
         rightThreshold={40}
       >
-        <View className="flex-row items-center justify-between pl-2 pr-4 py-2 bg-background">
+        <View className="flex-row items-center justify-between pl-2 pr-4 py-1 bg-background">
           <Pressable
             onPress={() => setIsExpanded(!isExpanded)}
-            className="py-2 pr-3"
+            className="pr-3"
             hitSlop={8}
           >
             <Animated.View style={chevronStyle}>

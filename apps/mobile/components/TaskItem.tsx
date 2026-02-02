@@ -27,7 +27,7 @@ export function TaskItem({
     <Pressable
       onPress={onPress}
       className={cn(
-        'flex-row items-center px-4 py-3 bg-card active:bg-muted',
+        'flex-row items-center px-4 py-2 bg-card active:bg-muted',
         !isLast && 'border-b border-border'
       )}
     >
