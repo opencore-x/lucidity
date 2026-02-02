@@ -7,7 +7,6 @@ import { EmptyState } from '@/components/EmptyState';
 import { TaskSheet } from '@/components/TaskSheet';
 import { AddProjectRow } from '@/components/AddProjectRow';
 import { useUser } from '@clerk/clerk-expo';
-import { Stack } from 'expo-router';
 import { MoonStarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
@@ -20,11 +19,7 @@ import { useSheetStore } from '@/stores/sheetStore';
 import { groupTasksByProject } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
 
-const SCREEN_OPTIONS = {
-  headerShown: false,
-};
-
-export default function HomeScreen() {
+export default function ProjectsScreen() {
   const { colorScheme } = useColorScheme();
   const { user } = useUser();
   const scrollViewRef = React.useRef<ScrollView>(null);
@@ -109,73 +104,67 @@ export default function HomeScreen() {
 
   if (isLoading) {
     return (
-      <>
-        <Stack.Screen options={SCREEN_OPTIONS} />
-        <SafeAreaView className="flex-1 items-center justify-center bg-background">
-          <ActivityIndicator size="large" />
-        </SafeAreaView>
-      </>
+      <SafeAreaView className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator size="large" />
+      </SafeAreaView>
     );
   }
 
   const hasNoTasks = tasks.filter((t) => !t.parentTaskId).length === 0;
 
   return (
-    <>
-      <Stack.Screen options={SCREEN_OPTIONS} />
-      <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-        {/* Header with avatar, greeting, and theme toggle */}
-        <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
-          <View className="flex-row items-center gap-3">
-            <UserMenu />
-            <View>
-              <Text className="text-2xl font-bold">Hello, {displayName.split(' ')[0]}</Text>
-              <Text className="text-sm text-muted-foreground">
-                {tasks.filter((t) => t.status !== 'completed' && !t.parentTaskId).length} tasks remaining
-              </Text>
-            </View>
+    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+      {/* Header with avatar, greeting, and theme toggle */}
+      <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
+        <View className="flex-row items-center gap-3">
+          <UserMenu />
+          <View>
+            <Text className="text-2xl font-bold">Hello, {displayName.split(' ')[0]}</Text>
+            <Text className="text-sm text-muted-foreground">
+              {tasks.filter((t) => t.status !== 'completed' && !t.parentTaskId).length} tasks remaining
+            </Text>
           </View>
-          <ThemeToggle />
         </View>
+        <ThemeToggle />
+      </View>
 
-        {/* Task list */}
-        {hasNoTasks ? (
-          <EmptyState />
-        ) : (
-          <ScrollProvider scrollViewRef={scrollViewRef}>
-            <ScrollView
-              ref={scrollViewRef}
-              className="flex-1"
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-              }
-              keyboardShouldPersistTaps="handled"
-            >
-              {Array.from(groupedTasks.entries()).map(([project, projectTasks]) => (
-                <ProjectGroup
-                  key={project.id}
-                  project={project}
-                  tasks={projectTasks}
-                  allTasks={tasks}
-                  onDeleteProject={handleDeleteProject}
-                  onTaskPress={handleTaskPress}
-                  onTaskToggle={handleTaskToggle}
-                  onReorderTasks={handleReorderTasks}
-                  onDeleteTask={handleDeleteTask}
-                />
-              ))}
-              {/* Add Project row */}
-              <AddProjectRow />
-              {/* Bottom padding for keyboard */}
-              <View className="h-80" />
-            </ScrollView>
-          </ScrollProvider>
-        )}
+      {/* Task list */}
+      {hasNoTasks ? (
+        <EmptyState />
+      ) : (
+        <ScrollProvider scrollViewRef={scrollViewRef}>
+          <ScrollView
+            ref={scrollViewRef}
+            className="flex-1"
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+            keyboardShouldPersistTaps="handled"
+          >
+            {Array.from(groupedTasks.entries()).map(([project, projectTasks]) => (
+              <ProjectGroup
+                key={project.id}
+                project={project}
+                tasks={projectTasks}
+                allTasks={tasks}
+                onDeleteProject={handleDeleteProject}
+                onTaskPress={handleTaskPress}
+                onTaskToggle={handleTaskToggle}
+                onReorderTasks={handleReorderTasks}
+                onDeleteTask={handleDeleteTask}
+              />
+            ))}
+            {/* Add Project row */}
+            <AddProjectRow />
+            {/* Bottom padding for keyboard */}
+            <View className="h-80" />
+          </ScrollView>
+        </ScrollProvider>
+      )}
 
-        {/* Task Sheet */}
-        <TaskSheet tasks={tasks} projects={projects} />
-      </SafeAreaView>
-    </>
+      {/* Task Sheet */}
+      <TaskSheet tasks={tasks} projects={projects} />
+    </SafeAreaView>
   );
 }
 
