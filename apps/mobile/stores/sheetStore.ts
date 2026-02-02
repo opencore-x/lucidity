@@ -7,8 +7,6 @@ const sheetRef = createRef<BottomSheetModal>();
 
 interface SheetState {
   taskStack: Task[];
-  mode: 'view' | 'create';
-  createProjectId: string | null;
   sheetRef: typeof sheetRef;
 
   // Computed getters
@@ -18,7 +16,6 @@ interface SheetState {
 
   // Actions
   openSheet: (task: Task) => void;
-  openCreateSheet: (projectId: string) => void;
   closeSheet: () => void;
   resetState: () => void;
   drillDown: (task: Task) => void;
@@ -28,8 +25,6 @@ interface SheetState {
 
 export const useSheetStore = create<SheetState>((set, get) => ({
   taskStack: [],
-  mode: 'view',
-  createProjectId: null,
   sheetRef,
 
   currentTask: () => {
@@ -45,12 +40,7 @@ export const useSheetStore = create<SheetState>((set, get) => ({
   canGoBack: () => get().taskStack.length > 1,
 
   openSheet: (task) => {
-    set({ taskStack: [task], mode: 'view', createProjectId: null });
-    sheetRef.current?.present();
-  },
-
-  openCreateSheet: (projectId) => {
-    set({ taskStack: [], mode: 'create', createProjectId: projectId });
+    set({ taskStack: [task] });
     sheetRef.current?.present();
   },
 
@@ -59,7 +49,7 @@ export const useSheetStore = create<SheetState>((set, get) => ({
   },
 
   resetState: () => {
-    set({ taskStack: [], mode: 'view', createProjectId: null });
+    set({ taskStack: [] });
   },
 
   drillDown: (task) =>

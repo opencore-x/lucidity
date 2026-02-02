@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Plus, Trash2, ChevronDown, Pencil } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
+import { InlineTaskInput } from './InlineTaskInput';
 import { getSubtaskProgress } from '@/utils/helpers';
 import { useUpdateProject } from '@/hooks/useProjects';
 import type { Task, Project } from '@lucidity/shared';
@@ -27,7 +28,6 @@ interface ProjectGroupProps {
   project: Project;
   tasks: Task[];
   allTasks: Task[];
-  onAddTask: (projectId: string) => void;
   onDeleteProject: (projectId: string) => void;
   onTaskPress: (task: Task) => void;
   onTaskToggle: (taskId: string) => void;
@@ -211,19 +211,22 @@ function DraggableTask({
 
 function DropIndicator({ visible }: { visible: boolean }) {
   const opacity = useSharedValue(0);
+  const height = useSharedValue(0);
 
   React.useEffect(() => {
     opacity.value = withTiming(visible ? 1 : 0, { duration: 150 });
-  }, [visible, opacity]);
+    height.value = withTiming(visible ? 2 : 0, { duration: 150 });
+  }, [visible, opacity, height]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
+    height: height.value,
   }));
 
   return (
     <Animated.View
       style={animatedStyle}
-      className="h-0.5 bg-primary mx-4 rounded-full"
+      className="bg-primary mx-4 rounded-full"
     />
   );
 }
@@ -232,7 +235,6 @@ export function ProjectGroup({
   project,
   tasks,
   allTasks,
-  onAddTask,
   onDeleteProject,
   onTaskPress,
   onTaskToggle,
@@ -243,6 +245,7 @@ export function ProjectGroup({
   const [isDragging, setIsDragging] = React.useState(false);
   const [dropIndex, setDropIndex] = React.useState<number | null>(null);
   const [dragFromIndex, setDragFromIndex] = React.useState<number | null>(null);
+  const [isAddingTask, setIsAddingTask] = React.useState(false);
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [nameValue, setNameValue] = React.useState(project.name);
@@ -337,10 +340,10 @@ export function ProjectGroup({
         friction={2}
         rightThreshold={40}
       >
-        <View className="flex-row items-center justify-between pl-2 pr-4 py-3 bg-background">
+        <View className="flex-row items-center justify-between pl-2 pr-4 py-1 bg-background">
           <Pressable
             onPress={() => setIsExpanded(!isExpanded)}
-            className="py-2 pr-3"
+            className="pr-3"
             hitSlop={8}
           >
             <Animated.View style={chevronStyle}>
@@ -370,7 +373,14 @@ export function ProjectGroup({
               </Pressable>
             )}
           </View>
-          <Button variant="ghost" size="icon" onPress={() => onAddTask(project.id)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onPress={() => {
+              if (!isExpanded) setIsExpanded(true);
+              setIsAddingTask(true);
+            }}
+          >
             <Plus size={20} color="#3B82F6" />
           </Button>
         </View>
@@ -424,6 +434,14 @@ export function ProjectGroup({
               dragFromIndex < localTasks.length - 1
             }
           />
+          {/* Inline task input */}
+          {isAddingTask && (
+            <InlineTaskInput
+              projectId={project.id}
+              onComplete={() => setIsAddingTask(false)}
+              autoFocus
+            />
+          )}
         </Animated.View>
       )}
 
