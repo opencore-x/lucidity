@@ -16,9 +16,10 @@ export function ScrollProvider({
   scrollViewRef: React.RefObject<ScrollView | null>;
 }) {
   const scrollToEnd = React.useCallback(() => {
+    // Delay to allow keyboard animation to start
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    }, 150);
   }, [scrollViewRef]);
 
   const value = React.useMemo(
