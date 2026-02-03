@@ -124,7 +124,7 @@ export default function TodayScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       {/* Header with avatar, greeting, and theme toggle */}
-      <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
+      <View className="flex-row items-center justify-between px-4 pt-2 pb-8">
         <View className="flex-row items-center gap-3">
           <UserMenu />
           <View>

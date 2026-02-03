@@ -20,7 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   splash: {
     image: "./assets/images/splash.png",
     resizeMode: "contain",
-    backgroundColor: "#2d2d2d",
+    backgroundColor: "#000000",
   },
   assetBundlePatterns: ["**/*"],
   ios: {
@@ -31,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     edgeToEdgeEnabled: true,
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
-      backgroundColor: "#2d2d2d",
+      backgroundColor: "#000000",
     },
     package: "com.lucidity.app",
   },
