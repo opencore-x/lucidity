@@ -3,7 +3,6 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { ProjectGroup } from '@/components/ProjectGroup';
-import { EmptyState } from '@/components/EmptyState';
 import { TaskSheet } from '@/components/TaskSheet';
 import { AddProjectRow } from '@/components/AddProjectRow';
 import { useUser } from '@clerk/clerk-expo';
@@ -25,7 +24,11 @@ export default function ProjectsScreen() {
   const scrollViewRef = React.useRef<ScrollView>(null);
 
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
-  const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
+  const {
+    data: allProjects = [],
+    isLoading: projectsLoading,
+    refetch: refetchProjects,
+  } = useProjects();
   const toggleTask = useToggleTask();
   const reorderTasks = useReorderTasks();
   const deleteTask = useDeleteTask();
@@ -33,10 +36,7 @@ export default function ProjectsScreen() {
   const { openSheet } = useSheetStore();
 
   // Filter out archived projects
-  const projects = React.useMemo(
-    () => allProjects.filter((p) => !p.isArchived),
-    [allProjects]
-  );
+  const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
 
   const isLoading = tasksLoading || projectsLoading;
   const [refreshing, setRefreshing] = React.useState(false);
@@ -82,10 +82,7 @@ export default function ProjectsScreen() {
     [deleteTask]
   );
 
-  const groupedTasks = React.useMemo(
-    () => groupTasksByProject(tasks, projects),
-    [tasks, projects]
-  );
+  const groupedTasks = React.useMemo(() => groupTasksByProject(tasks, projects), [tasks, projects]);
 
   // Get current sheet data for stale validation
   const { currentTask } = useSheetStore();
@@ -110,57 +107,49 @@ export default function ProjectsScreen() {
     );
   }
 
-  const hasNoTasks = tasks.filter((t) => !t.parentTaskId).length === 0;
-
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       {/* Header with avatar, greeting, and theme toggle */}
-      <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
+      <View className="flex-row items-center justify-between px-4 pb-8 pt-2">
         <View className="flex-row items-center gap-3">
           <UserMenu />
           <View>
-            <Text className="text-2xl font-bold">Hello, {displayName.split(' ')[0]}</Text>
+            <Text className="text-2xl font-bold">Projects</Text>
             <Text className="text-sm text-muted-foreground">
-              {tasks.filter((t) => t.status !== 'completed' && !t.parentTaskId).length} tasks remaining
+              {tasks.filter((t) => t.status !== 'completed' && !t.parentTaskId).length} tasks
+              remaining
             </Text>
           </View>
         </View>
         <ThemeToggle />
       </View>
 
-      {/* Task list */}
-      {hasNoTasks ? (
-        <EmptyState />
-      ) : (
-        <ScrollProvider scrollViewRef={scrollViewRef}>
-          <ScrollView
-            ref={scrollViewRef}
-            className="flex-1"
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-            keyboardShouldPersistTaps="handled"
-          >
-            {Array.from(groupedTasks.entries()).map(([project, projectTasks]) => (
-              <ProjectGroup
-                key={project.id}
-                project={project}
-                tasks={projectTasks}
-                allTasks={tasks}
-                onDeleteProject={handleDeleteProject}
-                onTaskPress={handleTaskPress}
-                onTaskToggle={handleTaskToggle}
-                onReorderTasks={handleReorderTasks}
-                onDeleteTask={handleDeleteTask}
-              />
-            ))}
-            {/* Add Project row */}
-            <AddProjectRow />
-            {/* Bottom padding for keyboard */}
-            <View className="h-80" />
-          </ScrollView>
-        </ScrollProvider>
-      )}
+      {/* Task list - always show Inbox + projects */}
+      <ScrollProvider scrollViewRef={scrollViewRef}>
+        <ScrollView
+          ref={scrollViewRef}
+          className="flex-1"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          keyboardShouldPersistTaps="handled">
+          {Array.from(groupedTasks.entries()).map(([project, projectTasks]) => (
+            <ProjectGroup
+              key={project.id}
+              project={project}
+              tasks={projectTasks}
+              allTasks={tasks}
+              onDeleteProject={handleDeleteProject}
+              onTaskPress={handleTaskPress}
+              onTaskToggle={handleTaskToggle}
+              onReorderTasks={handleReorderTasks}
+              onDeleteTask={handleDeleteTask}
+            />
+          ))}
+          {/* Add Project row */}
+          <AddProjectRow />
+          {/* Bottom padding for keyboard */}
+          <View className="h-80" />
+        </ScrollView>
+      </ScrollProvider>
 
       {/* Task Sheet */}
       <TaskSheet tasks={tasks} projects={projects} />
