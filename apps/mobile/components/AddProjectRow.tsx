@@ -55,12 +55,12 @@ export function AddProjectRow() {
 
   if (isEditing) {
     return (
-      <View className="flex-row items-center px-4 py-3 bg-background">
-        <View className="mr-3">
-          <Plus size={20} color="#3B82F6" />
+      <View className="flex-row items-center bg-background py-2 pl-2 pr-4">
+        <View className="pr-3">
+          <Plus size={20} color="#6B7280" />
         </View>
         <TextInput
-          className="flex-1 text-lg font-semibold text-foreground"
+          className="flex-1 text-base text-foreground"
           style={{ padding: 0, margin: 0, minHeight: 24 }}
           placeholder="Project name..."
           placeholderTextColor="#9CA3AF"
@@ -73,9 +73,7 @@ export function AddProjectRow() {
           blurOnSubmit
           editable={!createProject.isPending}
         />
-        {createProject.isPending && (
-          <ActivityIndicator size="small" style={{ marginLeft: 8 }} />
-        )}
+        {createProject.isPending && <ActivityIndicator size="small" style={{ marginLeft: 8 }} />}
       </View>
     );
   }
@@ -83,12 +81,11 @@ export function AddProjectRow() {
   return (
     <Pressable
       onPress={() => setIsEditing(true)}
-      className="flex-row items-center px-4 py-3 bg-background active:bg-muted"
-    >
-      <View className="mr-3">
-        <Plus size={20} color="#3B82F6" />
+      className="flex-row items-center bg-background py-2 pl-2 pr-4 active:bg-muted">
+      <View className="pr-3">
+        <Plus size={20} color="#6B7280" />
       </View>
-      <Text className="text-lg font-semibold text-primary">Add Project</Text>
+      <Text className="text-base text-muted-foreground">Add Project</Text>
     </Pressable>
   );
 }

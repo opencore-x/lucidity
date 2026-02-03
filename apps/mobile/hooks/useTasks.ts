@@ -34,7 +34,7 @@ export function useCreateTask() {
         id: `temp-${Date.now()}`,
         userId: 'temp-user',
         title: newTask.title,
-        projectId: newTask.projectId,
+        projectId: newTask.projectId ?? null,
         parentTaskId: newTask.parentTaskId ?? null,
         description: newTask.description ?? null,
         status: newTask.status ?? 'pending',

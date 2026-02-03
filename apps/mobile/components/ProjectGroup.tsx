@@ -18,7 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { Plus, Trash2, ChevronDown, Pencil } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
 import { InlineTaskInput } from './InlineTaskInput';
-import { getSubtaskProgress } from '@/utils/helpers';
+import { getSubtaskProgress, isInboxProject } from '@/utils/helpers';
 import { useUpdateProject } from '@/hooks/useProjects';
 import type { Task, Project } from '@lucidity/shared';
 
@@ -254,6 +254,9 @@ export function ProjectGroup({
   const headerSwipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
   const chevronRotation = useSharedValue(0);
 
+  // Check if this is the virtual Inbox (not a real project)
+  const isInbox = isInboxProject(project);
+
   React.useEffect(() => {
     chevronRotation.value = withTiming(isExpanded ? 0 : -90, { duration: 200 });
   }, [isExpanded, chevronRotation]);
@@ -330,61 +333,70 @@ export function ProjectGroup({
     setDragFromIndex(null);
   }, []);
 
+  // Header content (shared between Inbox and regular projects)
+  const headerContent = (
+    <View className="flex-row items-center justify-between pl-2 pr-4 py-1 bg-background">
+      <Pressable
+        onPress={() => setIsExpanded(!isExpanded)}
+        className="pr-3"
+        hitSlop={8}
+      >
+        <Animated.View style={chevronStyle}>
+          <ChevronDown size={20} color="#6B7280" />
+        </Animated.View>
+      </Pressable>
+      <View className="flex-row items-center flex-1">
+        {isEditingName && !isInbox ? (
+          <TextInput
+            className="text-lg font-semibold text-foreground flex-1"
+            style={{ padding: 0, margin: 0, minHeight: 24 }}
+            value={nameValue}
+            onChangeText={setNameValue}
+            onBlur={handleNameSubmit}
+            onSubmitEditing={handleNameSubmit}
+            autoFocus
+            returnKeyType="done"
+            blurOnSubmit
+          />
+        ) : (
+          <Pressable
+            className="flex-row items-center flex-1"
+            onPress={() => setIsExpanded(!isExpanded)}
+          >
+            <Text className="text-lg font-semibold">{project.name}</Text>
+            <Text className="ml-2 text-sm text-muted-foreground">{tasks.length}</Text>
+          </Pressable>
+        )}
+      </View>
+      <Button
+        variant="ghost"
+        size="icon"
+        onPress={() => {
+          if (!isExpanded) setIsExpanded(true);
+          setIsAddingTask(true);
+        }}
+      >
+        <Plus size={20} color="#3B82F6" />
+      </Button>
+    </View>
+  );
+
   return (
     <View>
-      {/* Header with swipe-to-delete */}
-      <ReanimatedSwipeable
-        ref={headerSwipeableRef}
-        renderRightActions={renderHeaderRightActions}
-        overshootRight={false}
-        friction={2}
-        rightThreshold={40}
-      >
-        <View className="flex-row items-center justify-between pl-2 pr-4 py-1 bg-background">
-          <Pressable
-            onPress={() => setIsExpanded(!isExpanded)}
-            className="pr-3"
-            hitSlop={8}
-          >
-            <Animated.View style={chevronStyle}>
-              <ChevronDown size={20} color="#6B7280" />
-            </Animated.View>
-          </Pressable>
-          <View className="flex-row items-center flex-1">
-            {isEditingName ? (
-              <TextInput
-                className="text-lg font-semibold text-foreground flex-1"
-                style={{ padding: 0, margin: 0, minHeight: 24 }}
-                value={nameValue}
-                onChangeText={setNameValue}
-                onBlur={handleNameSubmit}
-                onSubmitEditing={handleNameSubmit}
-                autoFocus
-                returnKeyType="done"
-                blurOnSubmit
-              />
-            ) : (
-              <Pressable
-                className="flex-row items-center flex-1"
-                onPress={() => setIsExpanded(!isExpanded)}
-              >
-                <Text className="text-lg font-semibold">{project.name}</Text>
-                <Text className="ml-2 text-sm text-muted-foreground">{tasks.length}</Text>
-              </Pressable>
-            )}
-          </View>
-          <Button
-            variant="ghost"
-            size="icon"
-            onPress={() => {
-              if (!isExpanded) setIsExpanded(true);
-              setIsAddingTask(true);
-            }}
-          >
-            <Plus size={20} color="#3B82F6" />
-          </Button>
-        </View>
-      </ReanimatedSwipeable>
+      {/* Header - Inbox has no swipe actions, regular projects do */}
+      {isInbox ? (
+        headerContent
+      ) : (
+        <ReanimatedSwipeable
+          ref={headerSwipeableRef}
+          renderRightActions={renderHeaderRightActions}
+          overshootRight={false}
+          friction={2}
+          rightThreshold={40}
+        >
+          {headerContent}
+        </ReanimatedSwipeable>
+      )}
 
       {/* Tasks with drop indicators */}
       {isExpanded && (
@@ -437,7 +449,7 @@ export function ProjectGroup({
           {/* Inline task input */}
           {isAddingTask && (
             <InlineTaskInput
-              projectId={project.id}
+              projectId={isInbox ? null : project.id}
               onComplete={() => setIsAddingTask(false)}
               autoFocus
             />
