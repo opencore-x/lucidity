@@ -5,7 +5,7 @@ import { useCreateTask } from '@/hooks/useTasks';
 import { useScrollContext } from '@/contexts/ScrollContext';
 
 interface InlineTaskInputProps {
-  projectId: string;
+  projectId: string | null;
   onComplete: () => void;
   autoFocus?: boolean;
 }

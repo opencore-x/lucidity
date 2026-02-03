@@ -1,27 +1,56 @@
 import type { Task, Project } from '@lucidity/shared';
 
 /**
+ * Virtual Inbox project for tasks without a projectId
+ * This is not stored in the database - it's a UI-only grouping
+ */
+export const INBOX_PROJECT_ID = '__inbox__';
+
+export const INBOX_PROJECT: Project = {
+  id: INBOX_PROJECT_ID,
+  userId: '',
+  name: 'Inbox',
+  color: null,
+  description: null,
+  isArchived: false,
+  createdAt: new Date(0), // Epoch - ensures it sorts first
+  updatedAt: new Date(0),
+};
+
+/**
+ * Check if a project is the virtual Inbox
+ */
+export function isInboxProject(project: Project): boolean {
+  return project.id === INBOX_PROJECT_ID;
+}
+
+/**
  * Group root tasks (no parentTaskId) by project
+ * Tasks with no projectId go to the virtual Inbox (shown first)
  */
 export function groupTasksByProject(
   tasks: Task[],
   projects: Project[]
 ): Map<Project, Task[]> {
-  // Sort projects: "Todo" first, then by creation date (oldest first, new ones at bottom)
+  // Sort projects by creation date (oldest first, new ones at bottom)
   const sortedProjects = [...projects].sort((a, b) => {
-    if (a.name === 'Todo') return -1;
-    if (b.name === 'Todo') return 1;
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 
   const grouped = new Map<Project, Task[]>();
 
-  // Initialize with empty arrays
+  // Get inbox tasks (tasks with no projectId)
+  const inboxTasks = tasks.filter((task) => !task.parentTaskId && !task.projectId);
+
+  // Always show Inbox first (even if empty, so users can add tasks)
+  grouped.set(INBOX_PROJECT, inboxTasks);
+
+  // Initialize other projects with empty arrays
   sortedProjects.forEach((project) => grouped.set(project, []));
 
-  // Group root tasks only
+  // Group root tasks by their project
   tasks
-    .filter((task) => !task.parentTaskId)
+    .filter((task) => !task.parentTaskId && task.projectId)
     .forEach((task) => {
       const project = sortedProjects.find((p) => p.id === task.projectId);
       if (project) {
