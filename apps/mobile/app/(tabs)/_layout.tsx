@@ -11,6 +11,10 @@ export default function TabLayout() {
         <Label>Today</Label>
         <Icon sf="sun.max.fill" />
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="week">
+        <Label>Week</Label>
+        <Icon sf="calendar" />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
