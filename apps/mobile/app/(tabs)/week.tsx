@@ -212,7 +212,6 @@ export default function WeekScreen() {
         {/* Week days */}
         {weekDays.map((day, dayIndex) => {
           const isPast = isDateInPast(day.date, now);
-          const hasTasks = day.tasks.length > 0;
 
           return (
             <View key={dayIndex} className="mb-4">
@@ -223,27 +222,19 @@ export default function WeekScreen() {
                   }`}
                 >
                   {formatDayHeader(day.date, now)}
-                  {hasTasks ? ` (${day.tasks.length})` : ''}
+                  {day.tasks.length > 0 ? ` (${day.tasks.length})` : ''}
                 </Text>
               </View>
-              {hasTasks ? (
-                day.tasks.map((task, index) => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    subtaskProgress={getSubtaskProgress(tasks, task.id)}
-                    onPress={() => handleTaskPress(task)}
-                    onToggle={() => handleTaskToggle(task.id)}
-                    isLast={index === day.tasks.length - 1}
-                  />
-                ))
-              ) : (
-                <View className="px-4 py-3">
-                  <Text className="text-sm text-muted-foreground italic">
-                    No tasks scheduled
-                  </Text>
-                </View>
-              )}
+              {day.tasks.map((task, index) => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  subtaskProgress={getSubtaskProgress(tasks, task.id)}
+                  onPress={() => handleTaskPress(task)}
+                  onToggle={() => handleTaskToggle(task.id)}
+                  isLast={index === day.tasks.length - 1}
+                />
+              ))}
             </View>
           );
         })}
