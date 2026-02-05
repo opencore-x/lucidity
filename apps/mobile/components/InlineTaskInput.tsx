@@ -45,10 +45,16 @@ export function InlineTaskInput({
     }
 
     isSubmittingRef.current = true;
+    const taskTitle = value.trim();
+
+    // Clear input and close immediately - optimistic update shows the task
+    setValue('');
+    onComplete();
+    Keyboard.dismiss();
 
     createTask.mutate(
       {
-        title: value.trim(),
+        title: taskTitle,
         projectId,
         status: 'pending',
         priority: 500,
@@ -56,11 +62,6 @@ export function InlineTaskInput({
       {
         onSettled: () => {
           isSubmittingRef.current = false;
-        },
-        onSuccess: () => {
-          setValue('');
-          onComplete();
-          Keyboard.dismiss();
         },
       }
     );
