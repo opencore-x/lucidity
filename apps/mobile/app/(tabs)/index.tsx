@@ -4,7 +4,6 @@ import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { ProjectGroup } from '@/components/ProjectGroup';
 import { TaskSheet } from '@/components/TaskSheet';
-import { AddProjectRow } from '@/components/AddProjectRow';
 import { useUser } from '@clerk/clerk-expo';
 import { MoonStarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
@@ -155,8 +154,6 @@ export default function ProjectsScreen() {
               onSetDueToday={handleSetDueToday}
             />
           ))}
-          {/* Add Project row */}
-          <AddProjectRow />
           {/* Bottom padding for keyboard */}
           <View className="h-80" />
         </ScrollView>

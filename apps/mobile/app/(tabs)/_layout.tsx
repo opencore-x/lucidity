@@ -15,6 +15,10 @@ export default function TabLayout() {
         <Label>Week</Label>
         <Icon sf="calendar" />
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="new">
+        <Label>New</Label>
+        <Icon sf="plus" />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
