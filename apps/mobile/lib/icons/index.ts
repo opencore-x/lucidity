@@ -22,6 +22,7 @@ import {
   Palette,
   Pencil,
   RefreshCw,
+  Search,
 } from 'lucide-react-native';
 
 export {
@@ -48,4 +49,5 @@ export {
   Palette,
   Pencil,
   RefreshCw,
+  Search,
 };
