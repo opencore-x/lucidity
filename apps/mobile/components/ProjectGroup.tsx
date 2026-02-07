@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, Pressable, Alert, TextInput, Keyboard } from 'react-native';
+import { View, Pressable, Alert, TextInput, Keyboard, Text as RNText, Dimensions } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -15,7 +15,7 @@ import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeabl
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, ChevronDown, Pencil } from '@/lib/icons';
+import { Plus, Trash2, ChevronDown, Pencil, CalendarCheck, Check } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
 import { InlineTaskInput } from './InlineTaskInput';
 import { getSubtaskProgress, isInboxProject } from '@/utils/helpers';
@@ -23,6 +23,7 @@ import { useUpdateProject } from '@/hooks/useProjects';
 import type { Task, Project } from '@lucidity/shared';
 
 const ITEM_HEIGHT = 56;
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 interface ProjectGroupProps {
   project: Project;
@@ -33,6 +34,7 @@ interface ProjectGroupProps {
   onTaskToggle: (taskId: string) => void;
   onReorderTasks: (taskIds: string[]) => void;
   onDeleteTask: (taskId: string) => void;
+  onSetDueToday: (taskId: string) => void;
 }
 
 interface DraggableTaskProps {
@@ -48,6 +50,32 @@ interface DraggableTaskProps {
   onDragUpdate: (targetIndex: number) => void;
   onDragEnd: () => void;
   onDeleteTask: (taskId: string) => void;
+  onSetDueToday: (taskId: string) => void;
+}
+
+function LeftAction({ confirmed }: { confirmed: boolean }) {
+  return (
+    <View
+      style={{ backgroundColor: '#F59E0B', width: SCREEN_WIDTH }}
+      className="flex-row items-center pl-4 gap-1.5 h-full"
+    >
+      {confirmed ? (
+        <>
+          <Check size={18} color="#FFFFFF" />
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+            Added to Today
+          </RNText>
+        </>
+      ) : (
+        <>
+          <CalendarCheck size={18} color="#FFFFFF" />
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+            Today
+          </RNText>
+        </>
+      )}
+    </View>
+  );
 }
 
 function RightAction({
@@ -117,6 +145,7 @@ function DraggableTask({
   onDragUpdate,
   onDragEnd,
   onDeleteTask,
+  onSetDueToday,
 }: DraggableTaskProps) {
   const swipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
   const translateY = useSharedValue(0);
@@ -146,6 +175,29 @@ function DraggableTask({
       return <RightAction drag={drag} onDelete={handleDelete} />;
     },
     [handleDelete]
+  );
+
+  const [confirmed, setConfirmed] = React.useState(false);
+
+  const renderLeftActions = React.useCallback(
+    () => {
+      return <LeftAction confirmed={confirmed} />;
+    },
+    [confirmed]
+  );
+
+  const handleSwipeOpen = React.useCallback(
+    (direction: 'left' | 'right') => {
+      if (direction === 'right') {
+        onSetDueToday(task.id);
+        setConfirmed(true);
+        setTimeout(() => {
+          swipeableRef.current?.close();
+          setConfirmed(false);
+        }, 1200);
+      }
+    },
+    [task.id, onSetDueToday]
   );
 
   const gesture = Gesture.Pan()
@@ -190,9 +242,12 @@ function DraggableTask({
     <ReanimatedSwipeable
       ref={swipeableRef}
       renderRightActions={renderRightActions}
+      renderLeftActions={renderLeftActions}
+      onSwipeableOpen={handleSwipeOpen}
       overshootRight={false}
-      friction={2}
+      friction={1}
       rightThreshold={40}
+      leftThreshold={SCREEN_WIDTH * 0.4}
     >
       <GestureDetector gesture={gesture}>
         <Animated.View style={animatedStyle}>
@@ -240,6 +295,7 @@ export function ProjectGroup({
   onTaskToggle,
   onReorderTasks,
   onDeleteTask,
+  onSetDueToday,
 }: ProjectGroupProps) {
   const [localTasks, setLocalTasks] = React.useState(tasks);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -425,6 +481,7 @@ export function ProjectGroup({
                 onDragUpdate={handleDragUpdate}
                 onDragEnd={handleDragEnd}
                 onDeleteTask={onDeleteTask}
+                onSetDueToday={onSetDueToday}
               />
               {/* Drop indicator below this item */}
               <DropIndicator
