@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { View, TextInput, ActivityIndicator, Keyboard } from 'react-native';
-import { Checkbox } from '@/components/ui/checkbox';
+import { View, TextInput } from 'react-native';
+import { Plus } from '@/lib/icons';
 import { useCreateTask } from '@/hooks/useTasks';
 import { useScrollContext } from '@/contexts/ScrollContext';
 
@@ -45,10 +45,14 @@ export function InlineTaskInput({
     }
 
     isSubmittingRef.current = true;
+    const taskTitle = value.trim();
+
+    // Clear input but keep it open for rapid entry
+    setValue('');
 
     createTask.mutate(
       {
-        title: value.trim(),
+        title: taskTitle,
         projectId,
         status: 'pending',
         priority: 500,
@@ -57,11 +61,6 @@ export function InlineTaskInput({
         onSettled: () => {
           isSubmittingRef.current = false;
         },
-        onSuccess: () => {
-          setValue('');
-          onComplete();
-          Keyboard.dismiss();
-        },
       }
     );
   }, [value, projectId, createTask, onComplete]);
@@ -69,23 +68,37 @@ export function InlineTaskInput({
   const handleBlur = React.useCallback(() => {
     if (isSubmittingRef.current || createTask.isPending) return;
 
-    if (!value.trim()) {
-      onComplete();
-    } else {
-      handleSubmit();
+    if (value.trim()) {
+      isSubmittingRef.current = true;
+      const taskTitle = value.trim();
+      setValue('');
+
+      createTask.mutate(
+        {
+          title: taskTitle,
+          projectId,
+          status: 'pending',
+          priority: 500,
+        },
+        {
+          onSettled: () => {
+            isSubmittingRef.current = false;
+          },
+        }
+      );
     }
-  }, [value, createTask.isPending, onComplete, handleSubmit]);
+
+    onComplete();
+  }, [value, projectId, createTask, onComplete]);
 
   return (
-    <View ref={viewRef} className="flex-row items-center px-4 py-3 bg-card border-b border-border">
-      <View className="mr-3">
-        <Checkbox checked={false} onCheckedChange={() => {}} disabled />
-      </View>
+    <View ref={viewRef} className="flex-row items-center px-4 py-3">
+      <Plus size={18} color="#9CA3AF" />
       <TextInput
         ref={inputRef}
-        className="flex-1 text-base text-foreground"
+        className="flex-1 text-base text-foreground ml-2"
         style={{ padding: 0, margin: 0, minHeight: 24 }}
-        placeholder="New task..."
+        placeholder="New task"
         placeholderTextColor="#9CA3AF"
         value={value}
         onChangeText={setValue}
@@ -93,12 +106,8 @@ export function InlineTaskInput({
         onBlur={handleBlur}
         autoFocus={autoFocus}
         returnKeyType="done"
-        blurOnSubmit
-        editable={!createTask.isPending}
+        blurOnSubmit={false}
       />
-      {createTask.isPending && (
-        <ActivityIndicator size="small" style={{ marginLeft: 8 }} />
-      )}
     </View>
   );
 }

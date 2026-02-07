@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, Pressable, Alert, TextInput, Keyboard } from 'react-native';
+import { View, Pressable, Alert, TextInput, Keyboard, Text as RNText, Dimensions } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -15,7 +15,7 @@ import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeabl
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, ChevronDown, Pencil } from '@/lib/icons';
+import { Plus, Trash2, ChevronDown, Pencil, CalendarCheck, Check } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
 import { InlineTaskInput } from './InlineTaskInput';
 import { getSubtaskProgress, isInboxProject } from '@/utils/helpers';
@@ -23,6 +23,7 @@ import { useUpdateProject } from '@/hooks/useProjects';
 import type { Task, Project } from '@lucidity/shared';
 
 const ITEM_HEIGHT = 56;
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 interface ProjectGroupProps {
   project: Project;
@@ -33,6 +34,7 @@ interface ProjectGroupProps {
   onTaskToggle: (taskId: string) => void;
   onReorderTasks: (taskIds: string[]) => void;
   onDeleteTask: (taskId: string) => void;
+  onSetDueToday: (taskId: string) => void;
 }
 
 interface DraggableTaskProps {
@@ -48,28 +50,56 @@ interface DraggableTaskProps {
   onDragUpdate: (targetIndex: number) => void;
   onDragEnd: () => void;
   onDeleteTask: (taskId: string) => void;
+  onSetDueToday: (taskId: string) => void;
 }
 
-function RightAction({
-  drag,
-  onDelete,
-}: {
-  drag: SharedValue<number>;
-  onDelete: () => void;
-}) {
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: drag.value + 80 }],
-  }));
-
+function LeftAction({ confirmed }: { confirmed: boolean }) {
   return (
-    <Animated.View style={animatedStyle}>
-      <Pressable
-        onPress={onDelete}
-        className="bg-destructive justify-center items-center w-20 h-full"
-      >
-        <Trash2 size={24} color="#FFFFFF" />
-      </Pressable>
-    </Animated.View>
+    <View
+      style={{ backgroundColor: '#F59E0B', width: SCREEN_WIDTH }}
+      className="flex-row items-center pl-4 gap-1.5 h-full"
+    >
+      {confirmed ? (
+        <>
+          <Check size={18} color="#FFFFFF" />
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+            Added to Today
+          </RNText>
+        </>
+      ) : (
+        <>
+          <CalendarCheck size={18} color="#FFFFFF" />
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+            Today
+          </RNText>
+        </>
+      )}
+    </View>
+  );
+}
+
+function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
+  return (
+    <View
+      style={{ backgroundColor: '#EF4444', width: SCREEN_WIDTH }}
+      className="flex-row items-center justify-end pr-4 gap-1.5 h-full"
+    >
+      {confirmed ? (
+        <>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+            Deleted
+          </RNText>
+          <Check size={18} color="#FFFFFF" />
+        </>
+      ) : (
+        <>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+            Delete
+          </RNText>
+          <Trash2 size={18} color="#FFFFFF" />
+        </>
+      )}
+    </View>
   );
 }
 
@@ -117,35 +147,44 @@ function DraggableTask({
   onDragUpdate,
   onDragEnd,
   onDeleteTask,
+  onSetDueToday,
 }: DraggableTaskProps) {
   const swipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
   const translateY = useSharedValue(0);
   const isActive = useSharedValue(false);
 
-  const handleDelete = React.useCallback(() => {
-    Alert.alert(
-      'Delete Task',
-      `Are you sure you want to delete "${task.title}"?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => swipeableRef.current?.close(),
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => onDeleteTask(task.id),
-        },
-      ]
-    );
-  }, [task.id, task.title, onDeleteTask]);
+  const [leftConfirmed, setLeftConfirmed] = React.useState(false);
+  const [rightConfirmed, setRightConfirmed] = React.useState(false);
 
   const renderRightActions = React.useCallback(
-    (_prog: SharedValue<number>, drag: SharedValue<number>) => {
-      return <RightAction drag={drag} onDelete={handleDelete} />;
+    () => <DeleteRightAction confirmed={rightConfirmed} />,
+    [rightConfirmed]
+  );
+
+  const renderLeftActions = React.useCallback(
+    () => <LeftAction confirmed={leftConfirmed} />,
+    [leftConfirmed]
+  );
+
+  const handleSwipeOpen = React.useCallback(
+    (direction: 'left' | 'right') => {
+      if (direction === 'right') {
+        onSetDueToday(task.id);
+        setLeftConfirmed(true);
+        setTimeout(() => {
+          swipeableRef.current?.close();
+          setLeftConfirmed(false);
+        }, 1200);
+      } else if (direction === 'left') {
+        onDeleteTask(task.id);
+        setRightConfirmed(true);
+        setTimeout(() => {
+          swipeableRef.current?.close();
+          setRightConfirmed(false);
+        }, 1200);
+      }
     },
-    [handleDelete]
+    [task.id, onSetDueToday, onDeleteTask]
   );
 
   const gesture = Gesture.Pan()
@@ -190,9 +229,12 @@ function DraggableTask({
     <ReanimatedSwipeable
       ref={swipeableRef}
       renderRightActions={renderRightActions}
+      renderLeftActions={renderLeftActions}
+      onSwipeableOpen={handleSwipeOpen}
       overshootRight={false}
-      friction={2}
-      rightThreshold={40}
+      friction={1}
+      rightThreshold={SCREEN_WIDTH * 0.4}
+      leftThreshold={SCREEN_WIDTH * 0.4}
     >
       <GestureDetector gesture={gesture}>
         <Animated.View style={animatedStyle}>
@@ -240,6 +282,7 @@ export function ProjectGroup({
   onTaskToggle,
   onReorderTasks,
   onDeleteTask,
+  onSetDueToday,
 }: ProjectGroupProps) {
   const [localTasks, setLocalTasks] = React.useState(tasks);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -425,6 +468,7 @@ export function ProjectGroup({
                 onDragUpdate={handleDragUpdate}
                 onDragEnd={handleDragEnd}
                 onDeleteTask={onDeleteTask}
+                onSetDueToday={onSetDueToday}
               />
               {/* Drop indicator below this item */}
               <DropIndicator
@@ -446,13 +490,21 @@ export function ProjectGroup({
               dragFromIndex < localTasks.length - 1
             }
           />
-          {/* Inline task input */}
-          {isAddingTask && (
+          {/* Inline task input or "+ New task" row */}
+          {isAddingTask ? (
             <InlineTaskInput
               projectId={isInbox ? null : project.id}
               onComplete={() => setIsAddingTask(false)}
               autoFocus
             />
+          ) : (
+            <Pressable
+              onPress={() => setIsAddingTask(true)}
+              className="flex-row items-center px-4 py-3"
+            >
+              <Plus size={18} color="#9CA3AF" />
+              <Text className="ml-2 text-base text-muted-foreground">New task</Text>
+            </Pressable>
           )}
         </Animated.View>
       )}

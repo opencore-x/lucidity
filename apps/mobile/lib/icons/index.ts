@@ -6,6 +6,8 @@ import {
   GripVertical,
   Plus,
   Calendar,
+  CalendarCheck,
+  CalendarX2,
   Clock,
   Folder,
   Flag,
@@ -20,6 +22,7 @@ import {
   Palette,
   Pencil,
   RefreshCw,
+  Search,
 } from 'lucide-react-native';
 
 export {
@@ -30,6 +33,8 @@ export {
   GripVertical,
   Plus,
   Calendar,
+  CalendarCheck,
+  CalendarX2,
   Clock,
   Folder,
   Flag,
@@ -44,4 +49,5 @@ export {
   Palette,
   Pencil,
   RefreshCw,
+  Search,
 };
