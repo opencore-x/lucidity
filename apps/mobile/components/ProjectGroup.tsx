@@ -503,13 +503,21 @@ export function ProjectGroup({
               dragFromIndex < localTasks.length - 1
             }
           />
-          {/* Inline task input */}
-          {isAddingTask && (
+          {/* Inline task input or "+ New task" row */}
+          {isAddingTask ? (
             <InlineTaskInput
               projectId={isInbox ? null : project.id}
               onComplete={() => setIsAddingTask(false)}
               autoFocus
             />
+          ) : (
+            <Pressable
+              onPress={() => setIsAddingTask(true)}
+              className="flex-row items-center px-4 py-3"
+            >
+              <Plus size={18} color="#9CA3AF" />
+              <Text className="ml-2 text-base text-muted-foreground">New task</Text>
+            </Pressable>
           )}
         </Animated.View>
       )}
