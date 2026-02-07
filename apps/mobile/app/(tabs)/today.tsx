@@ -11,11 +11,11 @@ import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator, Text as RNText, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { useTasks, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
+import { useTasks, useToggleTask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtaskProgress } from '@/utils/helpers';
-import { CalendarX2, Check } from '@/lib/icons';
+import { CalendarX2, Check, Trash2 } from '@/lib/icons';
 import type { Task } from '@lucidity/shared';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -45,6 +45,31 @@ function ClearLeftAction({ confirmed }: { confirmed: boolean }) {
   );
 }
 
+function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
+  return (
+    <View
+      style={{ backgroundColor: '#EF4444', width: SCREEN_WIDTH }}
+      className="flex-row items-center justify-end pr-4 gap-1.5 h-full"
+    >
+      {confirmed ? (
+        <>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+            Deleted
+          </RNText>
+          <Check size={18} color="#FFFFFF" />
+        </>
+      ) : (
+        <>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+            Delete
+          </RNText>
+          <Trash2 size={18} color="#FFFFFF" />
+        </>
+      )}
+    </View>
+  );
+}
+
 function SwipeableTodayTask({
   task,
   tasks,
@@ -52,6 +77,7 @@ function SwipeableTodayTask({
   onPress,
   onToggle,
   onClearDueDate,
+  onDeleteTask,
 }: {
   task: Task;
   tasks: Task[];
@@ -59,36 +85,53 @@ function SwipeableTodayTask({
   onPress: () => void;
   onToggle: () => void;
   onClearDueDate: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => void;
 }) {
   const swipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
-  const [confirmed, setConfirmed] = React.useState(false);
+  const [leftConfirmed, setLeftConfirmed] = React.useState(false);
+  const [rightConfirmed, setRightConfirmed] = React.useState(false);
 
   const renderLeftActions = React.useCallback(
-    () => <ClearLeftAction confirmed={confirmed} />,
-    [confirmed]
+    () => <ClearLeftAction confirmed={leftConfirmed} />,
+    [leftConfirmed]
+  );
+
+  const renderRightActions = React.useCallback(
+    () => <DeleteRightAction confirmed={rightConfirmed} />,
+    [rightConfirmed]
   );
 
   const handleSwipeOpen = React.useCallback(
     (direction: 'left' | 'right') => {
       if (direction === 'right') {
         onClearDueDate(task.id);
-        setConfirmed(true);
+        setLeftConfirmed(true);
         setTimeout(() => {
           swipeableRef.current?.close();
-          setConfirmed(false);
+          setLeftConfirmed(false);
+        }, 1200);
+      } else if (direction === 'left') {
+        onDeleteTask(task.id);
+        setRightConfirmed(true);
+        setTimeout(() => {
+          swipeableRef.current?.close();
+          setRightConfirmed(false);
         }, 1200);
       }
     },
-    [task.id, onClearDueDate]
+    [task.id, onClearDueDate, onDeleteTask]
   );
 
   return (
     <ReanimatedSwipeable
       ref={swipeableRef}
       renderLeftActions={renderLeftActions}
+      renderRightActions={renderRightActions}
       onSwipeableOpen={handleSwipeOpen}
+      overshootRight={false}
       friction={1}
       leftThreshold={SCREEN_WIDTH * 0.4}
+      rightThreshold={SCREEN_WIDTH * 0.4}
     >
       <TaskItem
         task={task}
@@ -110,6 +153,7 @@ export default function TodayScreen() {
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const toggleTask = useToggleTask();
   const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
   const { openSheet } = useSheetStore();
 
   // Filter out archived projects
@@ -189,6 +233,13 @@ export default function TodayScreen() {
     [updateTask]
   );
 
+  const handleDeleteTask = React.useCallback(
+    (taskId: string) => {
+      deleteTask.mutate(taskId);
+    },
+    [deleteTask]
+  );
+
   // Get current sheet data for stale validation
   const { currentTask } = useSheetStore();
   const sheetTask = currentTask();
@@ -265,6 +316,7 @@ export default function TodayScreen() {
                   onPress={() => handleTaskPress(task)}
                   onToggle={() => handleTaskToggle(task.id)}
                   onClearDueDate={handleClearDueDate}
+                  onDeleteTask={handleDeleteTask}
                 />
               ))}
             </View>
@@ -287,6 +339,7 @@ export default function TodayScreen() {
                   onPress={() => handleTaskPress(task)}
                   onToggle={() => handleTaskToggle(task.id)}
                   onClearDueDate={handleClearDueDate}
+                  onDeleteTask={handleDeleteTask}
                 />
               ))}
             </View>

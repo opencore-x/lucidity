@@ -78,26 +78,28 @@ function LeftAction({ confirmed }: { confirmed: boolean }) {
   );
 }
 
-function RightAction({
-  drag,
-  onDelete,
-}: {
-  drag: SharedValue<number>;
-  onDelete: () => void;
-}) {
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: drag.value + 80 }],
-  }));
-
+function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
   return (
-    <Animated.View style={animatedStyle}>
-      <Pressable
-        onPress={onDelete}
-        className="bg-destructive justify-center items-center w-20 h-full"
-      >
-        <Trash2 size={24} color="#FFFFFF" />
-      </Pressable>
-    </Animated.View>
+    <View
+      style={{ backgroundColor: '#EF4444', width: SCREEN_WIDTH }}
+      className="flex-row items-center justify-end pr-4 gap-1.5 h-full"
+    >
+      {confirmed ? (
+        <>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+            Deleted
+          </RNText>
+          <Check size={18} color="#FFFFFF" />
+        </>
+      ) : (
+        <>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+            Delete
+          </RNText>
+          <Trash2 size={18} color="#FFFFFF" />
+        </>
+      )}
+    </View>
   );
 }
 
@@ -151,53 +153,38 @@ function DraggableTask({
   const translateY = useSharedValue(0);
   const isActive = useSharedValue(false);
 
-  const handleDelete = React.useCallback(() => {
-    Alert.alert(
-      'Delete Task',
-      `Are you sure you want to delete "${task.title}"?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => swipeableRef.current?.close(),
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => onDeleteTask(task.id),
-        },
-      ]
-    );
-  }, [task.id, task.title, onDeleteTask]);
+  const [leftConfirmed, setLeftConfirmed] = React.useState(false);
+  const [rightConfirmed, setRightConfirmed] = React.useState(false);
 
   const renderRightActions = React.useCallback(
-    (_prog: SharedValue<number>, drag: SharedValue<number>) => {
-      return <RightAction drag={drag} onDelete={handleDelete} />;
-    },
-    [handleDelete]
+    () => <DeleteRightAction confirmed={rightConfirmed} />,
+    [rightConfirmed]
   );
 
-  const [confirmed, setConfirmed] = React.useState(false);
-
   const renderLeftActions = React.useCallback(
-    () => {
-      return <LeftAction confirmed={confirmed} />;
-    },
-    [confirmed]
+    () => <LeftAction confirmed={leftConfirmed} />,
+    [leftConfirmed]
   );
 
   const handleSwipeOpen = React.useCallback(
     (direction: 'left' | 'right') => {
       if (direction === 'right') {
         onSetDueToday(task.id);
-        setConfirmed(true);
+        setLeftConfirmed(true);
         setTimeout(() => {
           swipeableRef.current?.close();
-          setConfirmed(false);
+          setLeftConfirmed(false);
+        }, 1200);
+      } else if (direction === 'left') {
+        onDeleteTask(task.id);
+        setRightConfirmed(true);
+        setTimeout(() => {
+          swipeableRef.current?.close();
+          setRightConfirmed(false);
         }, 1200);
       }
     },
-    [task.id, onSetDueToday]
+    [task.id, onSetDueToday, onDeleteTask]
   );
 
   const gesture = Gesture.Pan()
@@ -246,7 +233,7 @@ function DraggableTask({
       onSwipeableOpen={handleSwipeOpen}
       overshootRight={false}
       friction={1}
-      rightThreshold={40}
+      rightThreshold={SCREEN_WIDTH * 0.4}
       leftThreshold={SCREEN_WIDTH * 0.4}
     >
       <GestureDetector gesture={gesture}>

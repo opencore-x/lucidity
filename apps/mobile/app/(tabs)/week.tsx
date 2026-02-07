@@ -8,12 +8,14 @@ import { useUser } from '@clerk/clerk-expo';
 import { MoonStarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator, Text as RNText, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTasks, useToggleTask } from '@/hooks/useTasks';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { useTasks, useToggleTask, useDeleteTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtaskProgress } from '@/utils/helpers';
+import { Trash2, Check } from '@/lib/icons';
 import type { Task } from '@lucidity/shared';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -52,6 +54,90 @@ function isDateInPast(date: Date, today: Date): boolean {
   return dateStart < todayStart;
 }
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
+  return (
+    <View
+      style={{ backgroundColor: '#EF4444', width: SCREEN_WIDTH }}
+      className="flex-row items-center justify-end pr-4 gap-1.5 h-full"
+    >
+      {confirmed ? (
+        <>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+            Deleted
+          </RNText>
+          <Check size={18} color="#FFFFFF" />
+        </>
+      ) : (
+        <>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+            Delete
+          </RNText>
+          <Trash2 size={18} color="#FFFFFF" />
+        </>
+      )}
+    </View>
+  );
+}
+
+function SwipeableWeekTask({
+  task,
+  tasks,
+  isLast,
+  onPress,
+  onToggle,
+  onDeleteTask,
+}: {
+  task: Task;
+  tasks: Task[];
+  isLast: boolean;
+  onPress: () => void;
+  onToggle: () => void;
+  onDeleteTask: (taskId: string) => void;
+}) {
+  const swipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
+  const [confirmed, setConfirmed] = React.useState(false);
+
+  const renderRightActions = React.useCallback(
+    () => <DeleteRightAction confirmed={confirmed} />,
+    [confirmed]
+  );
+
+  const handleSwipeOpen = React.useCallback(
+    (direction: 'left' | 'right') => {
+      if (direction === 'left') {
+        onDeleteTask(task.id);
+        setConfirmed(true);
+        setTimeout(() => {
+          swipeableRef.current?.close();
+          setConfirmed(false);
+        }, 1200);
+      }
+    },
+    [task.id, onDeleteTask]
+  );
+
+  return (
+    <ReanimatedSwipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      onSwipeableOpen={handleSwipeOpen}
+      overshootRight={false}
+      friction={1}
+      rightThreshold={SCREEN_WIDTH * 0.4}
+    >
+      <TaskItem
+        task={task}
+        subtaskProgress={getSubtaskProgress(tasks, task.id)}
+        onPress={onPress}
+        onToggle={onToggle}
+        isLast={isLast}
+      />
+    </ReanimatedSwipeable>
+  );
+}
+
 export default function WeekScreen() {
   const { colorScheme } = useColorScheme();
   const { user } = useUser();
@@ -60,6 +146,7 @@ export default function WeekScreen() {
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const toggleTask = useToggleTask();
+  const deleteTask = useDeleteTask();
   const { openSheet } = useSheetStore();
 
   const projects = React.useMemo(
@@ -143,6 +230,13 @@ export default function WeekScreen() {
     [toggleTask]
   );
 
+  const handleDeleteTask = React.useCallback(
+    (taskId: string) => {
+      deleteTask.mutate(taskId);
+    },
+    [deleteTask]
+  );
+
   // Get current sheet data for stale validation
   const { currentTask } = useSheetStore();
   const sheetTask = currentTask();
@@ -197,12 +291,13 @@ export default function WeekScreen() {
               </Text>
             </View>
             {overdueTasks.map((task, index) => (
-              <TaskItem
+              <SwipeableWeekTask
                 key={task.id}
                 task={task}
-                subtaskProgress={getSubtaskProgress(tasks, task.id)}
+                tasks={tasks}
                 onPress={() => handleTaskPress(task)}
                 onToggle={() => handleTaskToggle(task.id)}
+                onDeleteTask={handleDeleteTask}
                 isLast={index === overdueTasks.length - 1}
               />
             ))}
@@ -226,12 +321,13 @@ export default function WeekScreen() {
                 </Text>
               </View>
               {day.tasks.map((task, index) => (
-                <TaskItem
+                <SwipeableWeekTask
                   key={task.id}
                   task={task}
-                  subtaskProgress={getSubtaskProgress(tasks, task.id)}
+                  tasks={tasks}
                   onPress={() => handleTaskPress(task)}
                   onToggle={() => handleTaskToggle(task.id)}
+                  onDeleteTask={handleDeleteTask}
                   isLast={index === day.tasks.length - 1}
                 />
               ))}
