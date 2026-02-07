@@ -4,7 +4,6 @@ import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { ProjectGroup } from '@/components/ProjectGroup';
 import { TaskSheet } from '@/components/TaskSheet';
-import { AddProjectRow } from '@/components/AddProjectRow';
 import { useUser } from '@clerk/clerk-expo';
 import { MoonStarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
@@ -12,7 +11,7 @@ import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollProvider } from '@/contexts/ScrollContext';
-import { useTasks, useToggleTask, useReorderTasks, useDeleteTask } from '@/hooks/useTasks';
+import { useTasks, useToggleTask, useUpdateTask, useReorderTasks, useDeleteTask } from '@/hooks/useTasks';
 import { useProjects, useDeleteProject } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { groupTasksByProject } from '@/utils/helpers';
@@ -30,6 +29,7 @@ export default function ProjectsScreen() {
     refetch: refetchProjects,
   } = useProjects();
   const toggleTask = useToggleTask();
+  const updateTask = useUpdateTask();
   const reorderTasks = useReorderTasks();
   const deleteTask = useDeleteTask();
   const deleteProject = useDeleteProject();
@@ -80,6 +80,15 @@ export default function ProjectsScreen() {
       deleteTask.mutate(taskId);
     },
     [deleteTask]
+  );
+
+  const handleSetDueToday = React.useCallback(
+    (taskId: string) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      updateTask.mutate({ id: taskId, data: { dueDate: today } });
+    },
+    [updateTask]
   );
 
   const groupedTasks = React.useMemo(() => groupTasksByProject(tasks, projects), [tasks, projects]);
@@ -142,10 +151,9 @@ export default function ProjectsScreen() {
               onTaskToggle={handleTaskToggle}
               onReorderTasks={handleReorderTasks}
               onDeleteTask={handleDeleteTask}
+              onSetDueToday={handleSetDueToday}
             />
           ))}
-          {/* Add Project row */}
-          <AddProjectRow />
           {/* Bottom padding for keyboard */}
           <View className="h-80" />
         </ScrollView>
