@@ -30,37 +30,61 @@ function formatTask(t: Task): string {
 export function registerTaskTools(server: McpServer) {
   server.tool(
     'list_tasks',
-    'List all tasks. Optionally filter by status or project ID.',
+    'List tasks with server-side filtering and pagination. Returns task IDs for use with other tools.',
     {
       status: z
         .enum(['pending', 'in_progress', 'completed'])
         .optional()
         .describe('Filter by task status'),
       project_id: z.string().optional().describe('Filter by project ID'),
+      root_only: z
+        .boolean()
+        .optional()
+        .describe('Only show root tasks, exclude subtasks (default: false)'),
+      due_before: z
+        .string()
+        .optional()
+        .describe('Tasks due on or before this date (ISO 8601)'),
+      due_after: z
+        .string()
+        .optional()
+        .describe('Tasks due on or after this date (ISO 8601)'),
+      limit: z
+        .number()
+        .optional()
+        .describe('Max results to return (default 50, max 200)'),
+      offset: z
+        .number()
+        .optional()
+        .describe('Number of results to skip (default 0)'),
     },
-    async ({ status, project_id }) => {
-      const allTasks = await apiRequest<Task[]>('/api/tasks');
+    async ({ status, project_id, root_only, due_before, due_after, limit, offset }) => {
+      const params = new URLSearchParams();
+      if (status) params.set('status', status);
+      if (project_id) params.set('project_id', project_id);
+      if (root_only) params.set('root_only', 'true');
+      if (due_before) params.set('due_before', due_before);
+      if (due_after) params.set('due_after', due_after);
+      if (limit !== undefined) params.set('limit', String(limit));
+      if (offset !== undefined) params.set('offset', String(offset));
 
-      let filtered = allTasks;
-      if (status) {
-        filtered = filtered.filter((t) => t.status === status);
-      }
-      if (project_id) {
-        filtered = filtered.filter((t) => t.projectId === project_id);
-      }
+      const qs = params.toString();
+      const result = await apiRequest<{ tasks: Task[]; total: number; hasMore: boolean }>(
+        `/api/tasks${qs ? `?${qs}` : ''}`,
+      );
 
       const summary =
-        filtered.length === 0
+        result.tasks.length === 0
           ? 'No tasks found.'
-          : filtered.map((t) => `- ${formatTask(t)} [${t.id}]`).join('\n');
+          : result.tasks.map((t) => `- ${formatTask(t)} [${t.id}]`).join('\n');
+
+      let text = `Found ${result.tasks.length} of ${result.total} task(s):\n\n${summary}`;
+      if (result.hasMore) {
+        text += `\n\n(${result.total - (offset ?? 0) - result.tasks.length} more tasks available — use offset to paginate)`;
+      }
 
       return {
-        content: [
-          {
-            type: 'text' as const,
-            text: `Found ${filtered.length} task(s):\n\n${summary}\n\n---\n${JSON.stringify(filtered, null, 2)}`,
-          },
-        ],
+        content: [{ type: 'text' as const, text }],
       };
     },
   );
@@ -116,7 +140,7 @@ export function registerTaskTools(server: McpServer) {
         content: [
           {
             type: 'text' as const,
-            text: `Created task: ${formatTask(task)} [${task.id}]\n\n${JSON.stringify(task, null, 2)}`,
+            text: `Created task: ${formatTask(task)} [${task.id}]`,
           },
         ],
       };
@@ -174,7 +198,7 @@ export function registerTaskTools(server: McpServer) {
         content: [
           {
             type: 'text' as const,
-            text: `Updated task: ${formatTask(task)} [${task.id}]\n\n${JSON.stringify(task, null, 2)}`,
+            text: `Updated task: ${formatTask(task)} [${task.id}]`,
           },
         ],
       };
@@ -198,7 +222,7 @@ export function registerTaskTools(server: McpServer) {
         content: [
           {
             type: 'text' as const,
-            text: `${action} task: ${formatTask(task)} [${task.id}]\n\n${JSON.stringify(task, null, 2)}`,
+            text: `${action} task: ${formatTask(task)} [${task.id}]`,
           },
         ],
       };

@@ -52,6 +52,43 @@ taskQueryRouter.get('/week', async (c) => {
   return c.json(result);
 });
 
+// GET /api/tasks/stats — Aggregate task counts by status
+taskQueryRouter.get('/stats', async (c) => {
+  const user = await getCurrentUser(c);
+  const projectId = c.req.query('project_id');
+
+  const conditions = [
+    sql`user_id = ${user.id}`,
+    sql`parent_task_id IS NULL`,
+  ];
+
+  if (projectId) {
+    conditions.push(sql`project_id = ${projectId}`);
+  }
+
+  const whereClause = sql.join(conditions, sql` AND `);
+
+  const queryResult = await db.execute(sql`
+    SELECT
+      COUNT(*) as total,
+      COUNT(*) FILTER (WHERE status = 'pending') as pending,
+      COUNT(*) FILTER (WHERE status = 'in_progress') as in_progress,
+      COUNT(*) FILTER (WHERE status = 'completed') as completed,
+      COUNT(*) FILTER (WHERE status != 'completed' AND due_date < NOW()) as overdue
+    FROM tasks WHERE ${whereClause}
+  `);
+
+  const row = queryResult.rows[0];
+
+  return c.json({
+    total: Number(row?.total ?? 0),
+    pending: Number(row?.pending ?? 0),
+    inProgress: Number(row?.in_progress ?? 0),
+    completed: Number(row?.completed ?? 0),
+    overdue: Number(row?.overdue ?? 0),
+  });
+});
+
 const searchRouter = new Hono();
 
 // GET /api/search?q=... — ILIKE search across tasks and projects

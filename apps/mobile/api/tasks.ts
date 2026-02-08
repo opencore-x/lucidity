@@ -2,7 +2,10 @@ import { apiClient } from './client';
 import type { Task, CreateTask, UpdateTask } from '@lucidity/shared';
 
 export const tasksApi = {
-  list: () => apiClient<Task[]>('/api/tasks'),
+  list: () =>
+    apiClient<{ tasks: Task[]; total: number; hasMore: boolean }>('/api/tasks').then(
+      (res) => res.tasks,
+    ),
 
   get: (id: string) => apiClient<Task>(`/api/tasks/${id}`),
 
