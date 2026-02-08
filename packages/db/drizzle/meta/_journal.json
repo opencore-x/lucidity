@@ -29,6 +29,13 @@
       "when": 1770104643582,
       "tag": "0003_typical_magneto",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770545153539,
+      "tag": "0004_awesome_siren",
+      "breakpoints": true
     }
   ]
 }
