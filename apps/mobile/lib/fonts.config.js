@@ -1,6 +1,6 @@
-// Switch between 'inter' and 'montserrat' to change the app font
+// Switch between 'inter', 'montserrat', 'dm-sans' to change the app font
 // Keep in sync with lib/fonts.ts ACTIVE_FONT
-const ACTIVE_FONT = 'montserrat';
+const ACTIVE_FONT = 'dm-sans';
 
 const FONT_MAP = {
   inter: {
@@ -16,6 +16,13 @@ const FONT_MAP = {
     semibold: 'Montserrat_600SemiBold',
     bold: 'Montserrat_700Bold',
     extrabold: 'Montserrat_800ExtraBold',
+  },
+  'dm-sans': {
+    regular: 'DMSans_400Regular',
+    medium: 'DMSans_500Medium',
+    semibold: 'DMSans_600SemiBold',
+    bold: 'DMSans_700Bold',
+    extrabold: 'DMSans_800ExtraBold',
   },
 };
 
