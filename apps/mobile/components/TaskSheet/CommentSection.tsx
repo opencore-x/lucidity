@@ -154,7 +154,7 @@ export function CommentSection({ taskId }: CommentSectionProps) {
           <Plus size={20} color="#9CA3AF" />
         </View>
         <BottomSheetTextInput
-          className="flex-1 text-base text-foreground"
+          className="flex-1 text-base text-foreground font-sans"
           style={{ height: 48, padding: 0, margin: 0 }}
           placeholder="Add comment"
           placeholderTextColor="#9CA3AF"

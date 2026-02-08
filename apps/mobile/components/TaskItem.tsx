@@ -5,6 +5,7 @@ import { Text } from '@/components/ui/text';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { RefreshCw, Calendar } from '@/lib/icons';
+import { FONTS } from '@/lib/fonts';
 import type { Task } from '@lucidity/shared';
 
 type DueStatus = 'overdue' | 'today' | 'tomorrow' | 'upcoming' | null;
@@ -65,7 +66,7 @@ function DueDateLabel({ dueInfo }: { dueInfo: { label: string; color: string } }
           }
         }}
       >
-        <Text style={{ fontSize: 12, fontWeight: '500', color: dueInfo.color }} numberOfLines={1}>
+        <Text style={{ fontSize: 12, fontWeight: '500', fontFamily: FONTS.medium, color: dueInfo.color }} numberOfLines={1}>
           {dueInfo.label}
         </Text>
       </Animated.View>
@@ -99,7 +100,7 @@ export function TaskItem({ task, onPress, onToggle, subtaskProgress, isLast }: T
 
       {/* Title */}
       <Text
-        className={cn('flex-1 text-base', isCompleted && 'text-muted-foreground line-through')}
+        className={cn('flex-1 text-base font-medium', isCompleted && 'text-muted-foreground line-through')}
         numberOfLines={2}>
         {task.title}
       </Text>

@@ -96,7 +96,7 @@ export function InlineTaskInput({
       <Plus size={18} color="#9CA3AF" />
       <TextInput
         ref={inputRef}
-        className="flex-1 text-base text-foreground ml-2"
+        className="flex-1 text-base text-foreground ml-2 font-sans"
         style={{ padding: 0, margin: 0, minHeight: 24 }}
         placeholder="New task"
         placeholderTextColor="#9CA3AF"

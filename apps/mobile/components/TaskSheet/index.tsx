@@ -254,7 +254,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
             {/* Description section */}
             {isEditingDescription ? (
               <BottomSheetTextInput
-                className="text-muted-foreground mt-2"
+                className="text-muted-foreground mt-2 font-sans"
                 style={{ padding: 0, margin: 0, minHeight: 20 }}
                 value={descriptionValue}
                 onChangeText={setDescriptionValue}
@@ -292,7 +292,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
             <Plus size={20} color="#9CA3AF" />
           </View>
           <BottomSheetTextInput
-            className="flex-1 text-base text-foreground"
+            className="flex-1 text-base text-foreground font-sans"
             style={{ height: 48, padding: 0, margin: 0 }}
             placeholder="Add subtask"
             placeholderTextColor="#9CA3AF"
