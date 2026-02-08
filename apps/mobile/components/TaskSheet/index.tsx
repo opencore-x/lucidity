@@ -1,7 +1,5 @@
 import * as React from 'react';
-import { View, Pressable, Keyboard, PlatformColor } from 'react-native';
-import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
-import { BlurView } from 'expo-blur';
+import { View, Pressable, Keyboard } from 'react-native';
 import {
   BottomSheetModal,
   BottomSheetView,
@@ -171,31 +169,19 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
       <BottomSheetScrollView className="flex-1">
         {/* Close button */}
         <View className="flex-row justify-end px-4 pt-2">
-          {isGlassEffectAPIAvailable() ? (
-            <GlassView isInteractive style={{ borderRadius: 50 }}>
-              <Pressable
-                onPress={() => sheetRef.current?.dismiss()}
-                style={{ padding: 8 }}
-                hitSlop={8}
-              >
-                <X size={18} color={PlatformColor('secondaryLabel')} />
-              </Pressable>
-            </GlassView>
-          ) : (
-            <BlurView
-              tint="systemMaterial"
-              intensity={80}
-              style={{ borderRadius: 50, overflow: 'hidden' }}
-            >
-              <Pressable
-                onPress={() => sheetRef.current?.dismiss()}
-                style={{ padding: 8 }}
-                hitSlop={8}
-              >
-                <X size={18} color="#9CA3AF" />
-              </Pressable>
-            </BlurView>
-          )}
+          <Pressable
+            onPress={() => sheetRef.current?.dismiss()}
+            style={{
+              padding: 8,
+              borderRadius: 50,
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: theme.border,
+            }}
+            hitSlop={8}
+          >
+            <X size={18} color="#9CA3AF" />
+          </Pressable>
         </View>
 
         {/* Back button */}
