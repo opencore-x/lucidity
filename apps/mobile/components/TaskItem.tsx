@@ -3,7 +3,7 @@ import { Pressable } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { GripVertical, RefreshCw } from '@/lib/icons';
+import { RefreshCw } from '@/lib/icons';
 import type { Task } from '@lucidity/shared';
 
 interface TaskItemProps {
@@ -14,23 +14,16 @@ interface TaskItemProps {
   isLast?: boolean;
 }
 
-export function TaskItem({
-  task,
-  onPress,
-  onToggle,
-  subtaskProgress,
-  isLast,
-}: TaskItemProps) {
+export function TaskItem({ task, onPress, onToggle, subtaskProgress, isLast }: TaskItemProps) {
   const isCompleted = task.status === 'completed';
 
   return (
     <Pressable
       onPress={onPress}
       className={cn(
-        'flex-row items-center px-4 py-2 bg-card active:bg-muted',
+        'flex-row items-center bg-card px-4 py-2 active:bg-muted',
         !isLast && 'border-b border-border'
-      )}
-    >
+      )}>
       {/* Checkbox - stops propagation to handle its own press */}
       <Pressable onPress={onToggle} className="mr-3" hitSlop={8}>
         <Checkbox checked={isCompleted} onCheckedChange={onToggle} />
@@ -38,12 +31,8 @@ export function TaskItem({
 
       {/* Title */}
       <Text
-        className={cn(
-          'flex-1 text-base',
-          isCompleted && 'line-through text-muted-foreground'
-        )}
-        numberOfLines={2}
-      >
+        className={cn('flex-1 text-base', isCompleted && 'text-muted-foreground line-through')}
+        numberOfLines={2}>
         {task.title}
       </Text>
 
@@ -58,9 +47,6 @@ export function TaskItem({
           {subtaskProgress.completed} of {subtaskProgress.total}
         </Text>
       )}
-
-      {/* Drag handle - long press anywhere on item to drag */}
-      <GripVertical size={20} color="#9CA3AF" style={{ marginLeft: 4 }} />
     </Pressable>
   );
 }
