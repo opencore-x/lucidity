@@ -301,7 +301,7 @@ export function ProjectGroup({
   const isInbox = isInboxProject(project);
 
   // Calculate completed vs total tasks
-  const completedCount = tasks.filter(task => task.completed).length;
+  const completedCount = tasks.filter(task => task.status === 'completed').length;
   const totalCount = tasks.length;
   const completionPercentage = totalCount > 0 ? completedCount / totalCount : 0;
 

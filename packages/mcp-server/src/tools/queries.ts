@@ -28,7 +28,13 @@ interface Project {
 }
 
 function formatTask(t: Task): string {
-  const status = t.status === 'completed' ? '[x]' : '[ ]';
+  const statusMap: Record<string, string> = {
+    completed: '[x]',
+    blocked: '[!]',
+    deferred: '[-]',
+    in_progress: '[~]',
+  };
+  const status = statusMap[t.status ?? ''] ?? '[ ]';
   const due = t.dueDate
     ? ` (due: ${new Date(t.dueDate).toLocaleDateString()})`
     : '';
@@ -194,10 +200,12 @@ export function registerQueryTools(server: McpServer) {
         pending: number;
         inProgress: number;
         completed: number;
+        blocked: number;
+        deferred: number;
         overdue: number;
       }>(`/api/tasks/stats${qs}`);
 
-      const text = `Tasks: ${stats.total} total — ${stats.pending} pending, ${stats.inProgress} in progress, ${stats.completed} completed, ${stats.overdue} overdue`;
+      const text = `Tasks: ${stats.total} total — ${stats.pending} pending, ${stats.inProgress} in progress, ${stats.completed} completed, ${stats.blocked} blocked, ${stats.deferred} deferred, ${stats.overdue} overdue`;
 
       return {
         content: [{ type: 'text' as const, text }],

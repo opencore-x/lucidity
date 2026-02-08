@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { SubtaskList } from './SubtaskList';
 import { TaskOptions } from './TaskOptions';
+import { CommentSection } from './CommentSection';
 import { ChevronLeft, Plus, FileText, RefreshCw, X } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtasks } from '@/utils/helpers';
@@ -301,6 +302,9 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
             returnKeyType="done"
           />
         </View>
+
+        {/* Comments */}
+        <CommentSection taskId={task.id} />
 
         {/* Task options */}
         <TaskOptions

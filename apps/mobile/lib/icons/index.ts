@@ -22,6 +22,8 @@ import {
   Pencil,
   RefreshCw,
   Search,
+  Milestone,
+  MessageCircle,
 } from 'lucide-react-native';
 
 export {
@@ -48,4 +50,6 @@ export {
   Pencil,
   RefreshCw,
   Search,
+  Milestone,
+  MessageCircle,
 };

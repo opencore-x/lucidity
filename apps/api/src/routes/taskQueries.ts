@@ -74,6 +74,8 @@ taskQueryRouter.get('/stats', async (c) => {
       COUNT(*) FILTER (WHERE status = 'pending') as pending,
       COUNT(*) FILTER (WHERE status = 'in_progress') as in_progress,
       COUNT(*) FILTER (WHERE status = 'completed') as completed,
+      COUNT(*) FILTER (WHERE status = 'blocked') as blocked,
+      COUNT(*) FILTER (WHERE status = 'deferred') as deferred,
       COUNT(*) FILTER (WHERE status != 'completed' AND due_date < NOW()) as overdue
     FROM tasks WHERE ${whereClause}
   `);
@@ -85,6 +87,8 @@ taskQueryRouter.get('/stats', async (c) => {
     pending: Number(row?.pending ?? 0),
     inProgress: Number(row?.in_progress ?? 0),
     completed: Number(row?.completed ?? 0),
+    blocked: Number(row?.blocked ?? 0),
+    deferred: Number(row?.deferred ?? 0),
     overdue: Number(row?.overdue ?? 0),
   });
 });
