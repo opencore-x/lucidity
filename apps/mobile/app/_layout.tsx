@@ -10,6 +10,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PortalHost } from '@rn-primitives/portal';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { Stack } from 'expo-router';
+import * as Font from 'expo-font';
+import { FONT_ASSETS } from '@/lib/fonts';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
@@ -25,6 +27,15 @@ const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const { colorScheme } = useColorScheme();
+  const [fontsLoaded, setFontsLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    Font.loadAsync(FONT_ASSETS).then(() => setFontsLoaded(true));
+  }, []);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -76,6 +87,7 @@ function Routes() {
       {/* Screens only shown when the user IS signed in */}
       <Stack.Protected guard={isSignedIn}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
       </Stack.Protected>
 
       {/* Screens outside the guards are accessible to everyone (e.g. not found) */}

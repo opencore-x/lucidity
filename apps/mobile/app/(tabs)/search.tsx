@@ -147,7 +147,7 @@ export default function SearchScreen() {
           <Search size={18} className="text-muted-foreground" />
           <TextInput
             ref={inputRef}
-            className="flex-1 text-base text-foreground"
+            className="flex-1 text-base text-foreground font-sans"
             placeholder="Search tasks and projects..."
             placeholderTextColor={colorScheme === 'dark' ? '#71717a' : '#a1a1aa'}
             value={query}

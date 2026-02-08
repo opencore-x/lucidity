@@ -13,7 +13,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { SubtaskList } from './SubtaskList';
 import { TaskOptions } from './TaskOptions';
-import { ChevronLeft, Plus, FileText, RefreshCw } from '@/lib/icons';
+import { CommentSection } from './CommentSection';
+import { ChevronLeft, Plus, FileText, RefreshCw, X } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtasks } from '@/utils/helpers';
 import { useToggleTask, useCreateTask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
@@ -167,6 +168,23 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
     return (
       <BottomSheetScrollView className="flex-1">
+        {/* Close button */}
+        <View className="flex-row justify-end px-4 pt-2">
+          <Pressable
+            onPress={() => sheetRef.current?.dismiss()}
+            style={{
+              padding: 8,
+              borderRadius: 50,
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: theme.border,
+            }}
+            hitSlop={8}
+          >
+            <X size={18} color="#9CA3AF" />
+          </Pressable>
+        </View>
+
         {/* Back button */}
         {canGoBack() && parent && (
           <Pressable
@@ -236,7 +254,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
             {/* Description section */}
             {isEditingDescription ? (
               <BottomSheetTextInput
-                className="text-muted-foreground mt-2"
+                className="text-muted-foreground mt-2 font-sans"
                 style={{ padding: 0, margin: 0, minHeight: 20 }}
                 value={descriptionValue}
                 onChangeText={setDescriptionValue}
@@ -274,7 +292,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
             <Plus size={20} color="#9CA3AF" />
           </View>
           <BottomSheetTextInput
-            className="flex-1 text-base text-foreground"
+            className="flex-1 text-base text-foreground font-sans"
             style={{ height: 48, padding: 0, margin: 0 }}
             placeholder="Add subtask"
             placeholderTextColor="#9CA3AF"
@@ -284,6 +302,9 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
             returnKeyType="done"
           />
         </View>
+
+        {/* Comments */}
+        <CommentSection taskId={task.id} />
 
         {/* Task options */}
         <TaskOptions
