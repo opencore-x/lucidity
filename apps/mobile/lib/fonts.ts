@@ -14,8 +14,16 @@ import {
   Montserrat_800ExtraBold,
 } from '@expo-google-fonts/montserrat';
 
-// Switch between 'inter' and 'montserrat' to change the app font
-const ACTIVE_FONT = 'montserrat' as const;
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+  DMSans_800ExtraBold,
+} from '@expo-google-fonts/dm-sans';
+
+// Switch between 'inter', 'montserrat', 'dm-sans' to change the app font
+const ACTIVE_FONT = 'dm-sans' as const;
 
 const FONT_MAP = {
   inter: {
@@ -31,6 +39,13 @@ const FONT_MAP = {
     semibold: { name: 'Montserrat_600SemiBold', asset: Montserrat_600SemiBold },
     bold: { name: 'Montserrat_700Bold', asset: Montserrat_700Bold },
     extrabold: { name: 'Montserrat_800ExtraBold', asset: Montserrat_800ExtraBold },
+  },
+  'dm-sans': {
+    regular: { name: 'DMSans_400Regular', asset: DMSans_400Regular },
+    medium: { name: 'DMSans_500Medium', asset: DMSans_500Medium },
+    semibold: { name: 'DMSans_600SemiBold', asset: DMSans_600SemiBold },
+    bold: { name: 'DMSans_700Bold', asset: DMSans_700Bold },
+    extrabold: { name: 'DMSans_800ExtraBold', asset: DMSans_800ExtraBold },
   },
 } as const;
 
