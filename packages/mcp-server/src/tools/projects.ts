@@ -46,7 +46,7 @@ export function registerProjectTools(server: McpServer) {
         content: [
           {
             type: 'text' as const,
-            text: `Found ${filtered.length} project(s):\n\n${summary}\n\n---\n${JSON.stringify(filtered, null, 2)}`,
+            text: `Found ${filtered.length} project(s):\n\n${summary}`,
           },
         ],
       };
@@ -78,7 +78,7 @@ export function registerProjectTools(server: McpServer) {
         content: [
           {
             type: 'text' as const,
-            text: `Created project: ${formatProject(project)} [${project.id}]\n\n${JSON.stringify(project, null, 2)}`,
+            text: `Created project: ${formatProject(project)} [${project.id}]`,
           },
         ],
       };

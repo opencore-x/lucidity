@@ -76,12 +76,7 @@ export function registerQueryTools(server: McpServer) {
       }
 
       return {
-        content: [
-          {
-            type: 'text' as const,
-            text: `${summary}\n\n---\n${JSON.stringify(tasks, null, 2)}`,
-          },
-        ],
+        content: [{ type: 'text' as const, text: summary }],
       };
     },
   );
@@ -139,12 +134,7 @@ export function registerQueryTools(server: McpServer) {
       }
 
       return {
-        content: [
-          {
-            type: 'text' as const,
-            text: `${summary}\n\n---\n${JSON.stringify(tasks, null, 2)}`,
-          },
-        ],
+        content: [{ type: 'text' as const, text: summary }],
       };
     },
   );
@@ -183,12 +173,34 @@ export function registerQueryTools(server: McpServer) {
       }
 
       return {
-        content: [
-          {
-            type: 'text' as const,
-            text: `${summary}\n\n---\n${JSON.stringify(result, null, 2)}`,
-          },
-        ],
+        content: [{ type: 'text' as const, text: summary }],
+      };
+    },
+  );
+
+  server.tool(
+    'get_task_stats',
+    'Get aggregate task statistics (total, pending, in progress, completed, overdue). Lightweight alternative to listing all tasks when you just need counts.',
+    {
+      project_id: z
+        .string()
+        .optional()
+        .describe('Scope stats to a specific project ID'),
+    },
+    async ({ project_id }) => {
+      const qs = project_id ? `?project_id=${project_id}` : '';
+      const stats = await apiRequest<{
+        total: number;
+        pending: number;
+        inProgress: number;
+        completed: number;
+        overdue: number;
+      }>(`/api/tasks/stats${qs}`);
+
+      const text = `Tasks: ${stats.total} total — ${stats.pending} pending, ${stats.inProgress} in progress, ${stats.completed} completed, ${stats.overdue} overdue`;
+
+      return {
+        content: [{ type: 'text' as const, text }],
       };
     },
   );
