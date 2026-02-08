@@ -9,6 +9,8 @@ import { isAppError } from './lib/errors.js';
 import taskRouter from './routes/tasks.js';
 import userRouter from './routes/users.js';
 import projectRouter from './routes/projects.js';
+import apiKeyRouter from './routes/apiKey.js';
+import { taskQueryRouter, searchRouter } from './routes/taskQueries.js';
 
 const app = new Hono();
 
@@ -27,9 +29,12 @@ app.onError((err, c) => {
 
 app.get('/', (c) => c.json({ status: 'ok' }));
 
+app.route('/api/auth/api-key', apiKeyRouter);
+app.route('/api/tasks', taskQueryRouter);  // Must be before taskRouter so /today, /week match first
 app.route('/api/tasks', taskRouter);
 app.route('/api/users', userRouter);
 app.route('/api/projects', projectRouter);
+app.route('/api', searchRouter);
 
 const port = Number(process.env.PORT) || 3000;
 
