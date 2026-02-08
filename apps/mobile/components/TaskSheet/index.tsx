@@ -1,5 +1,7 @@
 import * as React from 'react';
-import { View, Pressable, Keyboard } from 'react-native';
+import { View, Pressable, Keyboard, PlatformColor } from 'react-native';
+import { GlassView, isGlassEffectAPIAvailable } from 'expo-glass-effect';
+import { BlurView } from 'expo-blur';
 import {
   BottomSheetModal,
   BottomSheetView,
@@ -13,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { SubtaskList } from './SubtaskList';
 import { TaskOptions } from './TaskOptions';
-import { ChevronLeft, Plus, FileText, RefreshCw } from '@/lib/icons';
+import { ChevronLeft, Plus, FileText, RefreshCw, X } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtasks } from '@/utils/helpers';
 import { useToggleTask, useCreateTask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
@@ -167,6 +169,35 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
     return (
       <BottomSheetScrollView className="flex-1">
+        {/* Close button */}
+        <View className="flex-row justify-end px-4 pt-2">
+          {isGlassEffectAPIAvailable() ? (
+            <GlassView isInteractive style={{ borderRadius: 50 }}>
+              <Pressable
+                onPress={() => sheetRef.current?.dismiss()}
+                style={{ padding: 8 }}
+                hitSlop={8}
+              >
+                <X size={18} color={PlatformColor('secondaryLabel')} />
+              </Pressable>
+            </GlassView>
+          ) : (
+            <BlurView
+              tint="systemMaterial"
+              intensity={80}
+              style={{ borderRadius: 50, overflow: 'hidden' }}
+            >
+              <Pressable
+                onPress={() => sheetRef.current?.dismiss()}
+                style={{ padding: 8 }}
+                hitSlop={8}
+              >
+                <X size={18} color="#9CA3AF" />
+              </Pressable>
+            </BlurView>
+          )}
+        </View>
+
         {/* Back button */}
         {canGoBack() && parent && (
           <Pressable
