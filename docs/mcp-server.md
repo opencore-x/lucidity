@@ -69,26 +69,59 @@ These are Clerk-auth-only (can't use an API key to manage API keys):
 
 ## Available Tools
 
-| Tool             | API Endpoint                    | Description                                     |
-| ---------------- | ------------------------------- | ----------------------------------------------- |
-| `list_tasks`     | GET `/api/tasks`                | List tasks with optional status/project filter  |
-| `create_task`    | POST `/api/tasks`               | Create task with title, project, due date, etc. |
-| `update_task`    | PATCH `/api/tasks/:id`          | Update any task fields                          |
-| `complete_task`  | PATCH `/api/tasks/:id/complete` | Toggle completion (handles recurring)           |
-| `delete_task`    | DELETE `/api/tasks/:id`         | Delete task and subtasks                        |
-| `list_projects`  | GET `/api/projects`             | List projects, optionally include archived      |
-| `create_project` | POST `/api/projects`            | Create project with name and color              |
-| `get_today`      | GET `/api/tasks/today`          | Today's tasks + overdue, with summary           |
-| `get_week`       | GET `/api/tasks/week`           | This week's tasks grouped by day                |
-| `search`         | GET `/api/search?q=...`         | Search tasks and projects by keyword            |
+| Tool              | API Endpoint                    | Description                                                    |
+| ----------------- | ------------------------------- | -------------------------------------------------------------- |
+| `list_tasks`      | GET `/api/tasks`                | List tasks with filtering, pagination, and date range support  |
+| `create_task`     | POST `/api/tasks`               | Create task with title, project, due date, etc.                |
+| `update_task`     | PATCH `/api/tasks/:id`          | Update any task fields                                         |
+| `complete_task`   | PATCH `/api/tasks/:id/complete` | Toggle completion (handles recurring)                          |
+| `delete_task`     | DELETE `/api/tasks/:id`         | Delete task and subtasks                                       |
+| `list_projects`   | GET `/api/projects`             | List projects, optionally include archived                     |
+| `create_project`  | POST `/api/projects`            | Create project with name and color                             |
+| `get_today`       | GET `/api/tasks/today`          | Today's tasks + overdue, with summary                          |
+| `get_week`        | GET `/api/tasks/week`           | This week's tasks grouped by day                               |
+| `search`          | GET `/api/search?q=...`         | Search tasks and projects by keyword                           |
+| `get_task_stats`  | GET `/api/tasks/stats`          | Aggregate counts (total, pending, in progress, completed, overdue) |
+
+### `list_tasks` Parameters
+
+Server-side filtering and pagination — no more fetching all tasks:
+
+| Param        | Type    | Description                                    |
+| ------------ | ------- | ---------------------------------------------- |
+| `status`     | string  | Filter by status (pending, in_progress, completed) |
+| `project_id` | string  | Filter by project                              |
+| `root_only`  | boolean | Exclude subtasks (where `parentTaskId IS NULL`) |
+| `due_before` | string  | Tasks due on or before this date (ISO 8601)    |
+| `due_after`  | string  | Tasks due on or after this date (ISO 8601)     |
+| `limit`      | number  | Max results (default 50, max 200)              |
+| `offset`     | number  | Skip N results (default 0)                     |
+
+Response includes `total` and `hasMore` for pagination.
+
+### `get_task_stats`
+
+Lightweight alternative to `list_tasks` when you just need counts. Single SQL query, returns:
+
+```
+Tasks: 74 total — 56 pending, 0 in progress, 18 completed, 5 overdue
+```
+
+Optional `project_id` param to scope stats to a specific project.
+
+### Response Format
+
+All tools return compact human-readable summaries with task IDs (no raw JSON). This reduces response size by ~98% for large task lists (65K chars → ~800 chars for 100 tasks).
 
 ### Query Endpoints Added for MCP
 
 The mobile app filters client-side, but the MCP server needs server-side filtering. These endpoints were added:
 
-- **`/api/tasks/today`** — Non-completed root tasks where `dueDate <= end of today` (includes overdue)
-- **`/api/tasks/week`** — Non-completed root tasks where `dueDate` falls within Mon–Sun of current week
-- **`/api/search?q=...`** — ILIKE search across task titles/descriptions and project names
+- **`GET /api/tasks`** — Now supports query params: `status`, `project_id`, `root_only`, `due_before`, `due_after`, `limit`, `offset`. Returns `{ tasks, total, hasMore }`.
+- **`GET /api/tasks/stats`** — Aggregate task counts by status with optional `project_id` filter.
+- **`GET /api/tasks/today`** — Non-completed root tasks where `dueDate <= end of today` (includes overdue)
+- **`GET /api/tasks/week`** — Non-completed root tasks where `dueDate` falls within Mon–Sun of current week
+- **`GET /api/search?q=...`** — ILIKE search across task titles/descriptions and project names
 
 These work with both Clerk and API key auth, so the mobile app could use them too.
 
@@ -157,6 +190,7 @@ npx @modelcontextprotocol/inspector node dist/index.js
 - **MCP Prompts** — Pre-built prompt templates like "daily planning" or "weekly review"
 - **SSE transport** — For web-based MCP clients or remote hosting
 - **Batch operations** — Complete/update multiple tasks in one tool call
+- **Cursor-based pagination** — Replace offset pagination with cursor-based for more stable results on large datasets
 
 ### Long-term
 
