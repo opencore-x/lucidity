@@ -16,6 +16,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtaskProgress } from '@/utils/helpers';
 import { Trash2, Check } from '@/lib/icons';
+import { FONTS } from '@/lib/fonts';
 import type { Task } from '@lucidity/shared';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -64,14 +65,14 @@ function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
     >
       {confirmed ? (
         <>
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Deleted
           </RNText>
           <Check size={18} color="#FFFFFF" />
         </>
       ) : (
         <>
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Delete
           </RNText>
           <Trash2 size={18} color="#FFFFFF" />

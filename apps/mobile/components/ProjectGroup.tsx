@@ -20,6 +20,7 @@ import { TaskItem } from './TaskItem';
 import { InlineTaskInput } from './InlineTaskInput';
 import { getSubtaskProgress, isInboxProject } from '@/utils/helpers';
 import { useUpdateProject } from '@/hooks/useProjects';
+import { FONTS } from '@/lib/fonts';
 import type { Task, Project } from '@lucidity/shared';
 
 const ITEM_HEIGHT = 56;
@@ -62,14 +63,14 @@ function LeftAction({ confirmed }: { confirmed: boolean }) {
       {confirmed ? (
         <>
           <Check size={18} color="#FFFFFF" />
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Added to Today
           </RNText>
         </>
       ) : (
         <>
           <CalendarCheck size={18} color="#FFFFFF" />
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Today
           </RNText>
         </>
@@ -86,14 +87,14 @@ function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
     >
       {confirmed ? (
         <>
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Deleted
           </RNText>
           <Check size={18} color="#FFFFFF" />
         </>
       ) : (
         <>
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Delete
           </RNText>
           <Trash2 size={18} color="#FFFFFF" />
@@ -411,7 +412,7 @@ export function ProjectGroup({
             className="flex-1"
             onPress={() => setIsExpanded(!isExpanded)}
           >
-            <Text className="text-lg font-semibold">{project.name}</Text>
+            <Text className="text-lg font-bold">{project.name}</Text>
           </Pressable>
         )}
       </View>

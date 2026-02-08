@@ -16,6 +16,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtaskProgress } from '@/utils/helpers';
 import { CalendarX2, Check, Trash2 } from '@/lib/icons';
+import { FONTS } from '@/lib/fonts';
 import type { Task } from '@lucidity/shared';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -29,14 +30,14 @@ function ClearLeftAction({ confirmed }: { confirmed: boolean }) {
       {confirmed ? (
         <>
           <Check size={18} color="#FFFFFF" />
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Removed
           </RNText>
         </>
       ) : (
         <>
           <CalendarX2 size={18} color="#FFFFFF" />
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Remove from Today
           </RNText>
         </>
@@ -53,14 +54,14 @@ function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
     >
       {confirmed ? (
         <>
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Deleted
           </RNText>
           <Check size={18} color="#FFFFFF" />
         </>
       ) : (
         <>
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Delete
           </RNText>
           <Trash2 size={18} color="#FFFFFF" />

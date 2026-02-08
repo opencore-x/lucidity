@@ -1,5 +1,7 @@
 const { hairlineWidth } = require('nativewind/theme');
 
+const fonts = require('./lib/fonts.config');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: 'class',
@@ -47,6 +49,9 @@ module.exports = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      fontFamily: {
+        sans: [fonts.regular],
+      },
       borderWidth: {
         hairline: hairlineWidth(),
       },
@@ -69,5 +74,5 @@ module.exports = {
   future: {
     hoverOnlyWhenSupported: true,
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [require('tailwindcss-animate'), require('./tailwind-inter-font')],
 };
