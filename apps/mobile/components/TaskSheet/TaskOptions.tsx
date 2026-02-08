@@ -10,7 +10,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Calendar, Folder, Flag, Activity, RefreshCw } from '@/lib/icons';
+import { Calendar, Folder, Flag, Activity, RefreshCw, Milestone } from '@/lib/icons';
+import { useMilestones } from '@/hooks/useMilestones';
 import type { Task, Project, UpdateTask } from '@lucidity/shared';
 import type { Option } from '@rn-primitives/select';
 
@@ -28,6 +29,8 @@ const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'completed', label: 'Completed' },
+  { value: 'blocked', label: 'Blocked' },
+  { value: 'deferred', label: 'Deferred' },
 ];
 
 const PRIORITY_OPTIONS = [
@@ -75,9 +78,18 @@ function OptionRow({ icon, label, children }: OptionRowProps) {
 }
 
 export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsProps) {
+  const { data: milestones } = useMilestones(task.projectId);
+
   const handleProjectChange = (option: Option) => {
     if (option?.value && option.value !== task.projectId) {
-      onUpdate({ projectId: option.value });
+      onUpdate({ projectId: option.value, milestoneId: null });
+    }
+  };
+
+  const handleMilestoneChange = (option: Option) => {
+    const newValue = option?.value || null;
+    if (newValue !== task.milestoneId) {
+      onUpdate({ milestoneId: newValue });
     }
   };
 
@@ -87,7 +99,7 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
 
   const handleStatusChange = (option: Option) => {
     if (option?.value && option.value !== task.status) {
-      onUpdate({ status: option.value as 'pending' | 'in_progress' | 'completed' });
+      onUpdate({ status: option.value as Task['status'] });
     }
   };
 
@@ -114,6 +126,16 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
 
   const currentProject = project
     ? { value: project.id, label: project.name }
+    : undefined;
+
+  const milestoneOptions = [
+    { value: '', label: 'None' },
+    ...(milestones?.map((m) => ({ value: m.id, label: m.name })) ?? []),
+  ];
+
+  const currentMilestone = milestones?.find((m) => m.id === task.milestoneId);
+  const currentMilestoneOption = currentMilestone
+    ? { value: currentMilestone.id, label: currentMilestone.name }
     : undefined;
 
   const currentStatus = STATUS_OPTIONS.find((s) => s.value === task.status);
@@ -144,6 +166,32 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
           </SelectContent>
         </Select>
       </OptionRow>
+
+      {/* Milestone - only show when task belongs to a project */}
+      {task.projectId && (
+        <>
+          <Separator />
+
+          <OptionRow icon={<Milestone size={iconSize} color={iconColor} />} label="Milestone">
+            <Select value={currentMilestoneOption} onValueChange={handleMilestoneChange}>
+              <SelectTrigger
+                className="border-0 bg-transparent px-0 flex-1"
+                style={{ height: ROW_HEIGHT }}
+              >
+                <SelectValue
+                  className="text-base text-muted-foreground native:text-base"
+                  placeholder="None"
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {milestoneOptions.map((m) => (
+                  <SelectItem key={m.value} value={m.value} label={m.label} />
+                ))}
+              </SelectContent>
+            </Select>
+          </OptionRow>
+        </>
+      )}
 
       <Separator />
 

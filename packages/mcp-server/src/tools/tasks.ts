@@ -19,7 +19,13 @@ interface Task {
 }
 
 function formatTask(t: Task): string {
-  const status = t.status === 'completed' ? '[x]' : '[ ]';
+  const statusMap: Record<string, string> = {
+    completed: '[x]',
+    blocked: '[!]',
+    deferred: '[-]',
+    in_progress: '[~]',
+  };
+  const status = statusMap[t.status ?? ''] ?? '[ ]';
   const due = t.dueDate
     ? ` (due: ${new Date(t.dueDate).toLocaleDateString()})`
     : '';
@@ -33,7 +39,7 @@ export function registerTaskTools(server: McpServer) {
     'List tasks with server-side filtering and pagination. Returns task IDs for use with other tools.',
     {
       status: z
-        .enum(['pending', 'in_progress', 'completed'])
+        .enum(['pending', 'in_progress', 'completed', 'blocked', 'deferred'])
         .optional()
         .describe('Filter by task status'),
       project_id: z.string().optional().describe('Filter by project ID'),
@@ -94,8 +100,12 @@ export function registerTaskTools(server: McpServer) {
     'Create a new task.',
     {
       title: z.string().describe('Task title'),
-      description: z.string().optional().describe('Task description'),
+      description: z.string().optional().describe('Task description (supports markdown)'),
       project_id: z.string().optional().describe('Project ID to assign to'),
+      milestone_id: z
+        .string()
+        .optional()
+        .describe('Milestone ID to assign to'),
       parent_task_id: z
         .string()
         .optional()
@@ -117,6 +127,7 @@ export function registerTaskTools(server: McpServer) {
       title,
       description,
       project_id,
+      milestone_id,
       parent_task_id,
       due_date,
       priority,
@@ -125,6 +136,7 @@ export function registerTaskTools(server: McpServer) {
       const body: Record<string, unknown> = { title };
       if (description) body['description'] = description;
       if (project_id) body['projectId'] = project_id;
+      if (milestone_id) body['milestoneId'] = milestone_id;
       if (parent_task_id) body['parentTaskId'] = parent_task_id;
       if (due_date) body['dueDate'] = due_date;
       if (priority !== undefined) body['priority'] = priority;
@@ -153,12 +165,16 @@ export function registerTaskTools(server: McpServer) {
     {
       id: z.string().describe('Task ID to update'),
       title: z.string().optional().describe('New title'),
-      description: z.string().optional().describe('New description'),
+      description: z.string().optional().describe('New description (supports markdown)'),
       status: z
-        .enum(['pending', 'in_progress', 'completed'])
+        .enum(['pending', 'in_progress', 'completed', 'blocked', 'deferred'])
         .optional()
         .describe('New status'),
       project_id: z.string().optional().describe('New project ID'),
+      milestone_id: z
+        .string()
+        .optional()
+        .describe('New milestone ID (use empty string to unset)'),
       due_date: z
         .string()
         .optional()
@@ -175,6 +191,7 @@ export function registerTaskTools(server: McpServer) {
       description,
       status,
       project_id,
+      milestone_id,
       due_date,
       priority,
       recurring_frequency,
@@ -184,6 +201,8 @@ export function registerTaskTools(server: McpServer) {
       if (description !== undefined) body['description'] = description;
       if (status) body['status'] = status;
       if (project_id) body['projectId'] = project_id;
+      if (milestone_id !== undefined)
+        body['milestoneId'] = milestone_id || null;
       if (due_date !== undefined) body['dueDate'] = due_date;
       if (priority !== undefined) body['priority'] = priority;
       if (recurring_frequency !== undefined)
