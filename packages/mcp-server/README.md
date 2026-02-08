@@ -16,7 +16,7 @@ MCP server for managing Lucidity tasks and projects from AI clients.
 
 ## Tools
 
-`list_tasks` `create_task` `update_task` `complete_task` `delete_task` `list_projects` `create_project` `get_today` `get_week` `search`
+`list_tasks` `create_task` `update_task` `complete_task` `delete_task` `list_projects` `create_project` `get_today` `get_week` `search` `get_task_stats`
 
 ## Docs
 
