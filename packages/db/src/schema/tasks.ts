@@ -10,11 +10,14 @@ import {
 } from 'drizzle-orm/pg-core';
 import { users } from './users.js';
 import { projects } from './projects.js';
+import { milestones } from './milestones.js';
 
 const statusEnum = pgEnum('task_status', [
   'pending',
   'in_progress',
   'completed',
+  'blocked',
+  'deferred',
 ]);
 
 export const tasks = pgTable('tasks', {
@@ -23,6 +26,7 @@ export const tasks = pgTable('tasks', {
     .references(() => users.id)
     .notNull(),
   projectId: uuid('project_id').references(() => projects.id),
+  milestoneId: uuid('milestone_id').references(() => milestones.id, { onDelete: 'set null' }),
   parentTaskId: uuid('parent_task_id').references((): AnyPgColumn => tasks.id),
   title: varchar('title', { length: 500 }).notNull(),
   description: text('description'),

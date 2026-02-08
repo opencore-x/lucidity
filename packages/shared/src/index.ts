@@ -25,6 +25,18 @@ export {
   UpdateProjectSchema,
 } from './schemas/project.js';
 
+export {
+  MilestoneSchema,
+  CreateMilestoneSchema,
+  UpdateMilestoneSchema,
+} from './schemas/milestone.js';
+
+export {
+  CommentSchema,
+  CreateCommentSchema,
+  UpdateCommentSchema,
+} from './schemas/comment.js';
+
 // Types
 export type {
   Task,
@@ -36,4 +48,10 @@ export type {
   Project,
   CreateProject,
   UpdateProject,
+  Milestone,
+  CreateMilestone,
+  UpdateMilestone,
+  Comment,
+  CreateComment,
+  UpdateComment,
 } from './types.js';

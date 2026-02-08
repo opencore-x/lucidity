@@ -3,7 +3,6 @@ import {
   ChevronDown,
   ChevronLeft,
   Circle,
-  GripVertical,
   Plus,
   Calendar,
   CalendarCheck,
@@ -23,6 +22,8 @@ import {
   Pencil,
   RefreshCw,
   Search,
+  Milestone,
+  MessageCircle,
 } from 'lucide-react-native';
 
 export {
@@ -30,7 +31,6 @@ export {
   ChevronDown,
   ChevronLeft,
   Circle,
-  GripVertical,
   Plus,
   Calendar,
   CalendarCheck,
@@ -50,4 +50,6 @@ export {
   Pencil,
   RefreshCw,
   Search,
+  Milestone,
+  MessageCircle,
 };

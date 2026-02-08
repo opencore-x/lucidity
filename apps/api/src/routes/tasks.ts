@@ -14,7 +14,7 @@ import {
   getDaysInMonth,
 } from 'date-fns';
 import { db } from '../lib/db.js';
-import { tasks, eq, and, asc, sql } from '@lucidity/db';
+import { tasks, eq, and, asc, isNull, sql } from '@lucidity/db';
 import { CreateTaskSchema, UpdateTaskSchema } from '@lucidity/shared';
 import { getCurrentUser } from '../lib/auth.js';
 
@@ -99,12 +99,56 @@ const router = new Hono();
 
 router.get('/', async (c) => {
   const user = await getCurrentUser(c);
-  const allTasks = await db
-    .select()
-    .from(tasks)
-    .where(eq(tasks.userId, user.id))
-    .orderBy(sql`${tasks.position} ASC NULLS LAST`, asc(tasks.createdAt));
-  return c.json(allTasks);
+
+  const status = c.req.query('status');
+  const projectId = c.req.query('project_id');
+  const rootOnly = c.req.query('root_only') === 'true';
+  const dueBefore = c.req.query('due_before');
+  const dueAfter = c.req.query('due_after');
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '50', 10) || 50, 1), 200);
+  const offset = Math.max(parseInt(c.req.query('offset') || '0', 10) || 0, 0);
+
+  const conditions = [eq(tasks.userId, user.id)];
+
+  if (status) {
+    conditions.push(sql`${tasks.status} = ${status}`);
+  }
+  if (projectId) {
+    conditions.push(eq(tasks.projectId, projectId));
+  }
+  if (rootOnly) {
+    conditions.push(isNull(tasks.parentTaskId));
+  }
+  if (dueBefore) {
+    conditions.push(sql`${tasks.dueDate} <= ${new Date(dueBefore)}`);
+  }
+  if (dueAfter) {
+    conditions.push(sql`${tasks.dueDate} >= ${new Date(dueAfter)}`);
+  }
+
+  const where = and(...conditions);
+
+  const [allTasks, countResult] = await Promise.all([
+    db
+      .select()
+      .from(tasks)
+      .where(where)
+      .orderBy(sql`${tasks.position} ASC NULLS LAST`, asc(tasks.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(tasks)
+      .where(where),
+  ]);
+
+  const total = Number(countResult[0]?.count ?? 0);
+
+  return c.json({
+    tasks: allTasks,
+    total,
+    hasMore: offset + allTasks.length < total,
+  });
 });
 
 router.post('/', async (c) => {

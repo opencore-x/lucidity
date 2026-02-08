@@ -20,6 +20,7 @@ import { TaskItem } from './TaskItem';
 import { InlineTaskInput } from './InlineTaskInput';
 import { getSubtaskProgress, isInboxProject } from '@/utils/helpers';
 import { useUpdateProject } from '@/hooks/useProjects';
+import { FONTS } from '@/lib/fonts';
 import type { Task, Project } from '@lucidity/shared';
 
 const ITEM_HEIGHT = 56;
@@ -62,14 +63,14 @@ function LeftAction({ confirmed }: { confirmed: boolean }) {
       {confirmed ? (
         <>
           <Check size={18} color="#FFFFFF" />
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Added to Today
           </RNText>
         </>
       ) : (
         <>
           <CalendarCheck size={18} color="#FFFFFF" />
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Today
           </RNText>
         </>
@@ -86,14 +87,14 @@ function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
     >
       {confirmed ? (
         <>
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Deleted
           </RNText>
           <Check size={18} color="#FFFFFF" />
         </>
       ) : (
         <>
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600' }}>
+          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
             Delete
           </RNText>
           <Trash2 size={18} color="#FFFFFF" />
@@ -300,6 +301,11 @@ export function ProjectGroup({
   // Check if this is the virtual Inbox (not a real project)
   const isInbox = isInboxProject(project);
 
+  // Calculate completed vs total tasks
+  const completedCount = tasks.filter(task => task.status === 'completed').length;
+  const totalCount = tasks.length;
+  const completionPercentage = totalCount > 0 ? completedCount / totalCount : 0;
+
   React.useEffect(() => {
     chevronRotation.value = withTiming(isExpanded ? 0 : -90, { duration: 200 });
   }, [isExpanded, chevronRotation]);
@@ -403,13 +409,26 @@ export function ProjectGroup({
           />
         ) : (
           <Pressable
-            className="flex-row items-center flex-1"
+            className="flex-1"
             onPress={() => setIsExpanded(!isExpanded)}
           >
-            <Text className="text-lg font-semibold">{project.name}</Text>
-            <Text className="ml-2 text-sm text-muted-foreground">{tasks.length}</Text>
+            <Text className="text-lg font-bold">{project.name}</Text>
           </Pressable>
         )}
+      </View>
+      <View className="flex-row items-center gap-1.5 mr-3">
+        <Text className="text-sm text-muted-foreground opacity-60">
+          {completedCount}/{totalCount}
+        </Text>
+        <View className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 items-center justify-center">
+          <View
+            className="rounded-full bg-primary"
+            style={{
+              width: 12 * completionPercentage,
+              height: 12 * completionPercentage,
+            }}
+          />
+        </View>
       </View>
       <Button
         variant="ghost"

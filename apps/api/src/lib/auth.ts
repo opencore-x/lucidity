@@ -4,13 +4,24 @@ import { users, eq } from '@lucidity/db';
 import { db } from './db.js';
 import { uuidv7 } from 'uuidv7';
 import { unauthorizedError } from './errors.js';
+import { getUserByApiKey } from './apiKeyAuth.js';
 
 /**
- * Get current authenticated user from Clerk context.
- * Creates user in DB on first login (just-in-time sync).
+ * Get current authenticated user from Clerk context or API key.
+ * Creates user in DB on first login (just-in-time sync for Clerk).
  * Throws AppError if not authenticated.
  */
 export async function getCurrentUser(c: Context) {
+  // Check for API key auth first (Bearer luc_...)
+  const authHeader = c.req.header('Authorization');
+  if (authHeader?.startsWith('Bearer luc_')) {
+    const rawKey = authHeader.slice(7); // Remove "Bearer "
+    const user = await getUserByApiKey(rawKey);
+    if (!user) throw unauthorizedError('Invalid API key');
+    return user;
+  }
+
+  // Fall through to Clerk auth
   const auth = getAuth(c);
 
   if (!auth?.userId) {
