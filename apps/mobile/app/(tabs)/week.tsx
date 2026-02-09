@@ -282,6 +282,7 @@ export default function WeekScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {/* Overdue section */}
         {overdueTasks.length > 0 && (

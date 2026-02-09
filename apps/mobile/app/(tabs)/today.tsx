@@ -299,6 +299,7 @@ export default function TodayScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {/* Overdue section */}
           {overdueTasks.length > 0 && (
