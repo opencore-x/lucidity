@@ -9,7 +9,6 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { SubtaskList } from './SubtaskList';
 import { TaskOptions } from './TaskOptions';
@@ -199,13 +198,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
         )}
 
         {/* Task header */}
-        <View className="flex-row items-start px-4 py-4">
-          <Pressable onPress={() => handleToggle(task.id)} className="mr-3 mt-1">
-            <Checkbox
-              checked={isCompleted}
-              onCheckedChange={() => handleToggle(task.id)}
-            />
-          </Pressable>
+        <View className="px-4 py-4">
           <View className="flex-1">
             {/* Title row with optional description icon */}
             <View className="flex-row items-center justify-between">
