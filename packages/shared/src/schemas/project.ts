@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AI_REVIEW_DEPTH_VALUES } from '../constants.js';
 
 // What client sends when creating a project
 export const CreateProjectSchema = z.object({
@@ -6,6 +7,7 @@ export const CreateProjectSchema = z.object({
   color: z.string().length(7).optional(),
   description: z.string().optional(),
   isArchived: z.boolean().default(false),
+  aiReviewDepth: z.enum(AI_REVIEW_DEPTH_VALUES).default('light'),
 });
 
 // Full project schema (database representation)
@@ -14,6 +16,7 @@ export const ProjectSchema = CreateProjectSchema.extend({
   userId: z.uuidv7(),
   color: z.string().length(7).nullable(),
   description: z.string().nullable(),
+  aiReviewDepth: z.enum(AI_REVIEW_DEPTH_VALUES),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });
