@@ -140,7 +140,8 @@ export default function ProjectsScreen() {
           ref={scrollViewRef}
           className="flex-1"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag">
           <View className="flex-row justify-end px-4 pb-2">
             <Button
               size="icon"
