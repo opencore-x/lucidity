@@ -35,6 +35,7 @@ export const TaskSchema = CreateTaskSchema.extend({
   completedAt: z.coerce.date().nullable(),
   dueDate: z.coerce.date().nullable(),
   recurringFrequency: z.enum(RECURRING_FREQUENCY_VALUES).nullable(),
+  reviewedAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });

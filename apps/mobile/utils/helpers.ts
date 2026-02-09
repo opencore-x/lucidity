@@ -13,6 +13,7 @@ export const INBOX_PROJECT: Project = {
   color: null,
   description: null,
   isArchived: false,
+  aiReviewDepth: 'none',
   createdAt: new Date(0), // Epoch - ensures it sorts first
   updatedAt: new Date(0),
 };

@@ -118,7 +118,7 @@ export function TaskItem({ task, onPress, onToggle, subtaskProgress, isLast }: T
       )}
 
       {/* Due date label — visible for 3s then fades out */}
-      {dueInfo && <DueDateLabel dueInfo={dueInfo} />}
+      {dueInfo && !(isCompleted && dueInfo.status === 'overdue') && <DueDateLabel dueInfo={dueInfo} />}
     </Pressable>
   );
 }

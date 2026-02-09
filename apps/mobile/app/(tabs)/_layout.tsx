@@ -12,8 +12,8 @@ export default function TabLayout() {
         <Icon sf="sun.max.fill" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="week">
-        <Label>Week</Label>
-        <Icon sf="calendar" />
+        <Label>Milestones</Label>
+        <Icon sf="flag.fill" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="search" role="search">
         <Label>Search</Label>

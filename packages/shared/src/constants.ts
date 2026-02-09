@@ -13,3 +13,6 @@ export const PRIORITY_MAX = 1000;
 
 export const RECURRING_FREQUENCY_VALUES = ['daily', 'weekly', 'monthly', 'yearly'] as const;
 
+export const COMMENT_SOURCE_VALUES = ['user', 'claude'] as const;
+export const AI_REVIEW_DEPTH_VALUES = ['deep', 'light', 'none'] as const;
+

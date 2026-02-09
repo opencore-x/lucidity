@@ -93,6 +93,51 @@ taskQueryRouter.get('/stats', async (c) => {
   });
 });
 
+// GET /api/tasks/unreviewed — Non-completed root tasks never reviewed by AI
+taskQueryRouter.get('/unreviewed', async (c) => {
+  const user = await getCurrentUser(c);
+  const projectId = c.req.query('project_id');
+  const limit = parseInt(c.req.query('limit') || '50', 10);
+
+  const conditions = [
+    eq(tasks.userId, user.id),
+    isNull(tasks.parentTaskId),
+    isNull(tasks.reviewedAt),
+    sql`${tasks.status} != 'completed'`,
+  ];
+
+  if (projectId) {
+    conditions.push(eq(tasks.projectId, projectId));
+  }
+
+  const result = await db
+    .select()
+    .from(tasks)
+    .where(and(...conditions))
+    .orderBy(sql`${tasks.projectId} ASC NULLS LAST`, sql`${tasks.priority} ASC`)
+    .limit(limit);
+
+  return c.json(result);
+});
+
+// PATCH /api/tasks/:id/review — Mark a task as reviewed
+taskQueryRouter.patch('/:id/review', async (c) => {
+  const user = await getCurrentUser(c);
+  const id = c.req.param('id');
+
+  const [updated] = await db
+    .update(tasks)
+    .set({ reviewedAt: new Date() })
+    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
+    .returning();
+
+  if (!updated) {
+    return c.json({ error: 'Task not found' }, 404);
+  }
+
+  return c.json(updated);
+});
+
 const searchRouter = new Hono();
 
 // GET /api/search?q=... — ILIKE search across tasks and projects

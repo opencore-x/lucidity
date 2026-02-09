@@ -42,8 +42,9 @@ export function useCreateTask() {
         priority: newTask.priority ?? 500,
         position: null,
         completedAt: null,
-        dueDate: newTask.dueDate ?? null,
+        dueDate: newTask.dueDate ? new Date(newTask.dueDate as string | number | Date) : null,
         recurringFrequency: newTask.recurringFrequency ?? null,
+        reviewedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

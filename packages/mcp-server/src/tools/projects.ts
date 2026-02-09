@@ -8,6 +8,7 @@ interface Project {
   color: string | null;
   description: string | null;
   isArchived: boolean | null;
+  aiReviewDepth: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -15,7 +16,8 @@ interface Project {
 function formatProject(p: Project): string {
   const archived = p.isArchived ? ' (archived)' : '';
   const color = p.color ? ` ${p.color}` : '';
-  return `${p.name}${color}${archived}`;
+  const review = p.aiReviewDepth !== 'light' ? ` [review: ${p.aiReviewDepth}]` : '';
+  return `${p.name}${color}${archived}${review}`;
 }
 
 export function registerProjectTools(server: McpServer) {
@@ -63,11 +65,16 @@ export function registerProjectTools(server: McpServer) {
         .optional()
         .describe('Hex color code (e.g. #FF5733)'),
       description: z.string().optional().describe('Project description'),
+      ai_review_depth: z
+        .enum(['deep', 'light', 'none'])
+        .optional()
+        .describe('AI review depth: deep (dev projects), light (default), none (skip)'),
     },
-    async ({ name, color, description }) => {
+    async ({ name, color, description, ai_review_depth }) => {
       const body: Record<string, unknown> = { name };
       if (color) body['color'] = color;
       if (description) body['description'] = description;
+      if (ai_review_depth) body['aiReviewDepth'] = ai_review_depth;
 
       const project = await apiRequest<Project>('/api/projects', {
         method: 'POST',
@@ -79,6 +86,44 @@ export function registerProjectTools(server: McpServer) {
           {
             type: 'text' as const,
             text: `Created project: ${formatProject(project)} [${project.id}]`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    'update_project',
+    'Update an existing project.',
+    {
+      id: z.string().describe('Project ID to update'),
+      name: z.string().optional().describe('New project name'),
+      color: z.string().optional().describe('New hex color code'),
+      description: z.string().optional().describe('New description'),
+      is_archived: z.boolean().optional().describe('Archive or unarchive'),
+      ai_review_depth: z
+        .enum(['deep', 'light', 'none'])
+        .optional()
+        .describe('AI review depth: deep, light, or none'),
+    },
+    async ({ id, name, color, description, is_archived, ai_review_depth }) => {
+      const body: Record<string, unknown> = {};
+      if (name) body['name'] = name;
+      if (color) body['color'] = color;
+      if (description !== undefined) body['description'] = description;
+      if (is_archived !== undefined) body['isArchived'] = is_archived;
+      if (ai_review_depth) body['aiReviewDepth'] = ai_review_depth;
+
+      const project = await apiRequest<Project>(`/api/projects/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Updated project: ${formatProject(project)} [${project.id}]`,
           },
         ],
       };
