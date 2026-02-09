@@ -44,6 +44,7 @@ export function registerTaskTools(server: McpServer) {
         .optional()
         .describe('Filter by task status'),
       project_id: z.string().optional().describe('Filter by project ID'),
+      milestone_id: z.string().optional().describe('Filter by milestone ID'),
       root_only: z
         .boolean()
         .optional()
@@ -65,10 +66,11 @@ export function registerTaskTools(server: McpServer) {
         .optional()
         .describe('Number of results to skip (default 0)'),
     },
-    async ({ status, project_id, root_only, due_before, due_after, limit, offset }) => {
+    async ({ status, project_id, milestone_id, root_only, due_before, due_after, limit, offset }) => {
       const params = new URLSearchParams();
       if (status) params.set('status', status);
       if (project_id) params.set('project_id', project_id);
+      if (milestone_id) params.set('milestone_id', milestone_id);
       if (root_only) params.set('root_only', 'true');
       if (due_before) params.set('due_before', due_before);
       if (due_after) params.set('due_after', due_after);
