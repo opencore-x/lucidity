@@ -4,6 +4,8 @@ export {
   TASK_STATUS_VALUES,
   PRIORITY_MIN,
   PRIORITY_MAX,
+  COMMENT_SOURCE_VALUES,
+  AI_REVIEW_DEPTH_VALUES,
 } from './constants.js';
 
 // Schemas

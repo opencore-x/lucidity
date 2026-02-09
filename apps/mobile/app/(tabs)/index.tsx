@@ -5,7 +5,7 @@ import { UserMenu } from '@/components/user-menu';
 import { ProjectGroup } from '@/components/ProjectGroup';
 import { TaskSheet } from '@/components/TaskSheet';
 import { useUser } from '@clerk/clerk-expo';
-import { MoonStarIcon, SunIcon } from 'lucide-react-native';
+import { MoonStarIcon, SunIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
@@ -40,6 +40,7 @@ export default function ProjectsScreen() {
 
   const isLoading = tasksLoading || projectsLoading;
   const [refreshing, setRefreshing] = React.useState(false);
+  const [expandAll, setExpandAll] = React.useState<boolean | null>(null);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
@@ -139,13 +140,27 @@ export default function ProjectsScreen() {
           ref={scrollViewRef}
           className="flex-1"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag">
+          <View className="flex-row justify-end px-4 pb-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full"
+              onPress={() => setExpandAll(prev => (prev === null ? true : !prev))}>
+              <Icon
+                as={expandAll ? ChevronsDownUpIcon : ChevronsUpDownIcon}
+                className="size-5 text-muted-foreground"
+              />
+            </Button>
+          </View>
           {Array.from(groupedTasks.entries()).map(([project, projectTasks]) => (
             <ProjectGroup
               key={project.id}
               project={project}
               tasks={projectTasks}
               allTasks={tasks}
+              expandAll={expandAll}
               onDeleteProject={handleDeleteProject}
               onTaskPress={handleTaskPress}
               onTaskToggle={handleTaskToggle}

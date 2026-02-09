@@ -8,3 +8,17 @@ export function useMilestones(projectId: string | null) {
     enabled: !!projectId,
   });
 }
+
+export function useAllMilestones() {
+  return useQuery({
+    queryKey: ['milestones'],
+    queryFn: () => milestonesApi.list(),
+  });
+}
+
+export function useMilestoneProgress(milestoneId: string) {
+  return useQuery({
+    queryKey: ['milestoneProgress', milestoneId],
+    queryFn: () => milestonesApi.progress(milestoneId),
+  });
+}
