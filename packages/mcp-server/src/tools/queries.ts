@@ -11,6 +11,7 @@ interface Task {
   dueDate: string | null;
   completedAt: string | null;
   recurringFrequency: string | null;
+  reviewedAt: string | null;
   projectId: string | null;
   parentTaskId: string | null;
   createdAt: string;
@@ -209,6 +210,45 @@ export function registerQueryTools(server: McpServer) {
 
       return {
         content: [{ type: 'text' as const, text }],
+      };
+    },
+  );
+
+  server.tool(
+    'get_unreviewed_tasks',
+    'Get tasks that have never been reviewed by AI. Returns non-completed root tasks where reviewedAt is null.',
+    {
+      project_id: z
+        .string()
+        .optional()
+        .describe('Filter to a specific project ID'),
+      limit: z
+        .number()
+        .optional()
+        .describe('Max results to return (default 50)'),
+    },
+    async ({ project_id, limit }) => {
+      const params = new URLSearchParams();
+      if (project_id) params.set('project_id', project_id);
+      if (limit !== undefined) params.set('limit', String(limit));
+
+      const qs = params.toString();
+      const tasks = await apiRequest<Task[]>(
+        `/api/tasks/unreviewed${qs ? `?${qs}` : ''}`,
+      );
+
+      const summary =
+        tasks.length === 0
+          ? 'No unreviewed tasks found.'
+          : tasks.map((t) => `- ${formatTask(t)} [${t.id}] (project: ${t.projectId ?? 'inbox'})`).join('\n');
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Found ${tasks.length} unreviewed task(s):\n\n${summary}`,
+          },
+        ],
       };
     },
   );

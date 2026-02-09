@@ -12,6 +12,7 @@ interface Task {
   dueDate: string | null;
   completedAt: string | null;
   recurringFrequency: string | null;
+  reviewedAt: string | null;
   projectId: string | null;
   parentTaskId: string | null;
   createdAt: string;
@@ -262,6 +263,28 @@ export function registerTaskTools(server: McpServer) {
           {
             type: 'text' as const,
             text: `Deleted task ${id} and all subtasks.`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    'mark_task_reviewed',
+    'Mark a task as reviewed by AI. Sets reviewedAt timestamp so it won\'t appear in unreviewed lists.',
+    {
+      id: z.string().describe('Task ID to mark as reviewed'),
+    },
+    async ({ id }) => {
+      const task = await apiRequest<Task>(`/api/tasks/${id}/review`, {
+        method: 'PATCH',
+      });
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Marked as reviewed: ${formatTask(task)} [${task.id}]`,
           },
         ],
       };
