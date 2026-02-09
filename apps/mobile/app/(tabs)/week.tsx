@@ -2,150 +2,27 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
-import { TaskItem } from '@/components/TaskItem';
+import { MilestoneGroup } from '@/components/MilestoneGroup';
 import { TaskSheet } from '@/components/TaskSheet';
 import { useUser } from '@clerk/clerk-expo';
 import { MoonStarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator, Text as RNText, Dimensions } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useTasks, useToggleTask, useDeleteTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
+import { useAllMilestones } from '@/hooks/useMilestones';
 import { useSheetStore } from '@/stores/sheetStore';
-import { getSubtaskProgress } from '@/utils/helpers';
-import { Trash2, Check } from '@/lib/icons';
-import { FONTS } from '@/lib/fonts';
 import type { Task } from '@lucidity/shared';
 
-const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-function getMonday(date: Date): Date {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day; // Adjust when day is Sunday
-  d.setDate(d.getDate() + diff);
-  return d;
-}
-
-function formatDayHeader(date: Date, today: Date): string {
-  const dayName = DAY_NAMES[date.getDay() === 0 ? 6 : date.getDay() - 1];
-  const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-  if (dateStart.getTime() === todayStart.getTime()) {
-    return `Today · ${monthDay}`;
-  }
-
-  const tomorrow = new Date(todayStart);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  if (dateStart.getTime() === tomorrow.getTime()) {
-    return `Tomorrow · ${monthDay}`;
-  }
-
-  return `${dayName} · ${monthDay}`;
-}
-
-function isDateInPast(date: Date, today: Date): boolean {
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  return dateStart < todayStart;
-}
-
-const SCREEN_WIDTH = Dimensions.get('window').width;
-
-function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
-  return (
-    <View
-      style={{ backgroundColor: '#EF4444', width: SCREEN_WIDTH }}
-      className="flex-row items-center justify-end pr-4 gap-1.5 h-full"
-    >
-      {confirmed ? (
-        <>
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
-            Deleted
-          </RNText>
-          <Check size={18} color="#FFFFFF" />
-        </>
-      ) : (
-        <>
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
-            Delete
-          </RNText>
-          <Trash2 size={18} color="#FFFFFF" />
-        </>
-      )}
-    </View>
-  );
-}
-
-function SwipeableWeekTask({
-  task,
-  tasks,
-  isLast,
-  onPress,
-  onToggle,
-  onDeleteTask,
-}: {
-  task: Task;
-  tasks: Task[];
-  isLast: boolean;
-  onPress: () => void;
-  onToggle: () => void;
-  onDeleteTask: (taskId: string) => void;
-}) {
-  const swipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
-  const [confirmed, setConfirmed] = React.useState(false);
-
-  const renderRightActions = React.useCallback(
-    () => <DeleteRightAction confirmed={confirmed} />,
-    [confirmed]
-  );
-
-  const handleSwipeOpen = React.useCallback(
-    (direction: 'left' | 'right') => {
-      if (direction === 'left') {
-        onDeleteTask(task.id);
-        setConfirmed(true);
-        setTimeout(() => {
-          swipeableRef.current?.close();
-          setConfirmed(false);
-        }, 1200);
-      }
-    },
-    [task.id, onDeleteTask]
-  );
-
-  return (
-    <ReanimatedSwipeable
-      ref={swipeableRef}
-      renderRightActions={renderRightActions}
-      onSwipeableOpen={handleSwipeOpen}
-      overshootRight={false}
-      friction={1}
-      rightThreshold={SCREEN_WIDTH * 0.4}
-    >
-      <TaskItem
-        task={task}
-        subtaskProgress={getSubtaskProgress(tasks, task.id)}
-        onPress={onPress}
-        onToggle={onToggle}
-        isLast={isLast}
-      />
-    </ReanimatedSwipeable>
-  );
-}
-
-export default function WeekScreen() {
+export default function MilestonesScreen() {
   const { colorScheme } = useColorScheme();
   const { user } = useUser();
-  const scrollViewRef = React.useRef<ScrollView>(null);
 
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
+  const { data: milestones = [], isLoading: milestonesLoading, refetch: refetchMilestones } = useAllMilestones();
   const toggleTask = useToggleTask();
   const deleteTask = useDeleteTask();
   const { openSheet } = useSheetStore();
@@ -155,67 +32,28 @@ export default function WeekScreen() {
     [allProjects]
   );
 
-  const isLoading = tasksLoading || projectsLoading;
+  const isLoading = tasksLoading || projectsLoading || milestonesLoading;
   const [refreshing, setRefreshing] = React.useState(false);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetchTasks(), refetchProjects()]);
+    await Promise.all([refetchTasks(), refetchProjects(), refetchMilestones()]);
     setRefreshing(false);
-  }, [refetchTasks, refetchProjects]);
+  }, [refetchTasks, refetchProjects, refetchMilestones]);
 
-  const now = new Date();
-  const weekStart = React.useMemo(() => getMonday(now), []);
-
-  // Group tasks by day of the week
-  const { weekDays, overdueTasks, totalWeekTasks } = React.useMemo(() => {
-    const monday = getMonday(now);
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    // Create array of 7 days starting from Monday
-    const days: { date: Date; tasks: Task[] }[] = [];
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(monday);
-      day.setDate(monday.getDate() + i);
-      days.push({ date: day, tasks: [] });
+  // Group tasks by milestone
+  const tasksByMilestone = React.useMemo(() => {
+    const map = new Map<string, Task[]>();
+    for (const milestone of milestones) {
+      map.set(milestone.id, []);
     }
-
-    const overdue: Task[] = [];
-    let weekTotal = 0;
-
-    tasks.forEach((task) => {
-      // Exclude subtasks
-      if (task.parentTaskId) return;
-      // Exclude completed tasks
-      if (task.status === 'completed') return;
-      // Only tasks with due dates
-      if (!task.dueDate) return;
-
-      const dueDate = new Date(task.dueDate);
-      const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-
-      // Check if overdue (before today)
-      if (dueDateStart < todayStart) {
-        overdue.push(task);
-        return;
+    for (const task of tasks) {
+      if (task.milestoneId && map.has(task.milestoneId)) {
+        map.get(task.milestoneId)!.push(task);
       }
-
-      // Check if within this week
-      const weekEnd = new Date(monday);
-      weekEnd.setDate(monday.getDate() + 7);
-
-      if (dueDateStart >= monday && dueDateStart < weekEnd) {
-        // Find which day this task belongs to
-        const dayIndex = Math.floor((dueDateStart.getTime() - monday.getTime()) / (1000 * 60 * 60 * 24));
-        if (dayIndex >= 0 && dayIndex < 7) {
-          days[dayIndex].tasks.push(task);
-          weekTotal++;
-        }
-      }
-    });
-
-    return { weekDays: days, overdueTasks: overdue, totalWeekTasks: weekTotal };
-  }, [tasks, now]);
+    }
+    return map;
+  }, [tasks, milestones]);
 
   const handleTaskPress = React.useCallback(
     (task: Task) => {
@@ -238,11 +76,10 @@ export default function WeekScreen() {
     [deleteTask]
   );
 
-  // Get current sheet data for stale validation
+  // Close task sheet if task was deleted
   const { currentTask } = useSheetStore();
   const sheetTask = currentTask();
 
-  // Close task sheet if task was deleted
   React.useEffect(() => {
     if (sheetTask && !tasks.find((t) => t.id === sheetTask.id)) {
       useSheetStore.getState().closeSheet();
@@ -257,8 +94,6 @@ export default function WeekScreen() {
     );
   }
 
-  const totalTasks = totalWeekTasks + overdueTasks.length;
-
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       {/* Header */}
@@ -266,9 +101,9 @@ export default function WeekScreen() {
         <View className="flex-row items-center gap-3">
           <UserMenu />
           <View>
-            <Text className="text-2xl font-bold">Week</Text>
+            <Text className="text-2xl font-bold">Milestones</Text>
             <Text className="text-sm text-muted-foreground">
-              {totalTasks} task{totalTasks !== 1 ? 's' : ''} this week
+              {milestones.length} milestone{milestones.length !== 1 ? 's' : ''}
             </Text>
           </View>
         </View>
@@ -276,7 +111,6 @@ export default function WeekScreen() {
       </View>
 
       <ScrollView
-        ref={scrollViewRef}
         className="flex-1"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -284,58 +118,24 @@ export default function WeekScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        {/* Overdue section */}
-        {overdueTasks.length > 0 && (
-          <View className="mb-4">
-            <View className="px-4 py-2">
-              <Text className="text-sm font-semibold text-destructive">
-                Overdue ({overdueTasks.length})
-              </Text>
-            </View>
-            {overdueTasks.map((task, index) => (
-              <SwipeableWeekTask
-                key={task.id}
-                task={task}
-                tasks={tasks}
-                onPress={() => handleTaskPress(task)}
-                onToggle={() => handleTaskToggle(task.id)}
-                onDeleteTask={handleDeleteTask}
-                isLast={index === overdueTasks.length - 1}
-              />
-            ))}
+        {milestones.length === 0 ? (
+          <View className="items-center justify-center py-20">
+            <Text className="text-muted-foreground">No milestones yet</Text>
           </View>
+        ) : (
+          milestones.map((milestone) => (
+            <MilestoneGroup
+              key={milestone.id}
+              milestone={milestone}
+              project={projects.find((p) => p.id === milestone.projectId)}
+              tasks={tasksByMilestone.get(milestone.id) ?? []}
+              allTasks={tasks}
+              onTaskPress={handleTaskPress}
+              onTaskToggle={handleTaskToggle}
+              onDeleteTask={handleDeleteTask}
+            />
+          ))
         )}
-
-        {/* Week days */}
-        {weekDays.map((day, dayIndex) => {
-          const isPast = isDateInPast(day.date, now);
-
-          return (
-            <View key={dayIndex} className="mb-4">
-              <View className="px-4 py-2">
-                <Text
-                  className={`text-sm font-semibold ${
-                    isPast ? 'text-muted-foreground' : 'text-foreground'
-                  }`}
-                >
-                  {formatDayHeader(day.date, now)}
-                  {day.tasks.length > 0 ? ` (${day.tasks.length})` : ''}
-                </Text>
-              </View>
-              {day.tasks.map((task, index) => (
-                <SwipeableWeekTask
-                  key={task.id}
-                  task={task}
-                  tasks={tasks}
-                  onPress={() => handleTaskPress(task)}
-                  onToggle={() => handleTaskToggle(task.id)}
-                  onDeleteTask={handleDeleteTask}
-                  isLast={index === day.tasks.length - 1}
-                />
-              ))}
-            </View>
-          );
-        })}
 
         {/* Bottom padding */}
         <View className="h-32" />
