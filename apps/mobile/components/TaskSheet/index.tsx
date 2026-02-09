@@ -9,6 +9,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
+import { MarkdownText } from '@/components/ui/markdown';
 import { Separator } from '@/components/ui/separator';
 import { SubtaskList } from './SubtaskList';
 import { TaskOptions } from './TaskOptions';
@@ -262,7 +263,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
               />
             ) : task.description ? (
               <Pressable onPress={() => setIsEditingDescription(true)} className="mt-1">
-                <Text className="text-muted-foreground">{task.description}</Text>
+                <MarkdownText muted>{task.description}</MarkdownText>
               </Pressable>
             ) : null}
           </View>
