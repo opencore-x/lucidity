@@ -66,6 +66,7 @@ export function useCreateTask() {
     onSettled: () => {
       // Always refetch to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['milestoneProgress'] });
     },
   });
 }
@@ -96,6 +97,7 @@ export function useUpdateTask() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['milestoneProgress'] });
     },
   });
 }
@@ -134,6 +136,7 @@ export function useToggleTask() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['milestoneProgress'] });
     },
   });
 }
@@ -161,6 +164,7 @@ export function useDeleteTask() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['milestoneProgress'] });
     },
   });
 }

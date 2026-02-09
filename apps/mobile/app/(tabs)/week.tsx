@@ -14,6 +14,7 @@ import { useTasks, useToggleTask, useDeleteTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useAllMilestones } from '@/hooks/useMilestones';
 import { useSheetStore } from '@/stores/sheetStore';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Task } from '@lucidity/shared';
 
 export default function MilestonesScreen() {
@@ -26,6 +27,7 @@ export default function MilestonesScreen() {
   const toggleTask = useToggleTask();
   const deleteTask = useDeleteTask();
   const { openSheet } = useSheetStore();
+  const queryClient = useQueryClient();
 
   const projects = React.useMemo(
     () => allProjects.filter((p) => !p.isArchived),
@@ -37,9 +39,12 @@ export default function MilestonesScreen() {
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
+    // Progress queries live inside MilestoneGroup components, so they need
+    // to be explicitly invalidated here to refresh on pull-to-refresh.
+    queryClient.invalidateQueries({ queryKey: ['milestoneProgress'] });
     await Promise.all([refetchTasks(), refetchProjects(), refetchMilestones()]);
     setRefreshing(false);
-  }, [refetchTasks, refetchProjects, refetchMilestones]);
+  }, [refetchTasks, refetchProjects, refetchMilestones, queryClient]);
 
   // Group tasks by milestone
   const tasksByMilestone = React.useMemo(() => {
