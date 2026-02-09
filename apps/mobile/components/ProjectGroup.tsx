@@ -30,6 +30,7 @@ interface ProjectGroupProps {
   project: Project;
   tasks: Task[];
   allTasks: Task[];
+  expandAll?: boolean | null;
   onDeleteProject: (projectId: string) => void;
   onTaskPress: (task: Task) => void;
   onTaskToggle: (taskId: string) => void;
@@ -284,6 +285,7 @@ export function ProjectGroup({
   onReorderTasks,
   onDeleteTask,
   onSetDueToday,
+  expandAll,
 }: ProjectGroupProps) {
   const [localTasks, setLocalTasks] = React.useState(tasks);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -293,10 +295,10 @@ export function ProjectGroup({
 
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [nameValue, setNameValue] = React.useState(project.name);
-  const [isExpanded, setIsExpanded] = React.useState(true);
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const updateProject = useUpdateProject();
   const headerSwipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
-  const chevronRotation = useSharedValue(0);
+  const chevronRotation = useSharedValue(-90);
 
   // Check if this is the virtual Inbox (not a real project)
   const isInbox = isInboxProject(project);
@@ -305,6 +307,12 @@ export function ProjectGroup({
   const completedCount = tasks.filter(task => task.status === 'completed').length;
   const totalCount = tasks.length;
   const completionPercentage = totalCount > 0 ? completedCount / totalCount : 0;
+
+  React.useEffect(() => {
+    if (expandAll !== null && expandAll !== undefined) {
+      setIsExpanded(expandAll);
+    }
+  }, [expandAll]);
 
   React.useEffect(() => {
     chevronRotation.value = withTiming(isExpanded ? 0 : -90, { duration: 200 });
