@@ -5,6 +5,7 @@ import Animated, { SharedValue } from 'react-native-reanimated';
 import { useAnimatedStyle } from 'react-native-reanimated';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Text } from '@/components/ui/text';
+import { MarkdownText } from '@/components/ui/markdown';
 import { Separator } from '@/components/ui/separator';
 import { MessageCircle, Plus, Trash2 } from '@/lib/icons';
 import { useComments, useCreateComment, useDeleteComment } from '@/hooks/useComments';
@@ -91,7 +92,7 @@ function CommentItem({
       rightThreshold={40}
     >
       <View className="px-4 py-3">
-        <Text className="text-base text-foreground">{comment.content}</Text>
+        <MarkdownText>{comment.content}</MarkdownText>
         <Text className="text-xs text-muted-foreground mt-1">
           {formatRelativeTime(comment.createdAt)}
         </Text>
