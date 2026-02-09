@@ -37,6 +37,7 @@ export function useCreateProject() {
         color: newProject.color ?? null,
         description: newProject.description ?? null,
         isArchived: newProject.isArchived ?? false,
+        aiReviewDepth: newProject.aiReviewDepth ?? 'light',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
