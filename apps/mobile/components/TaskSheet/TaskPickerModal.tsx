@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Modal, View, TextInput, FlatList, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { Search, X } from '@/lib/icons';
@@ -29,8 +28,6 @@ export function TaskPickerModal({
   const [search, setSearch] = React.useState('');
   const { colorScheme } = useColorScheme();
   const theme = THEME[colorScheme ?? 'light'];
-  const insets = useSafeAreaInsets();
-
   const projectMap = React.useMemo(() => {
     const map = new Map<string, string>();
     projects.forEach((p) => map.set(p.id, p.name));
@@ -59,29 +56,27 @@ export function TaskPickerModal({
     onClose();
   };
 
+  const separator = React.useCallback(
+    () => <View style={{ height: 1, backgroundColor: theme.border, marginHorizontal: 16 }} />,
+    [theme]
+  );
+
   const renderItem = React.useCallback(
     ({ item }: { item: Task }) => (
       <Pressable
         onPress={() => handleSelect(item.id)}
-        style={({ pressed }) => ({
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          borderBottomWidth: 1,
-          borderBottomColor: theme.border,
-          backgroundColor: pressed ? theme.muted : 'transparent',
-        })}
-      >
+        style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
         <Text className="text-base text-foreground" numberOfLines={1}>
           {item.title}
         </Text>
         {item.projectId && (
-          <Text className="text-sm text-muted-foreground mt-0.5">
+          <Text className="mt-0.5 text-sm text-muted-foreground">
             {projectMap.get(item.projectId) ?? ''}
           </Text>
         )}
       </Pressable>
     ),
-    [theme, projectMap]
+    [projectMap]
   );
 
   return (
@@ -89,9 +84,20 @@ export function TaskPickerModal({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={handleClose}
-    >
-      <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
+      onRequestClose={handleClose}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        {/* Grab handle */}
+        <View style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 4 }}>
+          <View
+            style={{
+              width: 36,
+              height: 5,
+              borderRadius: 3,
+              backgroundColor: theme.border,
+            }}
+          />
+        </View>
+
         {/* Header */}
         <View
           style={{
@@ -99,11 +105,10 @@ export function TaskPickerModal({
             alignItems: 'center',
             justifyContent: 'space-between',
             paddingHorizontal: 16,
-            paddingVertical: 12,
+            paddingVertical: 8,
             borderBottomWidth: 1,
             borderBottomColor: theme.border,
-          }}
-        >
+          }}>
           <Text className="text-lg font-semibold text-foreground">Parent Task</Text>
           <Pressable onPress={handleClose} hitSlop={8}>
             <X size={20} color={theme.mutedForeground} />
@@ -117,8 +122,7 @@ export function TaskPickerModal({
             paddingVertical: 8,
             borderBottomWidth: 1,
             borderBottomColor: theme.border,
-          }}
-        >
+          }}>
           <View
             style={{
               flexDirection: 'row',
@@ -127,8 +131,7 @@ export function TaskPickerModal({
               borderRadius: 10,
               paddingHorizontal: 12,
               paddingVertical: 8,
-            }}
-          >
+            }}>
             <Search size={18} color={theme.mutedForeground} />
             <TextInput
               style={{
@@ -150,22 +153,17 @@ export function TaskPickerModal({
         {/* None option */}
         <Pressable
           onPress={() => handleSelect(null)}
-          style={({ pressed }) => ({
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.border,
-            backgroundColor: pressed ? theme.muted : 'transparent',
-          })}
-        >
-          <Text className="text-base text-muted-foreground">None (root-level task)</Text>
+          style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+          <Text className="text-base text-muted-foreground">None</Text>
         </Pressable>
+        <View style={{ height: 1, backgroundColor: theme.border, marginHorizontal: 16 }} />
 
         {/* Task list */}
         <FlatList
           data={filteredTasks}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          ItemSeparatorComponent={separator}
           keyboardShouldPersistTaps="handled"
         />
       </View>
