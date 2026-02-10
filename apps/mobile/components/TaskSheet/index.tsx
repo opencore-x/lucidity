@@ -14,10 +14,12 @@ import { Separator } from '@/components/ui/separator';
 import { SubtaskList } from './SubtaskList';
 import { TaskOptions } from './TaskOptions';
 import { CommentSection } from './CommentSection';
+import { StatusPill } from './StatusPill';
 import { ChevronLeft, Plus, FileText, RefreshCw, X } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtasks } from '@/utils/helpers';
-import { useToggleTask, useCreateTask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
+import { useToggleTask, useCreateTask, useUpdateTask } from '@/hooks/useTasks';
+import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { THEME } from '@/lib/theme';
 import Constants from 'expo-constants';
 import type { Task, Project, UpdateTask } from '@lucidity/shared';
@@ -38,7 +40,6 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
   const {
     currentTask,
-    parentTask,
     canGoBack,
     sheetRef,
     resetState,
@@ -48,12 +49,11 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   } = useSheetStore();
 
   const task = currentTask();
-  const parent = parentTask();
 
   const toggleTask = useToggleTask();
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
-  const deleteTask = useDeleteTask();
+  const { deleteTask } = useUndoableDeleteTask();
 
   const snapPoints = React.useMemo(() => ['50%', '90%'], []);
 
@@ -81,7 +81,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
   const handleDeleteSubtask = React.useCallback(
     (taskId: string) => {
-      deleteTask.mutate(taskId);
+      deleteTask(taskId);
     },
     [deleteTask]
   );
@@ -168,8 +168,29 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
     return (
       <BottomSheetScrollView className="flex-1">
-        {/* Close button */}
-        <View className="flex-row justify-end px-4 pt-2">
+        {/* Top bar: back + status pill + close button */}
+        <View className="flex-row items-center justify-between px-4 pt-2">
+          {canGoBack() ? (
+            <Pressable
+              onPress={goBack}
+              style={{
+                padding: 8,
+                borderRadius: 50,
+                backgroundColor: theme.card,
+                borderWidth: 1,
+                borderColor: theme.border,
+              }}
+              hitSlop={8}
+            >
+              <ChevronLeft size={18} color="#9CA3AF" />
+            </Pressable>
+          ) : (
+            <View style={{ width: 34 }} />
+          )}
+          <StatusPill
+            status={task.status}
+            onStatusChange={(status) => handleUpdateField({ status })}
+          />
           <Pressable
             onPress={() => sheetRef.current?.dismiss()}
             style={{
@@ -184,19 +205,6 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
             <X size={18} color="#9CA3AF" />
           </Pressable>
         </View>
-
-        {/* Back button */}
-        {canGoBack() && parent && (
-          <Pressable
-            onPress={goBack}
-            className="flex-row items-center px-4 py-2 border-b border-border"
-          >
-            <ChevronLeft size={20} color="#3B82F6" />
-            <Text className="text-primary ml-1" numberOfLines={1}>
-              {parent.title}
-            </Text>
-          </Pressable>
-        )}
 
         {/* Task header */}
         <View className="px-4 py-4">
@@ -219,7 +227,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
                 ) : (
                   <Pressable onPress={() => setIsEditingTitle(true)}>
                     <Text
-                      className={`text-xl font-semibold ${isCompleted ? 'line-through text-muted-foreground' : ''}`}
+                      className={`text-xl font-semibold ${isCompleted ? 'text-muted-foreground' : ''}`}
                     >
                       {task.title}
                     </Text>
@@ -303,6 +311,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
         {/* Task options */}
         <TaskOptions
           task={task}
+          tasks={tasks}
           project={project}
           projects={projects}
           onUpdate={handleUpdateField}

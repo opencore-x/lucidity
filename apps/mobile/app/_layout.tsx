@@ -8,6 +8,7 @@ import Constants from 'expo-constants';
 import { ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PortalHost } from '@rn-primitives/portal';
+import { Toast } from '@/components/Toast';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { Stack } from 'expo-router';
 import * as Font from 'expo-font';
@@ -50,6 +51,7 @@ export default function RootLayout() {
                 <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
                 <Routes />
                 <PortalHost />
+                <Toast />
               </BottomSheetModalProvider>
             </ThemeProvider>
           </ApiProvider>
@@ -87,7 +89,7 @@ function Routes() {
       {/* Screens only shown when the user IS signed in */}
       <Stack.Protected guard={isSignedIn}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings', headerBackTitle: 'Back' }} />
       </Stack.Protected>
 
       {/* Screens outside the guards are accessible to everyone (e.g. not found) */}

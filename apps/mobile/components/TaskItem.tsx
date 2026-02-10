@@ -90,7 +90,7 @@ export function TaskItem({ task, onPress, onToggle, subtaskProgress, isLast }: T
     <Pressable
       onPress={onPress}
       className={cn(
-        'flex-row items-center bg-card px-4 py-2 active:bg-muted',
+        'flex-row items-center bg-card px-4 py-2.5 active:bg-muted',
         !isLast && 'border-b border-border'
       )}>
       {/* Checkbox */}
@@ -100,7 +100,7 @@ export function TaskItem({ task, onPress, onToggle, subtaskProgress, isLast }: T
 
       {/* Title */}
       <Text
-        className={cn('flex-1 text-base font-medium', isCompleted && 'text-muted-foreground line-through')}
+        className={cn('flex-1 text-base font-medium', isCompleted && 'text-muted-foreground')}
         numberOfLines={2}>
         {task.title}
       </Text>

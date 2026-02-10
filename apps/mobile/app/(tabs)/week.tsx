@@ -10,10 +10,12 @@ import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTasks, useToggleTask, useDeleteTask } from '@/hooks/useTasks';
+import { useTasks, useToggleTask } from '@/hooks/useTasks';
+import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useAllMilestones } from '@/hooks/useMilestones';
 import { useSheetStore } from '@/stores/sheetStore';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Task } from '@lucidity/shared';
 
 export default function MilestonesScreen() {
@@ -24,8 +26,9 @@ export default function MilestonesScreen() {
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const { data: milestones = [], isLoading: milestonesLoading, refetch: refetchMilestones } = useAllMilestones();
   const toggleTask = useToggleTask();
-  const deleteTask = useDeleteTask();
+  const { deleteTask } = useUndoableDeleteTask();
   const { openSheet } = useSheetStore();
+  const queryClient = useQueryClient();
 
   const projects = React.useMemo(
     () => allProjects.filter((p) => !p.isArchived),
@@ -37,9 +40,12 @@ export default function MilestonesScreen() {
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
+    // Progress queries live inside MilestoneGroup components, so they need
+    // to be explicitly invalidated here to refresh on pull-to-refresh.
+    queryClient.invalidateQueries({ queryKey: ['milestoneProgress'] });
     await Promise.all([refetchTasks(), refetchProjects(), refetchMilestones()]);
     setRefreshing(false);
-  }, [refetchTasks, refetchProjects, refetchMilestones]);
+  }, [refetchTasks, refetchProjects, refetchMilestones, queryClient]);
 
   // Group tasks by milestone
   const tasksByMilestone = React.useMemo(() => {
@@ -71,7 +77,7 @@ export default function MilestonesScreen() {
 
   const handleDeleteTask = React.useCallback(
     (taskId: string) => {
-      deleteTask.mutate(taskId);
+      deleteTask(taskId);
     },
     [deleteTask]
   );
