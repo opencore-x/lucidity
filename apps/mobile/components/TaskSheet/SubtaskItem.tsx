@@ -18,7 +18,7 @@ export function SubtaskItem({ task, onPress, onToggle, subtaskProgress }: Subtas
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center border-b border-border bg-card px-4 py-3 active:bg-muted">
+      className="flex-row items-center border-b border-border bg-card px-4 py-2.5 active:bg-muted">
       {/* Checkbox */}
       <Pressable onPress={onToggle} className="mr-3" hitSlop={8}>
         <Checkbox checked={isCompleted} onCheckedChange={onToggle} />
