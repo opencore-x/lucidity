@@ -25,6 +25,7 @@ import {
   Search,
   Milestone,
   MessageCircle,
+  Sparkles,
 } from 'lucide-react-native';
 
 export {
@@ -54,4 +55,5 @@ export {
   Search,
   Milestone,
   MessageCircle,
+  Sparkles,
 };
