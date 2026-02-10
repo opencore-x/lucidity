@@ -10,7 +10,8 @@ import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTasks, useToggleTask, useDeleteTask } from '@/hooks/useTasks';
+import { useTasks, useToggleTask } from '@/hooks/useTasks';
+import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useAllMilestones } from '@/hooks/useMilestones';
 import { useSheetStore } from '@/stores/sheetStore';
@@ -25,7 +26,7 @@ export default function MilestonesScreen() {
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const { data: milestones = [], isLoading: milestonesLoading, refetch: refetchMilestones } = useAllMilestones();
   const toggleTask = useToggleTask();
-  const deleteTask = useDeleteTask();
+  const { deleteTask } = useUndoableDeleteTask();
   const { openSheet } = useSheetStore();
   const queryClient = useQueryClient();
 
@@ -76,7 +77,7 @@ export default function MilestonesScreen() {
 
   const handleDeleteTask = React.useCallback(
     (taskId: string) => {
-      deleteTask.mutate(taskId);
+      deleteTask(taskId);
     },
     [deleteTask]
   );

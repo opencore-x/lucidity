@@ -8,6 +8,7 @@ import Constants from 'expo-constants';
 import { ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PortalHost } from '@rn-primitives/portal';
+import { Toast } from '@/components/Toast';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { Stack } from 'expo-router';
 import * as Font from 'expo-font';
@@ -50,6 +51,7 @@ export default function RootLayout() {
                 <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
                 <Routes />
                 <PortalHost />
+                <Toast />
               </BottomSheetModalProvider>
             </ThemeProvider>
           </ApiProvider>

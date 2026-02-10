@@ -11,7 +11,8 @@ import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollProvider } from '@/contexts/ScrollContext';
-import { useTasks, useToggleTask, useUpdateTask, useReorderTasks, useDeleteTask } from '@/hooks/useTasks';
+import { useTasks, useToggleTask, useUpdateTask, useReorderTasks } from '@/hooks/useTasks';
+import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects, useDeleteProject } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { groupTasksByProject } from '@/utils/helpers';
@@ -31,7 +32,7 @@ export default function ProjectsScreen() {
   const toggleTask = useToggleTask();
   const updateTask = useUpdateTask();
   const reorderTasks = useReorderTasks();
-  const deleteTask = useDeleteTask();
+  const { deleteTask } = useUndoableDeleteTask();
   const deleteProject = useDeleteProject();
   const { openSheet } = useSheetStore();
 
@@ -78,7 +79,7 @@ export default function ProjectsScreen() {
 
   const handleDeleteTask = React.useCallback(
     (taskId: string) => {
-      deleteTask.mutate(taskId);
+      deleteTask(taskId);
     },
     [deleteTask]
   );
