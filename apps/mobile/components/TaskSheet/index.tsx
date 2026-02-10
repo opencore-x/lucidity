@@ -226,7 +226,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
                 ) : (
                   <Pressable onPress={() => setIsEditingTitle(true)}>
                     <Text
-                      className={`text-xl font-semibold ${isCompleted ? 'line-through text-muted-foreground' : ''}`}
+                      className={`text-xl font-semibold ${isCompleted ? 'text-muted-foreground' : ''}`}
                     >
                       {task.title}
                     </Text>

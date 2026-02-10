@@ -26,7 +26,7 @@ export function SubtaskItem({ task, onPress, onToggle, subtaskProgress }: Subtas
 
       {/* Title */}
       <Text
-        className={cn('flex-1 text-base', isCompleted && 'text-muted-foreground line-through')}
+        className={cn('flex-1 text-base', isCompleted && 'text-muted-foreground')}
         numberOfLines={1}>
         {task.title}
       </Text>

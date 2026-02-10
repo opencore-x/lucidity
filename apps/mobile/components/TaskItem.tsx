@@ -100,7 +100,7 @@ export function TaskItem({ task, onPress, onToggle, subtaskProgress, isLast }: T
 
       {/* Title */}
       <Text
-        className={cn('flex-1 text-base font-medium', isCompleted && 'text-muted-foreground line-through')}
+        className={cn('flex-1 text-base font-medium', isCompleted && 'text-muted-foreground')}
         numberOfLines={2}>
         {task.title}
       </Text>
