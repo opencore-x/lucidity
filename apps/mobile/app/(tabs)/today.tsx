@@ -11,7 +11,8 @@ import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator, Text as RNText, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { useTasks, useToggleTask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
+import { useTasks, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
+import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtaskProgress } from '@/utils/helpers';
@@ -154,7 +155,7 @@ export default function TodayScreen() {
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const toggleTask = useToggleTask();
   const updateTask = useUpdateTask();
-  const deleteTask = useDeleteTask();
+  const { deleteTask } = useUndoableDeleteTask();
   const { openSheet } = useSheetStore();
 
   // Filter out archived projects
@@ -236,7 +237,7 @@ export default function TodayScreen() {
 
   const handleDeleteTask = React.useCallback(
     (taskId: string) => {
-      deleteTask.mutate(taskId);
+      deleteTask(taskId);
     },
     [deleteTask]
   );

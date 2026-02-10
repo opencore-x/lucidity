@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -10,13 +10,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Calendar, Folder, Flag, Activity, RefreshCw, Milestone } from '@/lib/icons';
+import { TaskPickerModal } from './TaskPickerModal';
+import { Calendar, CornerLeftUp, Folder, Flag, Activity, RefreshCw, Milestone, ChevronDown } from '@/lib/icons';
 import { useMilestones } from '@/hooks/useMilestones';
 import type { Task, Project, UpdateTask } from '@lucidity/shared';
 import type { Option } from '@rn-primitives/select';
 
 interface TaskOptionsProps {
   task: Task;
+  tasks: Task[];
   project: Project | undefined;
   projects: Project[];
   onUpdate: (data: Partial<UpdateTask>) => void;
@@ -77,7 +79,23 @@ function OptionRow({ icon, label, children }: OptionRowProps) {
   );
 }
 
-export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsProps) {
+function getDescendantIds(tasks: Task[], taskId: string): Set<string> {
+  const descendants = new Set<string>();
+  const queue = [taskId];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const t of tasks) {
+      if (t.parentTaskId === current && !descendants.has(t.id)) {
+        descendants.add(t.id);
+        queue.push(t.id);
+      }
+    }
+  }
+  return descendants;
+}
+
+export function TaskOptions({ task, tasks, project, projects, onUpdate }: TaskOptionsProps) {
+  const [parentPickerVisible, setParentPickerVisible] = React.useState(false);
   const { data: milestones } = useMilestones(task.projectId);
 
   const handleProjectChange = (option: Option) => {
@@ -91,6 +109,19 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
     if (newValue !== task.milestoneId) {
       onUpdate({ milestoneId: newValue });
     }
+  };
+
+  const handleParentChange = (newParentId: string | null) => {
+    if (newParentId === task.parentTaskId) return;
+    const update: Partial<UpdateTask> = { parentTaskId: newParentId };
+    if (newParentId) {
+      const newParent = tasks.find((t) => t.id === newParentId);
+      if (newParent && newParent.projectId !== task.projectId) {
+        update.projectId = newParent.projectId;
+        update.milestoneId = null;
+      }
+    }
+    onUpdate(update);
   };
 
   const handleDueDateChange = (date: Date | null) => {
@@ -137,6 +168,9 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
   const currentMilestoneOption = currentMilestone
     ? { value: currentMilestone.id, label: currentMilestone.name }
     : undefined;
+
+  const descendantIds = React.useMemo(() => getDescendantIds(tasks, task.id), [tasks, task.id]);
+  const currentParentTask = tasks.find((t) => t.id === task.parentTaskId);
 
   const currentStatus = STATUS_OPTIONS.find((s) => s.value === task.status);
   const currentPriorityValue = getPriorityValue(task.priority);
@@ -192,6 +226,35 @@ export function TaskOptions({ task, project, projects, onUpdate }: TaskOptionsPr
           </OptionRow>
         </>
       )}
+
+      <Separator />
+
+      {/* Parent Task */}
+      <OptionRow icon={<CornerLeftUp size={iconSize} color={iconColor} />} label="Parent Task">
+        <Pressable
+          onPress={() => setParentPickerVisible(true)}
+          className="flex-row items-center flex-1"
+          style={{ height: ROW_HEIGHT }}
+        >
+          <Text
+            className="flex-1 text-base text-muted-foreground"
+            numberOfLines={1}
+          >
+            {currentParentTask?.title ?? 'None'}
+          </Text>
+          <ChevronDown size={16} color={iconColor} />
+        </Pressable>
+      </OptionRow>
+
+      <TaskPickerModal
+        visible={parentPickerVisible}
+        onClose={() => setParentPickerVisible(false)}
+        onSelect={handleParentChange}
+        tasks={tasks}
+        projects={projects}
+        currentTaskId={task.id}
+        excludeIds={descendantIds}
+      />
 
       <Separator />
 

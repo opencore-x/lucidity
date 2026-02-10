@@ -265,6 +265,22 @@ router.patch('/:id', async (c) => {
     `);
   }
 
+  // Propagate projectId to all descendants if it changed, and clear their milestones
+  if (parsed.data.projectId !== undefined && parsed.data.projectId !== existingTask.projectId) {
+    await db.execute(sql`
+      WITH RECURSIVE descendants AS (
+        SELECT id FROM tasks WHERE parent_task_id = ${id} AND user_id = ${user.id}
+        UNION ALL
+        SELECT t.id FROM tasks t
+        JOIN descendants d ON t.parent_task_id = d.id
+        WHERE t.user_id = ${user.id}
+      )
+      UPDATE tasks
+      SET project_id = ${updated.projectId}, milestone_id = NULL
+      WHERE id IN (SELECT id FROM descendants)
+    `);
+  }
+
   // Propagate recurringFrequency to all descendants if it changed
   if (updateData.recurringFrequency !== undefined) {
     await db.execute(sql`
@@ -328,10 +344,13 @@ router.patch('/:id/complete', async (c) => {
 
   // Non-recurring: simple toggle
   if (!task.recurringFrequency) {
-    const taskStatus = task.status === 'completed' ? 'pending' : 'completed';
+    const isCompleting = task.status !== 'completed';
     const [updated] = await db
       .update(tasks)
-      .set({ status: taskStatus })
+      .set({
+        status: isCompleting ? 'completed' : 'pending',
+        completedAt: isCompleting ? new Date() : null,
+      })
       .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
       .returning();
     return c.json(updated);

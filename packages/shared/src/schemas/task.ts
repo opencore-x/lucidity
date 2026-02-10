@@ -44,6 +44,7 @@ export const TaskSchema = CreateTaskSchema.extend({
 export const UpdateTaskSchema = CreateTaskSchema.partial().extend({
   projectId: z.uuidv7().nullable().optional(),
   milestoneId: z.uuidv7().nullable().optional(),
+  parentTaskId: z.uuidv7().nullable().optional(),
   description: z.string().nullable().optional(),
   dueDate: z.coerce.date().nullable().optional(),
   recurringFrequency: z.enum(RECURRING_FREQUENCY_VALUES).nullable().optional(),
