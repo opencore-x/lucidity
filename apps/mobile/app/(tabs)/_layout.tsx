@@ -19,10 +19,6 @@ export default function TabLayout() {
         <Label>Search</Label>
         <Icon sf="magnifyingglass" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="new">
-        <Label>New</Label>
-        <Icon sf="plus" />
-      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

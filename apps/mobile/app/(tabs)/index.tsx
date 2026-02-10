@@ -5,15 +5,15 @@ import { UserMenu } from '@/components/user-menu';
 import { ProjectGroup } from '@/components/ProjectGroup';
 import { TaskSheet } from '@/components/TaskSheet';
 import { useUser } from '@clerk/clerk-expo';
-import { MoonStarIcon, SunIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from 'lucide-react-native';
+import { MoonStarIcon, SunIcon, ChevronsDownUpIcon, ChevronsUpDownIcon, PlusIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollProvider } from '@/contexts/ScrollContext';
 import { useTasks, useToggleTask, useUpdateTask, useReorderTasks } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
-import { useProjects, useDeleteProject } from '@/hooks/useProjects';
+import { useProjects, useDeleteProject, useCreateProject } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { groupTasksByProject } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
@@ -34,6 +34,7 @@ export default function ProjectsScreen() {
   const reorderTasks = useReorderTasks();
   const { deleteTask } = useUndoableDeleteTask();
   const deleteProject = useDeleteProject();
+  const createProject = useCreateProject();
   const { openSheet } = useSheetStore();
 
   // Filter out archived projects
@@ -93,6 +94,20 @@ export default function ProjectsScreen() {
     [updateTask]
   );
 
+  const handleCreateProject = React.useCallback(() => {
+    Alert.prompt('New Project', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Add Project',
+        onPress: (name?: string) => {
+          if (name?.trim()) {
+            createProject.mutate({ name: name.trim(), isArchived: false });
+          }
+        },
+      },
+    ], 'plain-text');
+  }, [createProject]);
+
   const groupedTasks = React.useMemo(() => groupTasksByProject(tasks, projects), [tasks, projects]);
 
   // Get current sheet data for stale validation
@@ -144,6 +159,13 @@ export default function ProjectsScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag">
           <View className="flex-row justify-end px-4 pb-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full"
+              onPress={handleCreateProject}>
+              <Icon as={PlusIcon} className="size-5 text-muted-foreground" />
+            </Button>
             <Button
               size="icon"
               variant="ghost"
