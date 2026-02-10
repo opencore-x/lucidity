@@ -40,7 +40,6 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
   const {
     currentTask,
-    parentTask,
     canGoBack,
     sheetRef,
     resetState,
@@ -50,7 +49,6 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   } = useSheetStore();
 
   const task = currentTask();
-  const parent = parentTask();
 
   const toggleTask = useToggleTask();
   const createTask = useCreateTask();
@@ -170,9 +168,25 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
     return (
       <BottomSheetScrollView className="flex-1">
-        {/* Top bar: status pill + close button */}
+        {/* Top bar: back + status pill + close button */}
         <View className="flex-row items-center justify-between px-4 pt-2">
-          <View style={{ width: 34 }} />
+          {canGoBack() ? (
+            <Pressable
+              onPress={goBack}
+              style={{
+                padding: 8,
+                borderRadius: 50,
+                backgroundColor: theme.card,
+                borderWidth: 1,
+                borderColor: theme.border,
+              }}
+              hitSlop={8}
+            >
+              <ChevronLeft size={18} color="#9CA3AF" />
+            </Pressable>
+          ) : (
+            <View style={{ width: 34 }} />
+          )}
           <StatusPill
             status={task.status}
             onStatusChange={(status) => handleUpdateField({ status })}
@@ -191,19 +205,6 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
             <X size={18} color="#9CA3AF" />
           </Pressable>
         </View>
-
-        {/* Back button */}
-        {canGoBack() && parent && (
-          <Pressable
-            onPress={goBack}
-            className="flex-row items-center px-4 py-2 border-b border-border"
-          >
-            <ChevronLeft size={20} color="#3B82F6" />
-            <Text className="text-primary ml-1" numberOfLines={1}>
-              {parent.title}
-            </Text>
-          </Pressable>
-        )}
 
         {/* Task header */}
         <View className="px-4 py-4">
