@@ -15,10 +15,10 @@ import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeabl
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Trash2, ChevronDown, Pencil, CalendarCheck, Check } from '@/lib/icons';
+import { Plus, Trash2, ChevronDown, ChevronRight, Pencil, CalendarCheck, Check } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
 import { InlineTaskInput } from './InlineTaskInput';
-import { getSubtaskProgress, isInboxProject } from '@/utils/helpers';
+import { getSubtaskProgress, isInboxProject, formatRelativeTime } from '@/utils/helpers';
 import { useUpdateProject } from '@/hooks/useProjects';
 import { FONTS } from '@/lib/fonts';
 import type { Task, Project } from '@lucidity/shared';
@@ -253,6 +253,63 @@ function DraggableTask({
   );
 }
 
+function SwipeableCompletedTask({
+  task,
+  allTasks,
+  isLast,
+  onTaskPress,
+  onTaskToggle,
+  onDeleteTask,
+}: {
+  task: Task;
+  allTasks: Task[];
+  isLast: boolean;
+  onTaskPress: (task: Task) => void;
+  onTaskToggle: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => void;
+}) {
+  const swipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
+  const [confirmed, setConfirmed] = React.useState(false);
+
+  const renderRightActions = React.useCallback(
+    () => <DeleteRightAction confirmed={confirmed} />,
+    [confirmed]
+  );
+
+  const handleSwipeOpen = React.useCallback(
+    (direction: 'left' | 'right') => {
+      if (direction === 'left') {
+        onDeleteTask(task.id);
+        setConfirmed(true);
+        setTimeout(() => {
+          swipeableRef.current?.close();
+          setConfirmed(false);
+        }, 1200);
+      }
+    },
+    [task.id, onDeleteTask]
+  );
+
+  return (
+    <ReanimatedSwipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      onSwipeableOpen={handleSwipeOpen}
+      overshootRight={false}
+      friction={1}
+      rightThreshold={SCREEN_WIDTH * 0.4}
+    >
+      <TaskItem
+        task={task}
+        subtaskProgress={getSubtaskProgress(allTasks, task.id)}
+        onPress={() => onTaskPress(task)}
+        onToggle={() => onTaskToggle(task.id)}
+        isLast={isLast}
+      />
+    </ReanimatedSwipeable>
+  );
+}
+
 function DropIndicator({ visible }: { visible: boolean }) {
   const opacity = useSharedValue(0);
   const height = useSharedValue(0);
@@ -287,7 +344,23 @@ export function ProjectGroup({
   onSetDueToday,
   expandAll,
 }: ProjectGroupProps) {
-  const [localTasks, setLocalTasks] = React.useState(tasks);
+  const activeTasks = React.useMemo(
+    () => tasks.filter((t) => t.status !== 'completed'),
+    [tasks]
+  );
+  const completedTasks = React.useMemo(
+    () =>
+      tasks
+        .filter((t) => t.status === 'completed')
+        .sort((a, b) => {
+          const aTime = new Date(a.completedAt ?? 0).getTime();
+          const bTime = new Date(b.completedAt ?? 0).getTime();
+          return bTime - aTime;
+        }),
+    [tasks]
+  );
+
+  const [localTasks, setLocalTasks] = React.useState(activeTasks);
   const [isDragging, setIsDragging] = React.useState(false);
   const [dropIndex, setDropIndex] = React.useState<number | null>(null);
   const [dragFromIndex, setDragFromIndex] = React.useState<number | null>(null);
@@ -296,6 +369,14 @@ export function ProjectGroup({
   const [isEditingName, setIsEditingName] = React.useState(false);
   const [nameValue, setNameValue] = React.useState(project.name);
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const [completedExpanded, setCompletedExpanded] = React.useState(true);
+  const [showAllCompleted, setShowAllCompleted] = React.useState(false);
+  const INITIAL_COMPLETED_COUNT = 2;
+  const visibleCompleted = showAllCompleted
+    ? completedTasks
+    : completedTasks.slice(0, INITIAL_COMPLETED_COUNT);
+  const hiddenCount = completedTasks.length - INITIAL_COMPLETED_COUNT;
+
   const updateProject = useUpdateProject();
   const headerSwipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
   const chevronRotation = useSharedValue(-90);
@@ -304,7 +385,7 @@ export function ProjectGroup({
   const isInbox = isInboxProject(project);
 
   // Calculate completed vs total tasks
-  const completedCount = tasks.filter(task => task.status === 'completed').length;
+  const completedCount = completedTasks.length;
   const totalCount = tasks.length;
   const completionPercentage = totalCount > 0 ? completedCount / totalCount : 0;
 
@@ -323,8 +404,8 @@ export function ProjectGroup({
   }));
 
   React.useEffect(() => {
-    setLocalTasks(tasks);
-  }, [tasks]);
+    setLocalTasks(activeTasks);
+  }, [activeTasks]);
 
   React.useEffect(() => {
     setNameValue(project.name);
@@ -471,6 +552,61 @@ export function ProjectGroup({
       {/* Tasks with drop indicators */}
       {isExpanded && (
         <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}>
+          {/* Recently completed section */}
+          {completedTasks.length > 0 && (
+            <View>
+              <Pressable
+                onPress={() => setCompletedExpanded(!completedExpanded)}
+                className="flex-row items-center px-4 py-2.5"
+              >
+                <ChevronRight
+                  size={14}
+                  color="#9CA3AF"
+                  style={{ transform: [{ rotate: completedExpanded ? '90deg' : '0deg' }] }}
+                />
+                <Text className="text-xs text-muted-foreground ml-1.5">
+                  Recently completed ({completedTasks.length})
+                </Text>
+              </Pressable>
+
+              {completedExpanded && (
+                <>
+                  {visibleCompleted.map((task, index) => (
+                    <View key={task.id} className="flex-row items-center">
+                      <View className="flex-1">
+                        <SwipeableCompletedTask
+                          task={task}
+                          allTasks={allTasks}
+                          isLast={
+                            index === visibleCompleted.length - 1 && hiddenCount <= 0
+                          }
+                          onTaskPress={onTaskPress}
+                          onTaskToggle={onTaskToggle}
+                          onDeleteTask={onDeleteTask}
+                        />
+                      </View>
+                      {task.completedAt && (
+                        <Text className="text-xs text-muted-foreground pr-4 shrink-0">
+                          {formatRelativeTime(task.completedAt)}
+                        </Text>
+                      )}
+                    </View>
+                  ))}
+                  {!showAllCompleted && hiddenCount > 0 && (
+                    <Pressable
+                      onPress={() => setShowAllCompleted(true)}
+                      className="px-4 py-2"
+                    >
+                      <Text className="text-xs text-blue-500">
+                        Show {hiddenCount} more
+                      </Text>
+                    </Pressable>
+                  )}
+                </>
+              )}
+            </View>
+          )}
+
           {localTasks.map((task, index) => (
             <React.Fragment key={task.id}>
               {/* Drop indicator above this item */}
@@ -517,6 +653,7 @@ export function ProjectGroup({
               dragFromIndex < localTasks.length - 1
             }
           />
+
           {/* Inline task input or "+ New task" row */}
           {isAddingTask ? (
             <InlineTaskInput
