@@ -90,7 +90,7 @@ export function TaskItem({ task, onPress, onToggle, subtaskProgress, isLast }: T
     <Pressable
       onPress={onPress}
       className={cn(
-        'flex-row items-center bg-card px-4 py-2 active:bg-muted',
+        'flex-row items-center bg-card px-4 py-2.5 active:bg-muted',
         !isLast && 'border-b border-border'
       )}>
       {/* Checkbox */}
