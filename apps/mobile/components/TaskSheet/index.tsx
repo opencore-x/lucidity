@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { SubtaskList } from './SubtaskList';
 import { TaskOptions } from './TaskOptions';
 import { CommentSection } from './CommentSection';
+import { StatusPill } from './StatusPill';
 import { ChevronLeft, Plus, FileText, RefreshCw, X } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtasks } from '@/utils/helpers';
@@ -168,8 +169,13 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
     return (
       <BottomSheetScrollView className="flex-1">
-        {/* Close button */}
-        <View className="flex-row justify-end px-4 pt-2">
+        {/* Top bar: status pill + close button */}
+        <View className="flex-row items-center justify-between px-4 pt-2">
+          <View style={{ width: 34 }} />
+          <StatusPill
+            status={task.status}
+            onStatusChange={(status) => handleUpdateField({ status })}
+          />
           <Pressable
             onPress={() => sheetRef.current?.dismiss()}
             style={{
