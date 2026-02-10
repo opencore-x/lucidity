@@ -328,10 +328,13 @@ router.patch('/:id/complete', async (c) => {
 
   // Non-recurring: simple toggle
   if (!task.recurringFrequency) {
-    const taskStatus = task.status === 'completed' ? 'pending' : 'completed';
+    const isCompleting = task.status !== 'completed';
     const [updated] = await db
       .update(tasks)
-      .set({ status: taskStatus })
+      .set({
+        status: isCompleting ? 'completed' : 'pending',
+        completedAt: isCompleting ? new Date() : null,
+      })
       .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
       .returning();
     return c.json(updated);
