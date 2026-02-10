@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { View, Pressable, Alert, TextInput, Keyboard, Text as RNText, Dimensions } from 'react-native';
+import { View, Pressable, TextInput, Keyboard, Text as RNText, Dimensions } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
   runOnJS,
-  SharedValue,
   FadeIn,
   FadeOut,
 } from 'react-native-reanimated';
@@ -20,6 +19,7 @@ import { TaskItem } from './TaskItem';
 import { InlineTaskInput } from './InlineTaskInput';
 import { getSubtaskProgress, isInboxProject, formatRelativeTime } from '@/utils/helpers';
 import { useUpdateProject } from '@/hooks/useProjects';
+import { useProjectSheetStore } from '@/stores/projectSheetStore';
 import { FONTS } from '@/lib/fonts';
 import type { Task, Project } from '@lucidity/shared';
 
@@ -31,7 +31,6 @@ interface ProjectGroupProps {
   tasks: Task[];
   allTasks: Task[];
   expandAll?: boolean | null;
-  onDeleteProject: (projectId: string) => void;
   onTaskPress: (task: Task) => void;
   onTaskToggle: (taskId: string) => void;
   onReorderTasks: (taskIds: string[]) => void;
@@ -105,34 +104,17 @@ function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
   );
 }
 
-function HeaderRightActions({
-  drag,
-  onEdit,
-  onDelete,
-}: {
-  drag: SharedValue<number>;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: drag.value + 160 }],
-  }));
-
+function EditRightAction() {
   return (
-    <Animated.View style={animatedStyle} className="flex-row">
-      <Pressable
-        onPress={onEdit}
-        className="bg-blue-500 justify-center items-center w-20 h-full"
-      >
-        <Pencil size={24} color="#FFFFFF" />
-      </Pressable>
-      <Pressable
-        onPress={onDelete}
-        className="bg-destructive justify-center items-center w-20 h-full"
-      >
-        <Trash2 size={24} color="#FFFFFF" />
-      </Pressable>
-    </Animated.View>
+    <View
+      style={{ backgroundColor: '#3B82F6', width: SCREEN_WIDTH }}
+      className="flex-row items-center justify-end pr-4 gap-1.5 h-full"
+    >
+      <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
+        Edit
+      </RNText>
+      <Pencil size={18} color="#FFFFFF" />
+    </View>
   );
 }
 
@@ -336,7 +318,6 @@ export function ProjectGroup({
   project,
   tasks,
   allTasks,
-  onDeleteProject,
   onTaskPress,
   onTaskToggle,
   onReorderTasks,
@@ -421,27 +402,19 @@ export function ProjectGroup({
     Keyboard.dismiss();
   }, [project.id, project.name, nameValue, updateProject]);
 
-  const handleDeleteProject = React.useCallback(() => {
-    Alert.alert(
-      'Delete Project',
-      `Delete "${project.name}" and all its tasks?`,
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => headerSwipeableRef.current?.close() },
-        { text: 'Delete', style: 'destructive', onPress: () => onDeleteProject(project.id) },
-      ]
-    );
-  }, [project.id, project.name, onDeleteProject]);
-
-  const handleEditProject = React.useCallback(() => {
-    headerSwipeableRef.current?.close();
-    setIsEditingName(true);
-  }, []);
+  const handleHeaderSwipeOpen = React.useCallback(
+    (direction: 'left' | 'right') => {
+      if (direction === 'left') {
+        headerSwipeableRef.current?.close();
+        useProjectSheetStore.getState().openSheet(project);
+      }
+    },
+    [project]
+  );
 
   const renderHeaderRightActions = React.useCallback(
-    (_prog: SharedValue<number>, drag: SharedValue<number>) => (
-      <HeaderRightActions drag={drag} onEdit={handleEditProject} onDelete={handleDeleteProject} />
-    ),
-    [handleEditProject, handleDeleteProject]
+    () => <EditRightAction />,
+    []
   );
 
   const handleReorder = React.useCallback(
@@ -484,6 +457,12 @@ export function ProjectGroup({
         </Animated.View>
       </Pressable>
       <View className="flex-row items-center flex-1">
+        {!isInbox && project.color && (
+          <View
+            className="w-2.5 h-2.5 rounded-full mr-2"
+            style={{ backgroundColor: project.color }}
+          />
+        )}
         {isEditingName && !isInbox ? (
           <TextInput
             className="text-lg font-semibold text-foreground flex-1"
@@ -541,9 +520,10 @@ export function ProjectGroup({
         <ReanimatedSwipeable
           ref={headerSwipeableRef}
           renderRightActions={renderHeaderRightActions}
+          onSwipeableOpen={handleHeaderSwipeOpen}
           overshootRight={false}
-          friction={2}
-          rightThreshold={40}
+          friction={1}
+          rightThreshold={SCREEN_WIDTH * 0.4}
         >
           {headerContent}
         </ReanimatedSwipeable>
