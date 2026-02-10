@@ -19,18 +19,3 @@ export const SPACING = {
   xl: 32,
 } as const;
 
-export const PRIORITY_LABELS: Record<number, string> = {
-  1: 'Lowest',
-  250: 'Low',
-  500: 'Normal',
-  750: 'High',
-  1000: 'Highest',
-};
-
-export function getPriorityLabel(priority: number): string {
-  if (priority <= 125) return 'Lowest';
-  if (priority <= 375) return 'Low';
-  if (priority <= 625) return 'Normal';
-  if (priority <= 875) return 'High';
-  return 'Highest';
-}
