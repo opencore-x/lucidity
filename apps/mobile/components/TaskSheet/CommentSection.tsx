@@ -10,20 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { MessageCircle, Plus, Trash2 } from '@/lib/icons';
 import { useComments, useCreateComment, useDeleteComment } from '@/hooks/useComments';
 import type { Comment } from '@lucidity/shared';
-
-function formatRelativeTime(date: Date): string {
-  const now = Date.now();
-  const diff = now - new Date(date).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  return `${months}mo ago`;
-}
+import { formatRelativeTime } from '@/utils/helpers';
 
 function RightAction({
   drag,
