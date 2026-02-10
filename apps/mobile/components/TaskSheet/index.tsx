@@ -310,6 +310,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
         {/* Task options */}
         <TaskOptions
           task={task}
+          tasks={tasks}
           project={project}
           projects={projects}
           onUpdate={handleUpdateField}
