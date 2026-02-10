@@ -18,7 +18,8 @@ import { StatusPill } from './StatusPill';
 import { ChevronLeft, Plus, FileText, RefreshCw, X } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtasks } from '@/utils/helpers';
-import { useToggleTask, useCreateTask, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
+import { useToggleTask, useCreateTask, useUpdateTask } from '@/hooks/useTasks';
+import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { THEME } from '@/lib/theme';
 import Constants from 'expo-constants';
 import type { Task, Project, UpdateTask } from '@lucidity/shared';
@@ -54,7 +55,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const toggleTask = useToggleTask();
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
-  const deleteTask = useDeleteTask();
+  const { deleteTask } = useUndoableDeleteTask();
 
   const snapPoints = React.useMemo(() => ['50%', '90%'], []);
 
@@ -82,7 +83,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
 
   const handleDeleteSubtask = React.useCallback(
     (taskId: string) => {
-      deleteTask.mutate(taskId);
+      deleteTask(taskId);
     },
     [deleteTask]
   );
