@@ -4,11 +4,14 @@ import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import Animated, { SharedValue } from 'react-native-reanimated';
 import { useAnimatedStyle } from 'react-native-reanimated';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/user-menu';
 import { Text } from '@/components/ui/text';
 import { MarkdownText } from '@/components/ui/markdown';
 import { Separator } from '@/components/ui/separator';
-import { MessageCircle, Plus, Trash2 } from '@/lib/icons';
+import { MessageCircle, Plus, Sparkles, Trash2 } from '@/lib/icons';
 import { useComments, useCreateComment, useDeleteComment } from '@/hooks/useComments';
+import { useUser } from '@clerk/clerk-expo';
 import type { Comment } from '@lucidity/shared';
 import { formatRelativeTime } from '@/utils/helpers';
 
@@ -32,6 +35,40 @@ function RightAction({
         <Trash2 size={24} color="#FFFFFF" />
       </Pressable>
     </Animated.View>
+  );
+}
+
+const claudeLogoSource = require('@/assets/images/claude-logo.png');
+
+function ClaudeAvatar() {
+  return (
+    <Avatar alt="Claude" className="size-5">
+      <AvatarImage source={claudeLogoSource} />
+      <AvatarFallback>
+        <Sparkles size={12} className="text-muted-foreground" />
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
+function CommentBody({ comment }: { comment: Comment }) {
+  const { user } = useUser();
+  const isClaude = comment.source === 'claude';
+  const displayName = isClaude
+    ? 'claude'
+    : user?.username || user?.fullName?.toLowerCase().replace(/\s+/g, '') || 'you';
+
+  return (
+    <View className="px-4 py-3">
+      <View className="flex-row items-center gap-2 mb-1.5">
+        {isClaude ? <ClaudeAvatar /> : <UserAvatar className="size-5" />}
+        <Text className="text-sm font-medium">@{displayName}</Text>
+        <Text className="text-xs text-muted-foreground">
+          {formatRelativeTime(comment.createdAt)}
+        </Text>
+      </View>
+      <MarkdownText>{comment.content}</MarkdownText>
+    </View>
   );
 }
 
@@ -78,12 +115,7 @@ function CommentItem({
       friction={2}
       rightThreshold={40}
     >
-      <View className="px-4 py-3">
-        <MarkdownText>{comment.content}</MarkdownText>
-        <Text className="text-xs text-muted-foreground mt-1">
-          {formatRelativeTime(comment.createdAt)}
-        </Text>
-      </View>
+      <CommentBody comment={comment} />
     </ReanimatedSwipeable>
   );
 }

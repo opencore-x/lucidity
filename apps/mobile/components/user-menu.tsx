@@ -70,7 +70,7 @@ export function UserMenu() {
   );
 }
 
-function UserAvatar(props: Omit<React.ComponentProps<typeof Avatar>, 'alt'>) {
+export function UserAvatar(props: Omit<React.ComponentProps<typeof Avatar>, 'alt'>) {
   const { user } = useUser();
 
   const { initials, imageSource, userName } = React.useMemo(() => {
