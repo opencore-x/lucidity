@@ -18,6 +18,7 @@ export const CreateTaskSchema = z.object({
   position: z.number().optional(),
   completedAt: z.coerce.date().optional(),
   dueDate: z.coerce.date().optional(),
+  reminderAt: z.coerce.date().nullable().optional(),
   recurringFrequency: z.enum(RECURRING_FREQUENCY_VALUES).nullable().optional(),
 });
 
@@ -34,6 +35,7 @@ export const TaskSchema = CreateTaskSchema.extend({
   position: z.number().nullable(),
   completedAt: z.coerce.date().nullable(),
   dueDate: z.coerce.date().nullable(),
+  reminderAt: z.coerce.date().nullable(),
   recurringFrequency: z.enum(RECURRING_FREQUENCY_VALUES).nullable(),
   reviewedAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),
@@ -47,5 +49,6 @@ export const UpdateTaskSchema = CreateTaskSchema.partial().extend({
   parentTaskId: z.uuidv7().nullable().optional(),
   description: z.string().nullable().optional(),
   dueDate: z.coerce.date().nullable().optional(),
+  reminderAt: z.coerce.date().nullable().optional(),
   recurringFrequency: z.enum(RECURRING_FREQUENCY_VALUES).nullable().optional(),
 });

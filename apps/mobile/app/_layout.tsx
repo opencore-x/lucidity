@@ -18,6 +18,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { requestNotificationPermissions } from '@/lib/notifications';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -32,6 +33,10 @@ export default function RootLayout() {
 
   React.useEffect(() => {
     Font.loadAsync(FONT_ASSETS).then(() => setFontsLoaded(true));
+  }, []);
+
+  React.useEffect(() => {
+    requestNotificationPermissions();
   }, []);
 
   if (!fontsLoaded) {

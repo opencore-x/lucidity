@@ -4,7 +4,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withDelay, withTiming } fro
 import { Text } from '@/components/ui/text';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import { RefreshCw, Calendar } from '@/lib/icons';
+import { Bell, RefreshCw, Calendar } from '@/lib/icons';
 import { FONTS } from '@/lib/fonts';
 import type { Task } from '@lucidity/shared';
 
@@ -74,6 +74,16 @@ function DueDateLabel({ dueInfo }: { dueInfo: { label: string; color: string } }
   );
 }
 
+function getReminderColor(reminderAt: string | Date | null | undefined): string | null {
+  if (!reminderAt) return null;
+  const reminder = new Date(reminderAt);
+  const now = new Date();
+  const diffMs = reminder.getTime() - now.getTime();
+  if (diffMs < 0) return '#EF4444'; // red — passed
+  if (diffMs < 60 * 60 * 1000) return '#F59E0B'; // amber — within 1 hour
+  return '#6B7280'; // gray — future
+}
+
 interface TaskItemProps {
   task: Task;
   onPress: () => void;
@@ -85,6 +95,7 @@ interface TaskItemProps {
 export function TaskItem({ task, onPress, onToggle, subtaskProgress, isLast }: TaskItemProps) {
   const isCompleted = task.status === 'completed';
   const dueInfo = getDueInfo(task.dueDate);
+  const reminderColor = !isCompleted ? getReminderColor(task.reminderAt) : null;
 
   return (
     <Pressable
@@ -115,6 +126,11 @@ export function TaskItem({ task, onPress, onToggle, subtaskProgress, isLast }: T
         <Text className="text-sm text-muted-foreground" style={{ marginRight: 8 }}>
           {subtaskProgress.completed} of {subtaskProgress.total}
         </Text>
+      )}
+
+      {/* Reminder bell indicator */}
+      {reminderColor && (
+        <Bell size={14} color={reminderColor} style={{ marginRight: 6 }} />
       )}
 
       {/* Due date label — visible for 3s then fades out */}

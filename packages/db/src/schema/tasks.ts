@@ -34,6 +34,7 @@ export const tasks = pgTable('tasks', {
   priority: integer('priority').notNull().default(500),
   position: integer('position'),
   dueDate: timestamp('due_date'),
+  reminderAt: timestamp('reminder_at'),
   completedAt: timestamp('completed_at'),
   recurringFrequency: varchar('recurring_frequency', { length: 20 }),
   reviewedAt: timestamp('reviewed_at'),
