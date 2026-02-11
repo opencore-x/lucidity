@@ -43,6 +43,7 @@ export function useCreateTask() {
         position: null,
         completedAt: null,
         dueDate: newTask.dueDate ? new Date(newTask.dueDate as string | number | Date) : null,
+        reminderAt: newTask.reminderAt ? new Date(newTask.reminderAt as string | number | Date) : null,
         recurringFrequency: newTask.recurringFrequency ?? null,
         reviewedAt: null,
         createdAt: new Date(),
