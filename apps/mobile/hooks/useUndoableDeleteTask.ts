@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { tasksApi } from '@/api/tasks';
+import { cancelTaskReminder, scheduleTaskReminder } from '@/lib/notifications';
 import { useToastStore } from '@/stores/toastStore';
 import type { Task } from '@lucidity/shared';
 
@@ -21,6 +22,9 @@ export function useUndoableDeleteTask() {
 
       // Snapshot cache before removal
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks']);
+      const deletedTask = previousTasks?.find((t) => t.id === taskId);
+
+      cancelTaskReminder(taskId);
 
       // Optimistically remove from cache
       queryClient.setQueryData<Task[]>(['tasks'], (old) =>
@@ -46,6 +50,10 @@ export function useUndoableDeleteTask() {
         // Restore cache
         if (previousTasks) {
           queryClient.setQueryData(['tasks'], previousTasks);
+        }
+        // Reschedule notification if task had a future reminder
+        if (deletedTask?.reminderAt && new Date(deletedTask.reminderAt).getTime() > Date.now()) {
+          scheduleTaskReminder(taskId, deletedTask.title, new Date(deletedTask.reminderAt));
         }
       });
     },
