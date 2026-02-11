@@ -453,16 +453,10 @@ export function ProjectGroup({
         hitSlop={8}
       >
         <Animated.View style={chevronStyle}>
-          <ChevronDown size={20} color="#6B7280" />
+          <ChevronDown size={20} color={!isInbox && project.color ? project.color : '#6B7280'} />
         </Animated.View>
       </Pressable>
       <View className="flex-row items-center flex-1">
-        {!isInbox && project.color && (
-          <View
-            className="w-2.5 h-2.5 rounded-full mr-2"
-            style={{ backgroundColor: project.color }}
-          />
-        )}
         {isEditingName && !isInbox ? (
           <TextInput
             className="text-lg font-semibold text-foreground flex-1"
