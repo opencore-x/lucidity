@@ -43,6 +43,13 @@
       "when": 1770561330555,
       "tag": "0005_little_lockheed",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1770803402184,
+      "tag": "0006_material_warhawk",
+      "breakpoints": true
     }
   ]
 }

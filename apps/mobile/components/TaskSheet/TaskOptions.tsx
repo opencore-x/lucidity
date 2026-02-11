@@ -12,8 +12,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
+import { ReminderPicker } from '@/components/ui/reminder-picker';
 import { TaskPickerModal } from './TaskPickerModal';
-import { Calendar, CornerLeftUp, Folder, Flag, Activity, RefreshCw, Milestone, ChevronDown } from '@/lib/icons';
+import { Bell, Calendar, CornerLeftUp, Folder, Flag, Activity, RefreshCw, Milestone, ChevronDown } from '@/lib/icons';
 import { useMilestones } from '@/hooks/useMilestones';
 import type { Task, Project, UpdateTask } from '@lucidity/shared';
 import type { Option } from '@rn-primitives/select';
@@ -216,6 +217,10 @@ export function TaskOptions({ task, tasks, project, projects, onUpdate }: TaskOp
     onUpdate({ dueDate: date });
   };
 
+  const handleReminderChange = (date: Date | null) => {
+    onUpdate({ reminderAt: date });
+  };
+
   const handleStatusChange = (option: Option) => {
     if (option?.value && option.value !== task.status) {
       onUpdate({ status: option.value as Task['status'] });
@@ -368,24 +373,6 @@ export function TaskOptions({ task, tasks, project, projects, onUpdate }: TaskOp
 
       <Separator />
 
-      {/* Priority */}
-      <View className="flex-row items-center px-4" style={{ minHeight: ROW_HEIGHT }}>
-        <View className="w-5 mr-3 items-center">
-          <Flag size={iconSize} color={iconColor} />
-        </View>
-        <Text className="w-28 text-base text-foreground">Priority</Text>
-        <View className="flex-1 mr-4">
-          <PrioritySlider
-            value={priorityIndex}
-            onLiveChange={setLivePriority}
-            onValueChange={(idx) => { setLivePriority(null); handlePriorityChange(idx); }}
-          />
-        </View>
-        <Text numberOfLines={1} className="text-base text-muted-foreground" style={{ minWidth: 36, textAlign: 'right' }}>{displayPriority}</Text>
-      </View>
-
-      <Separator />
-
       {/* Due Date */}
       <OptionRow icon={<Calendar size={iconSize} color={iconColor} />} label="Due Date">
         <DatePicker
@@ -393,6 +380,18 @@ export function TaskOptions({ task, tasks, project, projects, onUpdate }: TaskOp
           onChange={handleDueDateChange}
           placeholder="None"
           className="flex-1"
+          height={ROW_HEIGHT}
+        />
+      </OptionRow>
+
+      <Separator />
+
+      {/* Reminder */}
+      <OptionRow icon={<Bell size={iconSize} color={iconColor} />} label="Reminder">
+        <ReminderPicker
+          value={task.reminderAt ? new Date(task.reminderAt) : undefined}
+          onChange={handleReminderChange}
+          placeholder="None"
           height={ROW_HEIGHT}
         />
       </OptionRow>
@@ -424,6 +423,22 @@ export function TaskOptions({ task, tasks, project, projects, onUpdate }: TaskOp
           <Separator />
         </>
       )}
+
+      {/* Priority */}
+      <View className="flex-row items-center px-4" style={{ minHeight: ROW_HEIGHT }}>
+        <View className="w-5 mr-3 items-center">
+          <Flag size={iconSize} color={iconColor} />
+        </View>
+        <Text className="w-28 text-base text-foreground">Priority</Text>
+        <View className="flex-1 mr-4">
+          <PrioritySlider
+            value={priorityIndex}
+            onLiveChange={setLivePriority}
+            onValueChange={(idx) => { setLivePriority(null); handlePriorityChange(idx); }}
+          />
+        </View>
+        <Text numberOfLines={1} className="text-base text-muted-foreground" style={{ minWidth: 36, textAlign: 'right' }}>{displayPriority}</Text>
+      </View>
     </View>
   );
 }

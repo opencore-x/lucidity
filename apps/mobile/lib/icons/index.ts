@@ -1,4 +1,5 @@
 import {
+  Bell,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -30,6 +31,7 @@ import {
 } from 'lucide-react-native';
 
 export {
+  Bell,
   Check,
   ChevronDown,
   ChevronLeft,
