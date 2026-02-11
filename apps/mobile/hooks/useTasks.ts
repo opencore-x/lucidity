@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tasksApi } from '@/api/tasks';
+import { scheduleTaskReminder, cancelTaskReminder } from '@/lib/notifications';
 import type { CreateTask, UpdateTask, Task } from '@lucidity/shared';
 
 export function useTasks() {
@@ -43,6 +44,7 @@ export function useCreateTask() {
         position: null,
         completedAt: null,
         dueDate: newTask.dueDate ? new Date(newTask.dueDate as string | number | Date) : null,
+        reminderAt: newTask.reminderAt ? new Date(newTask.reminderAt as string | number | Date) : null,
         recurringFrequency: newTask.recurringFrequency ?? null,
         reviewedAt: null,
         createdAt: new Date(),
@@ -90,6 +92,16 @@ export function useUpdateTask() {
 
       return { previousTasks };
     },
+    onSuccess: (updatedTask, { id, data }) => {
+      if ('reminderAt' in data) {
+        const task = updatedTask ?? queryClient.getQueryData<Task[]>(['tasks'])?.find((t) => t.id === id);
+        if (data.reminderAt && task) {
+          scheduleTaskReminder(id, task.title, new Date(data.reminderAt as string | number | Date));
+        } else {
+          cancelTaskReminder(id);
+        }
+      }
+    },
     onError: (_err, _vars, context) => {
       if (context?.previousTasks) {
         queryClient.setQueryData(['tasks'], context.previousTasks);
@@ -129,6 +141,16 @@ export function useToggleTask() {
 
       return { previousTasks };
     },
+    onSuccess: (_data, id) => {
+      const task = queryClient.getQueryData<Task[]>(['tasks'])?.find((t) => t.id === id);
+      if (!task) return;
+
+      if (task.status === 'completed') {
+        cancelTaskReminder(id);
+      } else if (task.reminderAt && new Date(task.reminderAt).getTime() > Date.now()) {
+        scheduleTaskReminder(id, task.title, new Date(task.reminderAt));
+      }
+    },
     onError: (_err, _id, context) => {
       if (context?.previousTasks) {
         queryClient.setQueryData(['tasks'], context.previousTasks);
@@ -149,6 +171,8 @@ export function useDeleteTask() {
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['tasks'] });
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks']);
+
+      cancelTaskReminder(id);
 
       // Optimistically remove the task
       queryClient.setQueryData<Task[]>(['tasks'], (old) =>

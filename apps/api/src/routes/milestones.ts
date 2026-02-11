@@ -20,7 +20,7 @@ router.get('/', async (c) => {
     .select()
     .from(milestones)
     .where(and(...conditions))
-    .orderBy(sql`${milestones.createdAt} ASC`);
+    .orderBy(sql`${milestones.name} ASC`);
 
   return c.json(result);
 });
