@@ -474,7 +474,7 @@ export function ProjectGroup({
             className="flex-1"
             onPress={() => setIsExpanded(!isExpanded)}
           >
-            <Text className="text-lg font-bold">{project.name}</Text>
+            <Text className="text-lg font-bold" style={!isInbox && project.color ? { color: project.color } : undefined}>{project.name}</Text>
           </Pressable>
         )}
       </View>
