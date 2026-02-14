@@ -1,14 +1,12 @@
-import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { MilestoneGroup } from '@/components/MilestoneGroup';
 import { TaskSheet } from '@/components/TaskSheet';
-import { useUser } from '@clerk/clerk-expo';
 import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable, Alert, ActionSheetIOS } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack } from 'expo-router';
 import { useTasks, useToggleTask } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
@@ -18,8 +16,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { Task } from '@lucidity/shared';
 
 export default function MilestonesScreen() {
-  const { user } = useUser();
-
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const { data: milestones = [], isLoading: milestonesLoading, refetch: refetchMilestones } = useAllMilestones();
@@ -53,14 +49,11 @@ export default function MilestonesScreen() {
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    // Progress queries live inside MilestoneGroup components, so they need
-    // to be explicitly invalidated here to refresh on pull-to-refresh.
     queryClient.invalidateQueries({ queryKey: ['milestoneProgress'] });
     await Promise.all([refetchTasks(), refetchProjects(), refetchMilestones()]);
     setRefreshing(false);
   }, [refetchTasks, refetchProjects, refetchMilestones, queryClient]);
 
-  // Group tasks by milestone
   const tasksByMilestone = React.useMemo(() => {
     const map = new Map<string, Task[]>();
     for (const milestone of filteredMilestones) {
@@ -138,7 +131,6 @@ export default function MilestonesScreen() {
     );
   }, [projects, selectedProjectId, promptMilestoneName]);
 
-  // Close task sheet if task was deleted
   const { currentTask } = useSheetStore();
   const sheetTask = currentTask();
 
@@ -148,97 +140,92 @@ export default function MilestonesScreen() {
     }
   }, [sheetTask, tasks]);
 
+  const headerRight = React.useCallback(
+    () => (
+      <View className="flex-row items-center gap-4">
+        <Pressable onPress={handleCreateMilestone} hitSlop={8} className="pl-2">
+          <Icon as={PlusIcon} className="size-6 text-foreground" />
+        </Pressable>
+        <UserMenu />
+      </View>
+    ),
+    [handleCreateMilestone]
+  );
+
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="large" />
-      </SafeAreaView>
+      <>
+        <Stack.Screen options={{ title: 'Milestones', headerRight }} />
+        <View className="flex-1 items-center justify-center bg-background">
+          <ActivityIndicator size="large" />
+        </View>
+      </>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
-        <View>
-          <Text className="text-2xl font-bold">Milestones</Text>
-          <Text className="text-sm text-muted-foreground">
-            {filteredMilestones.length} milestone{filteredMilestones.length !== 1 ? 's' : ''}
-          </Text>
-        </View>
-        <View className="flex-row items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-[34px] rounded-full"
-            onPress={handleCreateMilestone}>
-            <Icon as={PlusIcon} className="size-4 text-foreground" />
-          </Button>
-          <UserMenu />
-        </View>
-      </View>
-
-      {/* Project filter tabs */}
-      {projectsWithMilestones.length > 1 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="pb-3"
-          style={{ flexGrow: 0 }}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center' }}
-        >
-          <Pressable
-            onPress={() => setSelectedProjectId(null)}
-            className={`px-3 py-1.5 rounded-full border ${
-              selectedProjectId === null
-                ? 'bg-foreground border-foreground'
-                : 'border-border'
-            }`}
-          >
-            <Text
-              className={`text-sm font-medium ${
-                selectedProjectId === null ? 'text-background' : 'text-foreground'
-              }`}
-            >
-              All
-            </Text>
-          </Pressable>
-          {projectsWithMilestones.map((project) => (
-            <Pressable
-              key={project.id}
-              onPress={() =>
-                setSelectedProjectId(
-                  selectedProjectId === project.id ? null : project.id
-                )
-              }
-              className={`px-3 py-1.5 rounded-full border ${
-                selectedProjectId === project.id
-                  ? 'bg-foreground border-foreground'
-                  : 'border-border'
-              }`}
-            >
-              <Text
-                className={`text-sm font-medium ${
-                  selectedProjectId === project.id
-                    ? 'text-background'
-                    : 'text-foreground'
-                }`}
-              >
-                {project.name}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      )}
-
+    <>
+      <Stack.Screen options={{ title: 'Milestones', headerRight }} />
       <ScrollView
-        className="flex-1"
+        contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
+        {/* Project filter tabs */}
+        {projectsWithMilestones.length > 1 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ flexGrow: 0 }}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center', paddingBottom: 12 }}
+          >
+            <Pressable
+              onPress={() => setSelectedProjectId(null)}
+              className={`px-3 py-1.5 rounded-full border ${
+                selectedProjectId === null
+                  ? 'bg-foreground border-foreground'
+                  : 'border-border'
+              }`}
+            >
+              <Text
+                className={`text-sm font-medium ${
+                  selectedProjectId === null ? 'text-background' : 'text-foreground'
+                }`}
+              >
+                All
+              </Text>
+            </Pressable>
+            {projectsWithMilestones.map((project) => (
+              <Pressable
+                key={project.id}
+                onPress={() =>
+                  setSelectedProjectId(
+                    selectedProjectId === project.id ? null : project.id
+                  )
+                }
+                className={`px-3 py-1.5 rounded-full border ${
+                  selectedProjectId === project.id
+                    ? 'bg-foreground border-foreground'
+                    : 'border-border'
+                }`}
+              >
+                <Text
+                  className={`text-sm font-medium ${
+                    selectedProjectId === project.id
+                      ? 'text-background'
+                      : 'text-foreground'
+                  }`}
+                >
+                  {project.name}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+
         {filteredMilestones.length === 0 ? (
           <View className="items-center justify-center py-20">
             <Text className="text-muted-foreground">No milestones yet</Text>
@@ -258,13 +245,10 @@ export default function MilestonesScreen() {
           ))
         )}
 
-        {/* Bottom padding */}
         <View className="h-32" />
       </ScrollView>
 
-      {/* Task Sheet */}
       <TaskSheet tasks={tasks} projects={projects} />
-    </SafeAreaView>
+    </>
   );
 }
-

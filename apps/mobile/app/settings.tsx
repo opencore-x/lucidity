@@ -13,7 +13,6 @@ import { KeyRoundIcon, CopyIcon, TrashIcon, Loader2Icon } from 'lucide-react-nat
 import * as Clipboard from 'expo-clipboard';
 import * as React from 'react';
 import { View, ScrollView, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
   const { data: apiKeyData, isLoading } = useApiKey();
@@ -77,9 +76,8 @@ export default function SettingsScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
-      <ScrollView className="flex-1 p-4">
-        <Card>
+    <ScrollView className="flex-1 p-4" contentInsetAdjustmentBehavior="automatic">
+      <Card>
           <CardHeader>
             <View className="flex-row items-center gap-2">
               <Icon as={KeyRoundIcon} className="size-5 text-foreground" />
@@ -183,8 +181,7 @@ export default function SettingsScreen() {
               </View>
             )}
           </CardContent>
-        </Card>
-      </ScrollView>
-    </SafeAreaView>
+      </Card>
+    </ScrollView>
   );
 }
