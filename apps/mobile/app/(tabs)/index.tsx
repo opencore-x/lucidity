@@ -132,8 +132,7 @@ export default function ProjectsScreen() {
         <View>
           <Text className="text-2xl font-bold">Projects</Text>
           <Text className="text-sm text-muted-foreground">
-            {tasks.filter((t) => t.status !== 'completed' && !t.parentTaskId).length} tasks
-            remaining
+            {projects.length} {projects.length === 1 ? 'project' : 'projects'}
           </Text>
         </View>
       </View>
