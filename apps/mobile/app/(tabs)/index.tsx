@@ -134,7 +134,16 @@ export default function ProjectsScreen() {
             {projects.length} {projects.length === 1 ? 'project' : 'projects'}
           </Text>
         </View>
-        <UserMenu />
+        <View className="flex-row items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-[34px] rounded-full"
+            onPress={handleCreateProject}>
+            <Icon as={PlusIcon} className="size-4 text-foreground" />
+          </Button>
+          <UserMenu />
+        </View>
       </View>
 
       {/* Task list - always show Inbox + projects */}
@@ -146,13 +155,6 @@ export default function ProjectsScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag">
           <View className="flex-row justify-end px-4 pb-2">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="rounded-full"
-              onPress={handleCreateProject}>
-              <Icon as={PlusIcon} className="size-5 text-muted-foreground" />
-            </Button>
             <Button
               size="icon"
               variant="ghost"

@@ -1,8 +1,12 @@
 import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { PlusIcon } from 'lucide-react-native';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { UserMenu } from '@/components/user-menu';
 import { TaskSheet } from '@/components/TaskSheet';
 import { ProjectSheet } from '@/components/ProjectSheet';
 import { InlineTaskInput } from '@/components/InlineTaskInput';
@@ -12,7 +16,7 @@ import {
   DropIndicator,
 } from '@/components/ProjectGroup';
 import { useProject } from '@/hooks/useProjects';
-import { useTasks, useToggleTask, useUpdateTask, useReorderTasks } from '@/hooks/useTasks';
+import { useTasks, useCreateTask, useToggleTask, useUpdateTask, useReorderTasks } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
@@ -25,6 +29,7 @@ export default function ProjectScreen() {
   const { data: project, isLoading: projectLoading } = useProject(id);
   const { data: allTasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: allProjects = [], refetch: refetchProjects } = useProjects();
+  const createTask = useCreateTask();
   const toggleTask = useToggleTask();
   const updateTask = useUpdateTask();
   const reorderTasks = useReorderTasks();
@@ -127,6 +132,20 @@ export default function ProjectScreen() {
     setDropIndex(targetIndex);
   }, []);
 
+  const handleCreateTask = React.useCallback(() => {
+    Alert.prompt('New Task', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Add Task',
+        onPress: (title?: string) => {
+          if (title?.trim()) {
+            createTask.mutate({ title: title.trim(), projectId: id });
+          }
+        },
+      },
+    ], 'plain-text');
+  }, [createTask, id]);
+
   const handleDragEnd = React.useCallback(() => {
     setIsDragging(false);
     setDropIndex(null);
@@ -174,6 +193,18 @@ export default function ProjectScreen() {
         options={{
           title: project.name,
           headerTintColor: project.color ?? undefined,
+          headerRight: () => (
+            <View className="flex-row items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-[34px] rounded-full"
+                onPress={handleCreateTask}>
+                <Icon as={PlusIcon} className="size-4 text-foreground" />
+              </Button>
+              <UserMenu />
+            </View>
+          ),
         }}
       />
       <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
