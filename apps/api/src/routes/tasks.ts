@@ -103,6 +103,7 @@ router.get('/', async (c) => {
   const status = c.req.query('status');
   const projectId = c.req.query('project_id');
   const milestoneId = c.req.query('milestone_id');
+  const taskNumber = c.req.query('task_number');
   const rootOnly = c.req.query('root_only') === 'true';
   const dueBefore = c.req.query('due_before');
   const dueAfter = c.req.query('due_after');
@@ -119,6 +120,9 @@ router.get('/', async (c) => {
   }
   if (milestoneId) {
     conditions.push(eq(tasks.milestoneId, milestoneId));
+  }
+  if (taskNumber) {
+    conditions.push(eq(tasks.taskNumber, parseInt(taskNumber, 10)));
   }
   if (rootOnly) {
     conditions.push(isNull(tasks.parentTaskId));
