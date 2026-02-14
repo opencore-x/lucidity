@@ -1,12 +1,8 @@
-import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { MilestoneGroup } from '@/components/MilestoneGroup';
 import { TaskSheet } from '@/components/TaskSheet';
 import { useUser } from '@clerk/clerk-expo';
-import { MoonStarIcon, SunIcon } from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,7 +15,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { Task } from '@lucidity/shared';
 
 export default function MilestonesScreen() {
-  const { colorScheme } = useColorScheme();
   const { user } = useUser();
 
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
@@ -118,16 +113,15 @@ export default function MilestonesScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
+        <View>
+          <Text className="text-2xl font-bold">Milestones</Text>
+          <Text className="text-sm text-muted-foreground">
+            {filteredMilestones.length} milestone{filteredMilestones.length !== 1 ? 's' : ''}
+          </Text>
+        </View>
         <View className="flex-row items-center gap-3">
           <UserMenu />
-          <View>
-            <Text className="text-2xl font-bold">Milestones</Text>
-            <Text className="text-sm text-muted-foreground">
-              {filteredMilestones.length} milestone{filteredMilestones.length !== 1 ? 's' : ''}
-            </Text>
-          </View>
         </View>
-        <ThemeToggle />
       </View>
 
       {/* Project filter tabs */}
@@ -220,21 +214,3 @@ export default function MilestonesScreen() {
   );
 }
 
-const THEME_ICONS = {
-  light: SunIcon,
-  dark: MoonStarIcon,
-};
-
-function ThemeToggle() {
-  const { colorScheme, setColorScheme } = useColorScheme();
-
-  const toggleTheme = React.useCallback(() => {
-    setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
-  }, [colorScheme, setColorScheme]);
-
-  return (
-    <Button onPress={toggleTheme} size="icon" variant="ghost" className="rounded-full">
-      <Icon as={THEME_ICONS[colorScheme ?? 'light']} className="size-6" />
-    </Button>
-  );
-}
