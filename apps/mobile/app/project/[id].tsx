@@ -17,11 +17,8 @@ import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { ScrollProvider } from '@/contexts/ScrollContext';
-import { ChevronRight } from '@/lib/icons';
 import { formatRelativeTime } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
-
-const INITIAL_COMPLETED_COUNT = 2;
 
 export default function ProjectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -67,13 +64,7 @@ export default function ProjectScreen() {
   const [dropIndex, setDropIndex] = React.useState<number | null>(null);
   const [dragFromIndex, setDragFromIndex] = React.useState<number | null>(null);
   const [refreshing, setRefreshing] = React.useState(false);
-  const [completedExpanded, setCompletedExpanded] = React.useState(true);
-  const [showAllCompleted, setShowAllCompleted] = React.useState(false);
-
-  const visibleCompleted = showAllCompleted
-    ? completedTasks
-    : completedTasks.slice(0, INITIAL_COMPLETED_COUNT);
-  const hiddenCount = completedTasks.length - INITIAL_COMPLETED_COUNT;
+  const [selectedTab, setSelectedTab] = React.useState<'active' | 'completed'>('active');
 
   React.useEffect(() => {
     setLocalTasks(activeTasks);
@@ -197,7 +188,7 @@ export default function ProjectScreen() {
           keyboardDismissMode="on-drag"
         >
           {/* Project info */}
-          <View className="px-4 pt-2 pb-4">
+          <View className="px-4 pt-2 pb-2">
             {project.description ? (
               <Text className="text-sm text-muted-foreground mb-2">
                 {project.description}
@@ -208,108 +199,125 @@ export default function ProjectScreen() {
             </Text>
           </View>
 
-          {/* Recently completed section */}
-          {completedTasks.length > 0 && (
-            <View>
-              <Pressable
-                onPress={() => setCompletedExpanded(!completedExpanded)}
-                className="flex-row items-center px-4 py-2.5"
+          {/* Filter tabs */}
+          <View
+            className="flex-row pb-3 pt-1"
+            style={{ paddingHorizontal: 16, gap: 8 }}
+          >
+            <Pressable
+              onPress={() => setSelectedTab('active')}
+              className={`px-3 py-1.5 rounded-full border ${
+                selectedTab === 'active'
+                  ? 'bg-foreground border-foreground'
+                  : 'border-border'
+              }`}
+            >
+              <Text
+                className={`text-sm font-medium ${
+                  selectedTab === 'active' ? 'text-background' : 'text-foreground'
+                }`}
               >
-                <ChevronRight
-                  size={14}
-                  color="#9CA3AF"
-                  style={{ transform: [{ rotate: completedExpanded ? '90deg' : '0deg' }] }}
-                />
-                <Text className="text-xs text-muted-foreground ml-1.5">
-                  Recently completed ({completedTasks.length})
-                </Text>
-              </Pressable>
+                Active ({activeTasks.length})
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setSelectedTab('completed')}
+              className={`px-3 py-1.5 rounded-full border ${
+                selectedTab === 'completed'
+                  ? 'bg-foreground border-foreground'
+                  : 'border-border'
+              }`}
+            >
+              <Text
+                className={`text-sm font-medium ${
+                  selectedTab === 'completed' ? 'text-background' : 'text-foreground'
+                }`}
+              >
+                Completed ({completedTasks.length})
+              </Text>
+            </Pressable>
+          </View>
 
-              {completedExpanded && (
-                <>
-                  {visibleCompleted.map((task, index) => (
-                    <View key={task.id} className="flex-row items-center">
-                      <View className="flex-1">
-                        <SwipeableCompletedTask
-                          task={task}
-                          allTasks={allTasks}
-                          isLast={
-                            index === visibleCompleted.length - 1 && hiddenCount <= 0
-                          }
-                          onTaskPress={handleTaskPress}
-                          onTaskToggle={handleTaskToggle}
-                          onDeleteTask={handleDeleteTask}
-                        />
-                      </View>
-                      {task.completedAt && (
-                        <Text className="text-xs text-muted-foreground pr-4 shrink-0">
-                          {formatRelativeTime(task.completedAt)}
-                        </Text>
-                      )}
+          {selectedTab === 'active' ? (
+            <>
+              {/* Active tasks with drag/drop */}
+              {localTasks.map((task, index) => (
+                <React.Fragment key={task.id}>
+                  <DropIndicator
+                    visible={
+                      isDragging &&
+                      dropIndex === index &&
+                      dragFromIndex !== null &&
+                      dragFromIndex > index
+                    }
+                  />
+                  <DraggableTask
+                    task={task}
+                    index={index}
+                    tasksCount={localTasks.length}
+                    allTasks={allTasks}
+                    isLast={index === localTasks.length - 1}
+                    onTaskPress={handleTaskPress}
+                    onTaskToggle={handleTaskToggle}
+                    onReorder={handleReorder}
+                    onDragStart={() => handleDragStart(index)}
+                    onDragUpdate={handleDragUpdate}
+                    onDragEnd={handleDragEnd}
+                    onDeleteTask={handleDeleteTask}
+                    onSetDueToday={handleSetDueToday}
+                  />
+                  <DropIndicator
+                    visible={
+                      isDragging &&
+                      dropIndex === index &&
+                      dragFromIndex !== null &&
+                      dragFromIndex < index
+                    }
+                  />
+                </React.Fragment>
+              ))}
+              <DropIndicator
+                visible={
+                  isDragging &&
+                  dropIndex === localTasks.length - 1 &&
+                  dragFromIndex !== null &&
+                  dragFromIndex < localTasks.length - 1
+                }
+              />
+
+              {/* Inline task input */}
+              <InlineTaskInput projectId={id} onComplete={() => {}} />
+            </>
+          ) : (
+            <>
+              {/* Completed tasks */}
+              {completedTasks.length === 0 ? (
+                <View className="items-center justify-center py-20">
+                  <Text className="text-muted-foreground">No completed tasks</Text>
+                </View>
+              ) : (
+                completedTasks.map((task, index) => (
+                  <View key={task.id} className="flex-row items-center">
+                    <View className="flex-1">
+                      <SwipeableCompletedTask
+                        task={task}
+                        allTasks={allTasks}
+                        isLast={index === completedTasks.length - 1}
+                        onTaskPress={handleTaskPress}
+                        onTaskToggle={handleTaskToggle}
+                        onDeleteTask={handleDeleteTask}
+                      />
                     </View>
-                  ))}
-                  {!showAllCompleted && hiddenCount > 0 && (
-                    <Pressable
-                      onPress={() => setShowAllCompleted(true)}
-                      className="px-4 py-2"
-                    >
-                      <Text className="text-xs text-blue-500">
-                        Show {hiddenCount} more
+                    {task.completedAt && (
+                      <Text className="text-xs text-muted-foreground pr-4 shrink-0">
+                        {formatRelativeTime(task.completedAt)}
                       </Text>
-                    </Pressable>
-                  )}
-                </>
+                    )}
+                  </View>
+                ))
               )}
-            </View>
+            </>
           )}
-
-          {/* Active tasks with drag/drop */}
-          {localTasks.map((task, index) => (
-            <React.Fragment key={task.id}>
-              <DropIndicator
-                visible={
-                  isDragging &&
-                  dropIndex === index &&
-                  dragFromIndex !== null &&
-                  dragFromIndex > index
-                }
-              />
-              <DraggableTask
-                task={task}
-                index={index}
-                tasksCount={localTasks.length}
-                allTasks={allTasks}
-                isLast={index === localTasks.length - 1}
-                onTaskPress={handleTaskPress}
-                onTaskToggle={handleTaskToggle}
-                onReorder={handleReorder}
-                onDragStart={() => handleDragStart(index)}
-                onDragUpdate={handleDragUpdate}
-                onDragEnd={handleDragEnd}
-                onDeleteTask={handleDeleteTask}
-                onSetDueToday={handleSetDueToday}
-              />
-              <DropIndicator
-                visible={
-                  isDragging &&
-                  dropIndex === index &&
-                  dragFromIndex !== null &&
-                  dragFromIndex < index
-                }
-              />
-            </React.Fragment>
-          ))}
-          <DropIndicator
-            visible={
-              isDragging &&
-              dropIndex === localTasks.length - 1 &&
-              dragFromIndex !== null &&
-              dragFromIndex < localTasks.length - 1
-            }
-          />
-
-          {/* Inline task input */}
-          <InlineTaskInput projectId={id} onComplete={() => {}} />
 
           {/* Bottom padding for keyboard */}
           <View className="h-80" />
