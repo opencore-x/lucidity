@@ -1,10 +1,7 @@
-import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { TaskItem } from '@/components/TaskItem';
 import { TaskSheet } from '@/components/TaskSheet';
-import { MoonStarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import {
@@ -134,11 +131,10 @@ export default function SearchScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
+        <Text className="text-2xl font-bold">Search</Text>
         <View className="flex-row items-center gap-3">
           <UserMenu />
-          <Text className="text-2xl font-bold">Search</Text>
         </View>
-        <ThemeToggle />
       </View>
 
       {/* Search input */}
@@ -269,24 +265,5 @@ export default function SearchScreen() {
       {/* Task Sheet */}
       <TaskSheet tasks={tasks} projects={projects} />
     </SafeAreaView>
-  );
-}
-
-const THEME_ICONS = {
-  light: SunIcon,
-  dark: MoonStarIcon,
-};
-
-function ThemeToggle() {
-  const { colorScheme, setColorScheme } = useColorScheme();
-
-  const toggleTheme = React.useCallback(() => {
-    setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
-  }, [colorScheme, setColorScheme]);
-
-  return (
-    <Button onPress={toggleTheme} size="icon" variant="ghost" className="rounded-full">
-      <Icon as={THEME_ICONS[colorScheme ?? 'light']} className="size-6" />
-    </Button>
   );
 }
