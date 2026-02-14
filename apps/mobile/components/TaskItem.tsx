@@ -109,11 +109,14 @@ export function TaskItem({ task, onPress, onToggle, subtaskProgress, isLast }: T
         <Checkbox checked={isCompleted} onCheckedChange={onToggle} />
       </Pressable>
 
-      {/* Title */}
+      {/* Title + task number */}
       <Text
         className={cn('flex-1 text-base font-medium', isCompleted && 'text-muted-foreground')}
         numberOfLines={2}>
         {task.title}
+        {task.taskNumber != null && (
+          <Text className="text-xs text-muted-foreground opacity-60"> #{task.taskNumber}</Text>
+        )}
       </Text>
 
       {/* Recurring indicator */}

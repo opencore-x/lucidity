@@ -33,6 +33,7 @@ export const TaskSchema = CreateTaskSchema.extend({
   status: z.enum(TASK_STATUS_VALUES),
   priority: z.number().min(PRIORITY_MIN).max(PRIORITY_MAX),
   position: z.number().nullable(),
+  taskNumber: z.number().nullable(),
   completedAt: z.coerce.date().nullable(),
   dueDate: z.coerce.date().nullable(),
   reminderAt: z.coerce.date().nullable(),

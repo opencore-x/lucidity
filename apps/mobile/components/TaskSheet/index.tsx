@@ -230,6 +230,9 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
                       className={`text-xl font-semibold ${isCompleted ? 'text-muted-foreground' : ''}`}
                     >
                       {task.title}
+                      {task.taskNumber != null && (
+                        <Text className="text-sm text-muted-foreground font-normal"> #{task.taskNumber}</Text>
+                      )}
                     </Text>
                   </Pressable>
                 )}
