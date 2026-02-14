@@ -94,6 +94,7 @@ function Routes() {
       {/* Screens only shown when the user IS signed in */}
       <Stack.Protected guard={isSignedIn}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="project/[id]" options={{ headerBackTitle: 'Back' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', headerBackTitle: 'Back' }} />
       </Stack.Protected>
 
