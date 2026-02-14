@@ -6,6 +6,7 @@ import {
   integer,
   timestamp,
   pgEnum,
+  unique,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { users } from './users.js';
@@ -33,6 +34,7 @@ export const tasks = pgTable('tasks', {
   status: statusEnum('status').default('pending'),
   priority: integer('priority').notNull().default(500),
   position: integer('position'),
+  taskNumber: integer('task_number'),
   dueDate: timestamp('due_date'),
   reminderAt: timestamp('reminder_at'),
   completedAt: timestamp('completed_at'),
@@ -40,4 +42,6 @@ export const tasks = pgTable('tasks', {
   reviewedAt: timestamp('reviewed_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (table) => [
+  unique('tasks_project_id_task_number_unique').on(table.projectId, table.taskNumber),
+]);

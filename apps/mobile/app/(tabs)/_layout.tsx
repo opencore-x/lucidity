@@ -11,7 +11,7 @@ export default function TabLayout() {
         <Label>Today</Label>
         <Icon sf="sun.max.fill" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="week">
+      <NativeTabs.Trigger name="milestones">
         <Label>Milestones</Label>
         <Icon sf="flag.fill" />
       </NativeTabs.Trigger>

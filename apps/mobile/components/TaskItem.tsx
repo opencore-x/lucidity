@@ -45,7 +45,7 @@ function DueDateLabel({ dueInfo }: { dueInfo: { label: string; color: string } }
   const hasMeasured = useSharedValue(false);
 
   React.useEffect(() => {
-    progress.value = withDelay(3000, withTiming(0, { duration: 400 }));
+    progress.value = withDelay(1000, withTiming(0, { duration: 300 }));
   }, [progress]);
 
   const containerStyle = useAnimatedStyle(() => ({
@@ -109,11 +109,14 @@ export function TaskItem({ task, onPress, onToggle, subtaskProgress, isLast }: T
         <Checkbox checked={isCompleted} onCheckedChange={onToggle} />
       </Pressable>
 
-      {/* Title */}
+      {/* Title + task number */}
       <Text
         className={cn('flex-1 text-base font-medium', isCompleted && 'text-muted-foreground')}
         numberOfLines={2}>
         {task.title}
+        {task.taskNumber != null && (
+          <Text className="text-xs text-muted-foreground opacity-60"> #{task.taskNumber}</Text>
+        )}
       </Text>
 
       {/* Recurring indicator */}

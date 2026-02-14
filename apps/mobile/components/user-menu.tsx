@@ -6,7 +6,8 @@ import { Text } from '@/components/ui/text';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import type { TriggerRef } from '@rn-primitives/popover';
 import { useRouter } from 'expo-router';
-import { KeyRoundIcon, LogOutIcon } from 'lucide-react-native';
+import { KeyRoundIcon, LogOutIcon, MoonStarIcon, SunIcon } from 'lucide-react-native';
+import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { View } from 'react-native';
 
@@ -14,6 +15,7 @@ export function UserMenu() {
   const { user } = useUser();
   const { signOut } = useAuth();
   const router = useRouter();
+  const { colorScheme, setColorScheme } = useColorScheme();
   const popoverTriggerRef = React.useRef<TriggerRef>(null);
 
   async function onSignOut() {
@@ -24,6 +26,10 @@ export function UserMenu() {
   function onApiKeys() {
     popoverTriggerRef.current?.close();
     router.push('/settings');
+  }
+
+  function onToggleTheme() {
+    setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
   }
 
   return (
@@ -48,6 +54,14 @@ export function UserMenu() {
               ) : null}
             </View>
           </View>
+          <Button
+            variant="outline"
+            size="sm"
+            className="justify-start"
+            onPress={onToggleTheme}>
+            <Icon as={colorScheme === 'dark' ? MoonStarIcon : SunIcon} className="size-4" />
+            <Text>{colorScheme === 'dark' ? 'Dark' : 'Light'} Mode</Text>
+          </Button>
           <Button
             variant="outline"
             size="sm"

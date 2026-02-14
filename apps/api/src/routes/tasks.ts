@@ -103,6 +103,7 @@ router.get('/', async (c) => {
   const status = c.req.query('status');
   const projectId = c.req.query('project_id');
   const milestoneId = c.req.query('milestone_id');
+  const taskNumber = c.req.query('task_number');
   const rootOnly = c.req.query('root_only') === 'true';
   const dueBefore = c.req.query('due_before');
   const dueAfter = c.req.query('due_after');
@@ -119,6 +120,9 @@ router.get('/', async (c) => {
   }
   if (milestoneId) {
     conditions.push(eq(tasks.milestoneId, milestoneId));
+  }
+  if (taskNumber) {
+    conditions.push(eq(tasks.taskNumber, parseInt(taskNumber, 10)));
   }
   if (rootOnly) {
     conditions.push(isNull(tasks.parentTaskId));
@@ -169,9 +173,18 @@ router.post('/', async (c) => {
 
   const id = uuidv7();
 
+  let taskNumber: number | null = null;
+  if (parsed.data.projectId) {
+    const [result] = await db
+      .select({ max: sql<number>`COALESCE(MAX(${tasks.taskNumber}), 0) + 1` })
+      .from(tasks)
+      .where(and(eq(tasks.projectId, parsed.data.projectId), eq(tasks.userId, user.id)));
+    taskNumber = result.max;
+  }
+
   const [newTask] = await db
     .insert(tasks)
-    .values({ ...parsed.data, id, userId: user.id })
+    .values({ ...parsed.data, id, userId: user.id, taskNumber })
     .returning();
   return c.json(newTask, 201);
 });
@@ -238,9 +251,22 @@ router.patch('/:id', async (c) => {
   }
 
   // If clearing dueDate, also clear recurringFrequency
-  const updateData = { ...parsed.data };
+  const updateData: Record<string, any> = { ...parsed.data };
   if (parsed.data.dueDate === null && existingTask.recurringFrequency) {
     updateData.recurringFrequency = null;
+  }
+
+  // Assign new taskNumber when projectId changes
+  if (parsed.data.projectId !== undefined && parsed.data.projectId !== existingTask.projectId) {
+    if (parsed.data.projectId) {
+      const [result] = await db
+        .select({ max: sql<number>`COALESCE(MAX(${tasks.taskNumber}), 0) + 1` })
+        .from(tasks)
+        .where(and(eq(tasks.projectId, parsed.data.projectId), eq(tasks.userId, user.id)));
+      updateData.taskNumber = result.max;
+    } else {
+      updateData.taskNumber = null;
+    }
   }
 
   const [updated] = await db

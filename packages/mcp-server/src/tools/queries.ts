@@ -8,6 +8,7 @@ interface Task {
   description: string | null;
   status: string | null;
   priority: number;
+  taskNumber: number | null;
   dueDate: string | null;
   completedAt: string | null;
   recurringFrequency: string | null;
@@ -36,11 +37,12 @@ function formatTask(t: Task): string {
     in_progress: '[~]',
   };
   const status = statusMap[t.status ?? ''] ?? '[ ]';
+  const num = t.taskNumber != null ? ` #${t.taskNumber}` : '';
   const due = t.dueDate
     ? ` (due: ${new Date(t.dueDate).toLocaleDateString()})`
     : '';
   const recurring = t.recurringFrequency ? ` 🔁${t.recurringFrequency}` : '';
-  return `${status} ${t.title}${due}${recurring}`;
+  return `${status} ${t.title}${num}${due}${recurring}`;
 }
 
 export function registerQueryTools(server: McpServer) {

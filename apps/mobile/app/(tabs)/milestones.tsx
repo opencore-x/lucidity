@@ -8,7 +8,7 @@ import { useUser } from '@clerk/clerk-expo';
 import { MoonStarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTasks, useToggleTask } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
@@ -37,6 +37,20 @@ export default function MilestonesScreen() {
 
   const isLoading = tasksLoading || projectsLoading || milestonesLoading;
   const [refreshing, setRefreshing] = React.useState(false);
+  const [selectedProjectId, setSelectedProjectId] = React.useState<string | null>(null);
+
+  const projectsWithMilestones = React.useMemo(() => {
+    const projectIds = new Set(milestones.map((m) => m.projectId));
+    return projects.filter((p) => projectIds.has(p.id));
+  }, [milestones, projects]);
+
+  const filteredMilestones = React.useMemo(
+    () =>
+      selectedProjectId
+        ? milestones.filter((m) => m.projectId === selectedProjectId)
+        : milestones,
+    [milestones, selectedProjectId]
+  );
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
@@ -50,7 +64,7 @@ export default function MilestonesScreen() {
   // Group tasks by milestone
   const tasksByMilestone = React.useMemo(() => {
     const map = new Map<string, Task[]>();
-    for (const milestone of milestones) {
+    for (const milestone of filteredMilestones) {
       map.set(milestone.id, []);
     }
     for (const task of tasks) {
@@ -59,7 +73,7 @@ export default function MilestonesScreen() {
       }
     }
     return map;
-  }, [tasks, milestones]);
+  }, [tasks, filteredMilestones]);
 
   const handleTaskPress = React.useCallback(
     (task: Task) => {
@@ -103,18 +117,71 @@ export default function MilestonesScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pt-2 pb-8">
+      <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
         <View className="flex-row items-center gap-3">
           <UserMenu />
           <View>
             <Text className="text-2xl font-bold">Milestones</Text>
             <Text className="text-sm text-muted-foreground">
-              {milestones.length} milestone{milestones.length !== 1 ? 's' : ''}
+              {filteredMilestones.length} milestone{filteredMilestones.length !== 1 ? 's' : ''}
             </Text>
           </View>
         </View>
         <ThemeToggle />
       </View>
+
+      {/* Project filter tabs */}
+      {projectsWithMilestones.length > 1 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="pb-3"
+          style={{ flexGrow: 0 }}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center' }}
+        >
+          <Pressable
+            onPress={() => setSelectedProjectId(null)}
+            className={`px-3 py-1.5 rounded-full border ${
+              selectedProjectId === null
+                ? 'bg-foreground border-foreground'
+                : 'border-border'
+            }`}
+          >
+            <Text
+              className={`text-sm font-medium ${
+                selectedProjectId === null ? 'text-background' : 'text-foreground'
+              }`}
+            >
+              All
+            </Text>
+          </Pressable>
+          {projectsWithMilestones.map((project) => (
+            <Pressable
+              key={project.id}
+              onPress={() =>
+                setSelectedProjectId(
+                  selectedProjectId === project.id ? null : project.id
+                )
+              }
+              className={`px-3 py-1.5 rounded-full border ${
+                selectedProjectId === project.id
+                  ? 'bg-foreground border-foreground'
+                  : 'border-border'
+              }`}
+            >
+              <Text
+                className={`text-sm font-medium ${
+                  selectedProjectId === project.id
+                    ? 'text-background'
+                    : 'text-foreground'
+                }`}
+              >
+                {project.name}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
 
       <ScrollView
         className="flex-1"
@@ -124,12 +191,12 @@ export default function MilestonesScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        {milestones.length === 0 ? (
+        {filteredMilestones.length === 0 ? (
           <View className="items-center justify-center py-20">
             <Text className="text-muted-foreground">No milestones yet</Text>
           </View>
         ) : (
-          milestones.map((milestone) => (
+          filteredMilestones.map((milestone) => (
             <MilestoneGroup
               key={milestone.id}
               milestone={milestone}
