@@ -42,6 +42,7 @@ export function useCreateTask() {
         status: newTask.status ?? 'pending',
         priority: newTask.priority ?? 500,
         position: null,
+        taskNumber: null,
         completedAt: null,
         dueDate: newTask.dueDate ? new Date(newTask.dueDate as string | number | Date) : null,
         reminderAt: newTask.reminderAt ? new Date(newTask.reminderAt as string | number | Date) : null,
