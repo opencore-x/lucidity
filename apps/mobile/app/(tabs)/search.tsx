@@ -1,8 +1,11 @@
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { TaskItem } from '@/components/TaskItem';
 import { TaskSheet } from '@/components/TaskSheet';
 import { useColorScheme } from 'nativewind';
+import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
 import {
   View,
@@ -11,10 +14,11 @@ import {
   ActivityIndicator,
   TextInput,
   Pressable,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useTasks, useToggleTask } from '@/hooks/useTasks';
+import { useTasks, useCreateTask, useToggleTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtaskProgress } from '@/utils/helpers';
@@ -28,6 +32,7 @@ export default function SearchScreen() {
 
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
+  const createTask = useCreateTask();
   const toggleTask = useToggleTask();
   const { openSheet } = useSheetStore();
 
@@ -102,6 +107,20 @@ export default function SearchScreen() {
     [router]
   );
 
+  const handleCreateTask = React.useCallback(() => {
+    Alert.prompt('New Task', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Add Task',
+        onPress: (title?: string) => {
+          if (title?.trim()) {
+            createTask.mutate({ title: title.trim() });
+          }
+        },
+      },
+    ], 'plain-text');
+  }, [createTask]);
+
   const handleClear = React.useCallback(() => {
     setQuery('');
     inputRef.current?.focus();
@@ -132,7 +151,14 @@ export default function SearchScreen() {
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
         <Text className="text-2xl font-bold">Search</Text>
-        <View className="flex-row items-center gap-3">
+        <View className="flex-row items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-[34px] rounded-full"
+            onPress={handleCreateTask}>
+            <Icon as={PlusIcon} className="size-4 text-foreground" />
+          </Button>
           <UserMenu />
         </View>
       </View>

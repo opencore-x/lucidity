@@ -1,13 +1,16 @@
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { TaskItem } from '@/components/TaskItem';
 import { TaskSheet } from '@/components/TaskSheet';
 import { useUser } from '@clerk/clerk-expo';
+import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator, Text as RNText, Dimensions } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator, Text as RNText, Dimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { useTasks, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
+import { useTasks, useCreateTask, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
@@ -148,6 +151,7 @@ export default function TodayScreen() {
 
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
+  const createTask = useCreateTask();
   const toggleTask = useToggleTask();
   const updateTask = useUpdateTask();
   const { deleteTask } = useUndoableDeleteTask();
@@ -237,6 +241,22 @@ export default function TodayScreen() {
     [deleteTask]
   );
 
+  const handleCreateTask = React.useCallback(() => {
+    Alert.prompt('New Task', 'This task will be due today.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Add Task',
+        onPress: (title?: string) => {
+          if (title?.trim()) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            createTask.mutate({ title: title.trim(), dueDate: today });
+          }
+        },
+      },
+    ], 'plain-text');
+  }, [createTask]);
+
   // Get current sheet data for stale validation
   const { currentTask } = useSheetStore();
   const sheetTask = currentTask();
@@ -272,7 +292,14 @@ export default function TodayScreen() {
             {todayTasks.length} task{todayTasks.length !== 1 ? 's' : ''} due
           </Text>
         </View>
-        <View className="flex-row items-center gap-3">
+        <View className="flex-row items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-[34px] rounded-full"
+            onPress={handleCreateTask}>
+            <Icon as={PlusIcon} className="size-4 text-foreground" />
+          </Button>
           <UserMenu />
         </View>
       </View>
