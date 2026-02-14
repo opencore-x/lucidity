@@ -127,14 +127,14 @@ export default function ProjectsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
       {/* Header with avatar and greeting */}
-      <View className="flex-row items-center gap-3 px-4 pb-8 pt-2">
-        <UserMenu />
+      <View className="flex-row items-center justify-between px-4 pb-8 pt-2">
         <View>
           <Text className="text-2xl font-bold">Projects</Text>
           <Text className="text-sm text-muted-foreground">
             {projects.length} {projects.length === 1 ? 'project' : 'projects'}
           </Text>
         </View>
+        <UserMenu />
       </View>
 
       {/* Task list - always show Inbox + projects */}
