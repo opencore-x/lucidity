@@ -50,6 +50,13 @@
       "when": 1770803402184,
       "tag": "0006_material_warhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1771054386814,
+      "tag": "0007_woozy_doomsday",
+      "breakpoints": true
     }
   ]
 }
