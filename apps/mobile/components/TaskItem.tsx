@@ -45,7 +45,7 @@ function DueDateLabel({ dueInfo }: { dueInfo: { label: string; color: string } }
   const hasMeasured = useSharedValue(false);
 
   React.useEffect(() => {
-    progress.value = withDelay(3000, withTiming(0, { duration: 400 }));
+    progress.value = withDelay(1000, withTiming(0, { duration: 300 }));
   }, [progress]);
 
   const containerStyle = useAnimatedStyle(() => ({
