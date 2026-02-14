@@ -3,10 +3,10 @@ import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable, Alert }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { PlusIcon } from 'lucide-react-native';
-import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
+import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
 import { TaskSheet } from '@/components/TaskSheet';
 import { ProjectSheet } from '@/components/ProjectSheet';
 import { InlineTaskInput } from '@/components/InlineTaskInput';
@@ -166,10 +166,10 @@ export default function ProjectScreen() {
   if (isLoading) {
     return (
       <>
-        <Stack.Screen options={{ title: '' }} />
-        <SafeAreaView className="flex-1 items-center justify-center bg-background">
+        <Stack.Screen options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: '' }} />
+        <View className="flex-1 items-center justify-center bg-background">
           <ActivityIndicator size="large" />
-        </SafeAreaView>
+        </View>
       </>
     );
   }
@@ -177,10 +177,10 @@ export default function ProjectScreen() {
   if (!project) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Not Found' }} />
-        <SafeAreaView className="flex-1 items-center justify-center bg-background">
+        <Stack.Screen options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: 'Not Found' }} />
+        <View className="flex-1 items-center justify-center bg-background">
           <Text className="text-muted-foreground">Project not found</Text>
-        </SafeAreaView>
+        </View>
       </>
     );
   }
@@ -191,17 +191,14 @@ export default function ProjectScreen() {
     <>
       <Stack.Screen
         options={{
+          ...LARGE_TITLE_SCREEN_OPTIONS,
           title: project.name,
           headerTintColor: project.color ?? undefined,
           headerRight: () => (
-            <View className="flex-row items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="size-[34px] rounded-full"
-                onPress={handleCreateTask}>
-                <Icon as={PlusIcon} className="size-4 text-foreground" />
-              </Button>
+            <View className="flex-row items-center gap-4">
+              <Pressable onPress={handleCreateTask} hitSlop={8} className="pl-2">
+                <Icon as={PlusIcon} className="size-6 text-foreground" />
+              </Pressable>
               <UserMenu />
             </View>
           ),
@@ -212,6 +209,7 @@ export default function ProjectScreen() {
         <ScrollView
           ref={scrollViewRef}
           className="flex-1"
+          contentInsetAdjustmentBehavior="automatic"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
