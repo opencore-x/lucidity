@@ -38,9 +38,6 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const { colorScheme } = useColorScheme();
   const theme = THEME[colorScheme ?? 'light'];
 
-  const scrollViewRef = React.useRef<any>(null);
-  const prevContentHeight = React.useRef(0);
-  const hasHandledInitialGrowth = React.useRef(false);
 
   const {
     currentTask,
@@ -69,11 +66,6 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
     }
   }, [task?.id, task?.title, task?.description]);
 
-  // Reset scroll tracking when task changes
-  React.useEffect(() => {
-    prevContentHeight.current = 0;
-    hasHandledInitialGrowth.current = false;
-  }, [task?.id]);
 
   const handleDismiss = React.useCallback(() => {
     resetState();
@@ -177,22 +169,8 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
     const isCompleted = task.status === 'completed';
 
     return (
-      <BottomSheetScrollView
-        ref={scrollViewRef}
-        className="flex-1"
-        onContentSizeChange={(_w: number, h: number) => {
-          const prev = prevContentHeight.current;
-          prevContentHeight.current = h;
-          // When comments load async, content height jumps — scroll back to top
-          // to prevent the top section from disappearing. Only handle the first
-          // significant growth after the task sheet opens.
-          if (!hasHandledInitialGrowth.current && prev > 0 && h - prev > 50) {
-            hasHandledInitialGrowth.current = true;
-            scrollViewRef.current?.scrollTo?.({ y: 0, animated: false });
-          }
-        }}
-      >
-        {/* Top bar: back + status pill + close button */}
+      <>
+        {/* Fixed top bar: back + status pill + close button */}
         <View className="flex-row items-center justify-between px-4 pt-2">
           {canGoBack() ? (
             <Pressable
@@ -230,9 +208,10 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
           </Pressable>
         </View>
 
+        <BottomSheetScrollView className="flex-1">
         {/* Task header */}
         <View className="px-4 py-4">
-          <View className="flex-1">
+          <View>
             {/* Title row with optional description icon */}
             <View className="flex-row items-center justify-between">
               <View className="flex-1 mr-2">
@@ -351,6 +330,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
           </Text>
         </View>
       </BottomSheetScrollView>
+      </>
     );
   };
 
@@ -358,6 +338,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
     <BottomSheetModal
       ref={sheetRef}
       snapPoints={snapPoints}
+      enableDynamicSizing={false}
       onDismiss={handleDismiss}
       enableDismissOnClose
       enablePanDownToClose
