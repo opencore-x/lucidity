@@ -6,8 +6,7 @@ import { ProjectGroup } from '@/components/ProjectGroup';
 import { ProjectSheet } from '@/components/ProjectSheet';
 import { TaskSheet } from '@/components/TaskSheet';
 import { useUser } from '@clerk/clerk-expo';
-import { MoonStarIcon, SunIcon, ChevronsDownUpIcon, ChevronsUpDownIcon, PlusIcon } from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
+import { ChevronsDownUpIcon, ChevronsUpDownIcon, PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,7 +19,6 @@ import { groupTasksByProject } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
 
 export default function ProjectsScreen() {
-  const { colorScheme } = useColorScheme();
   const { user } = useUser();
   const scrollViewRef = React.useRef<ScrollView>(null);
 
@@ -128,19 +126,16 @@ export default function ProjectsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      {/* Header with avatar, greeting, and theme toggle */}
-      <View className="flex-row items-center justify-between px-4 pb-8 pt-2">
-        <View className="flex-row items-center gap-3">
-          <UserMenu />
-          <View>
-            <Text className="text-2xl font-bold">Projects</Text>
-            <Text className="text-sm text-muted-foreground">
-              {tasks.filter((t) => t.status !== 'completed' && !t.parentTaskId).length} tasks
-              remaining
-            </Text>
-          </View>
+      {/* Header with avatar and greeting */}
+      <View className="flex-row items-center gap-3 px-4 pb-8 pt-2">
+        <UserMenu />
+        <View>
+          <Text className="text-2xl font-bold">Projects</Text>
+          <Text className="text-sm text-muted-foreground">
+            {tasks.filter((t) => t.status !== 'completed' && !t.parentTaskId).length} tasks
+            remaining
+          </Text>
         </View>
-        <ThemeToggle />
       </View>
 
       {/* Task list - always show Inbox + projects */}
@@ -196,21 +191,3 @@ export default function ProjectsScreen() {
   );
 }
 
-const THEME_ICONS = {
-  light: SunIcon,
-  dark: MoonStarIcon,
-};
-
-function ThemeToggle() {
-  const { colorScheme, setColorScheme } = useColorScheme();
-
-  const toggleTheme = React.useCallback(() => {
-    setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
-  }, [colorScheme, setColorScheme]);
-
-  return (
-    <Button onPress={toggleTheme} size="icon" variant="ghost" className="rounded-full">
-      <Icon as={THEME_ICONS[colorScheme ?? 'light']} className="size-6" />
-    </Button>
-  );
-}
