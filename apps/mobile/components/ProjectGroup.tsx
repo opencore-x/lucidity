@@ -18,6 +18,7 @@ import { Plus, Trash2, ChevronDown, ChevronRight, Pencil, CalendarCheck, Check }
 import { TaskItem } from './TaskItem';
 import { InlineTaskInput } from './InlineTaskInput';
 import { getSubtaskProgress, isInboxProject, formatRelativeTime } from '@/utils/helpers';
+import { useRouter } from 'expo-router';
 import { useUpdateProject } from '@/hooks/useProjects';
 import { useProjectSheetStore } from '@/stores/projectSheetStore';
 import { FONTS } from '@/lib/fonts';
@@ -54,7 +55,7 @@ interface DraggableTaskProps {
   onSetDueToday: (taskId: string) => void;
 }
 
-function LeftAction({ confirmed }: { confirmed: boolean }) {
+export function LeftAction({ confirmed }: { confirmed: boolean }) {
   return (
     <View
       style={{ backgroundColor: '#F59E0B', width: SCREEN_WIDTH }}
@@ -79,7 +80,7 @@ function LeftAction({ confirmed }: { confirmed: boolean }) {
   );
 }
 
-function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
+export function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
   return (
     <View
       style={{ backgroundColor: '#EF4444', width: SCREEN_WIDTH }}
@@ -118,7 +119,7 @@ function EditRightAction() {
   );
 }
 
-function DraggableTask({
+export function DraggableTask({
   task,
   index,
   tasksCount,
@@ -235,7 +236,7 @@ function DraggableTask({
   );
 }
 
-function SwipeableCompletedTask({
+export function SwipeableCompletedTask({
   task,
   allTasks,
   isLast,
@@ -292,7 +293,7 @@ function SwipeableCompletedTask({
   );
 }
 
-function DropIndicator({ visible }: { visible: boolean }) {
+export function DropIndicator({ visible }: { visible: boolean }) {
   const opacity = useSharedValue(0);
   const height = useSharedValue(0);
 
@@ -358,6 +359,7 @@ export function ProjectGroup({
     : completedTasks.slice(0, INITIAL_COMPLETED_COUNT);
   const hiddenCount = completedTasks.length - INITIAL_COMPLETED_COUNT;
 
+  const router = useRouter();
   const updateProject = useUpdateProject();
   const headerSwipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
   const chevronRotation = useSharedValue(-90);
@@ -472,7 +474,13 @@ export function ProjectGroup({
         ) : (
           <Pressable
             className="flex-1"
-            onPress={() => setIsExpanded(!isExpanded)}
+            onPress={() => {
+              if (isInbox) {
+                setIsExpanded(!isExpanded);
+              } else {
+                router.push(`/project/${project.id}`);
+              }
+            }}
           >
             <Text className="text-lg font-bold" style={!isInbox && project.color ? { color: project.color } : undefined}>{project.name}</Text>
           </Pressable>
