@@ -6,12 +6,14 @@ import { useScrollContext } from '@/contexts/ScrollContext';
 
 interface InlineTaskInputProps {
   projectId: string | null;
+  milestoneId?: string | null;
   onComplete: () => void;
   autoFocus?: boolean;
 }
 
 export function InlineTaskInput({
   projectId,
+  milestoneId,
   onComplete,
   autoFocus = false,
 }: InlineTaskInputProps) {
@@ -54,6 +56,7 @@ export function InlineTaskInput({
       {
         title: taskTitle,
         projectId,
+        milestoneId: milestoneId ?? undefined,
         status: 'pending',
         priority: 500,
       },
@@ -63,7 +66,7 @@ export function InlineTaskInput({
         },
       }
     );
-  }, [value, projectId, createTask, onComplete]);
+  }, [value, projectId, milestoneId, createTask, onComplete]);
 
   const handleBlur = React.useCallback(() => {
     if (isSubmittingRef.current || createTask.isPending) return;
@@ -89,7 +92,7 @@ export function InlineTaskInput({
     }
 
     onComplete();
-  }, [value, projectId, createTask, onComplete]);
+  }, [value, projectId, milestoneId, createTask, onComplete]);
 
   return (
     <View ref={viewRef} className="flex-row items-center px-4 py-3">

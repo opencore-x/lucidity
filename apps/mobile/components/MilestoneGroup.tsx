@@ -10,7 +10,8 @@ import Animated, {
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Text } from '@/components/ui/text';
 import { Separator } from '@/components/ui/separator';
-import { ChevronDown, ChevronRight, Trash2, Check } from '@/lib/icons';
+import { InlineTaskInput } from '@/components/InlineTaskInput';
+import { ChevronDown, Plus, Trash2, Check } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
 import { getSubtaskProgress, formatRelativeTime } from '@/utils/helpers';
 import { useMilestoneProgress } from '@/hooks/useMilestones';
@@ -123,6 +124,7 @@ interface MilestoneGroupProps {
   onTaskPress: (task: Task) => void;
   onTaskToggle: (taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
+  onDeleteMilestone: (milestoneId: string) => void;
 }
 
 export function MilestoneGroup({
@@ -133,10 +135,14 @@ export function MilestoneGroup({
   onTaskPress,
   onTaskToggle,
   onDeleteTask,
+  onDeleteMilestone,
 }: MilestoneGroupProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isAddingTask, setIsAddingTask] = React.useState(false);
   const chevronRotation = useSharedValue(-90);
   const { data: progress } = useMilestoneProgress(milestone.id);
+  const headerSwipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
+  const [headerConfirmed, setHeaderConfirmed] = React.useState(false);
 
   React.useEffect(() => {
     chevronRotation.value = withTiming(isExpanded ? 0 : -90, { duration: 200 });
@@ -173,122 +179,195 @@ export function MilestoneGroup({
     [rootTasks]
   );
 
-  const [completedExpanded, setCompletedExpanded] = React.useState(true);
-  const [showAllCompleted, setShowAllCompleted] = React.useState(false);
-  const INITIAL_COMPLETED_COUNT = 2;
-  const visibleCompleted = showAllCompleted
-    ? completedTasks
-    : completedTasks.slice(0, INITIAL_COMPLETED_COUNT);
-  const hiddenCount = completedTasks.length - INITIAL_COMPLETED_COUNT;
+  const [selectedTab, setSelectedTab] = React.useState<'active' | 'completed'>('active');
+
+  const renderHeaderRightActions = React.useCallback(
+    () => <DeleteRightAction confirmed={headerConfirmed} />,
+    [headerConfirmed]
+  );
+
+  const handleHeaderSwipeOpen = React.useCallback(
+    (direction: 'left' | 'right') => {
+      if (direction === 'left') {
+        onDeleteMilestone(milestone.id);
+        setHeaderConfirmed(true);
+        setTimeout(() => {
+          headerSwipeableRef.current?.close();
+          setHeaderConfirmed(false);
+        }, 1200);
+      }
+    },
+    [milestone.id, onDeleteMilestone]
+  );
+
+  const handleAddTask = React.useCallback(() => {
+    if (!isExpanded) setIsExpanded(true);
+    setIsAddingTask(true);
+  }, [isExpanded]);
+
+  const headerContent = (
+    <Pressable
+      onPress={() => setIsExpanded(!isExpanded)}
+      className="px-4 py-3 bg-background"
+    >
+      <View className="flex-row items-center">
+        <Animated.View style={chevronStyle} className="mr-2">
+          <ChevronDown size={18} color="#6B7280" />
+        </Animated.View>
+        <View className="flex-1">
+          <Text className="text-base font-semibold">{milestone.name}</Text>
+          {project && (
+            <Text className="text-xs text-muted-foreground mt-0.5">
+              {project.name}
+              {milestone.dueDate
+                ? ` · Due ${new Date(milestone.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                : ''}
+            </Text>
+          )}
+        </View>
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation();
+            handleAddTask();
+          }}
+          hitSlop={8}
+          className="p-1 self-start"
+        >
+          <Plus size={20} color="#3B82F6" />
+        </Pressable>
+      </View>
+      <View className="flex-row items-center mt-2 ml-7">
+        <Text className="text-xs text-muted-foreground mr-2">
+          {completed}/{total}
+        </Text>
+        <ProgressBar percent={percent} />
+        <Text className="text-xs text-muted-foreground ml-2 w-10 text-right">
+          {percent}%
+        </Text>
+      </View>
+    </Pressable>
+  );
 
   return (
     <View>
-      <Pressable
-        onPress={() => setIsExpanded(!isExpanded)}
-        className="px-4 py-3 bg-background"
+      <ReanimatedSwipeable
+        ref={headerSwipeableRef}
+        renderRightActions={renderHeaderRightActions}
+        onSwipeableOpen={handleHeaderSwipeOpen}
+        overshootRight={false}
+        friction={1}
+        rightThreshold={SCREEN_WIDTH * 0.4}
       >
-        <View className="flex-row items-center">
-          <Animated.View style={chevronStyle} className="mr-2">
-            <ChevronDown size={18} color="#6B7280" />
-          </Animated.View>
-          <View className="flex-1">
-            <Text className="text-base font-semibold">{milestone.name}</Text>
-            {project && (
-              <Text className="text-xs text-muted-foreground mt-0.5">
-                {project.name}
-                {milestone.dueDate
-                  ? ` · Due ${new Date(milestone.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                  : ''}
-              </Text>
-            )}
-          </View>
-          <Text className="text-xs text-muted-foreground mr-2">
-            {completed}/{total}
-          </Text>
-        </View>
-        <View className="flex-row items-center mt-2 ml-7">
-          <ProgressBar percent={percent} />
-          <Text className="text-xs text-muted-foreground ml-2 w-8 text-right">
-            {percent}%
-          </Text>
-        </View>
-      </Pressable>
+        {headerContent}
+      </ReanimatedSwipeable>
 
       {isExpanded && (
         <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}>
-          {completedTasks.length > 0 && (
-            <View>
-              <Pressable
-                onPress={() => setCompletedExpanded(!completedExpanded)}
-                className="flex-row items-center px-4 py-2.5"
+          {/* Active / Completed tabs */}
+          <View
+            className="flex-row pb-2 pt-1"
+            style={{ paddingHorizontal: 16, gap: 8 }}
+          >
+            <Pressable
+              onPress={() => setSelectedTab('active')}
+              className={`px-3 py-1.5 rounded-full border ${
+                selectedTab === 'active'
+                  ? 'bg-foreground border-foreground'
+                  : 'border-border'
+              }`}
+            >
+              <Text
+                className={`text-sm font-medium ${
+                  selectedTab === 'active' ? 'text-background' : 'text-foreground'
+                }`}
               >
-                <ChevronRight
-                  size={14}
-                  color="#9CA3AF"
-                  style={{ transform: [{ rotate: completedExpanded ? '90deg' : '0deg' }] }}
+                Active ({activeTasks.length})
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setSelectedTab('completed')}
+              className={`px-3 py-1.5 rounded-full border ${
+                selectedTab === 'completed'
+                  ? 'bg-foreground border-foreground'
+                  : 'border-border'
+              }`}
+            >
+              <Text
+                className={`text-sm font-medium ${
+                  selectedTab === 'completed' ? 'text-background' : 'text-foreground'
+                }`}
+              >
+                Completed ({completedTasks.length})
+              </Text>
+            </Pressable>
+          </View>
+
+          {selectedTab === 'active' ? (
+            <>
+              {activeTasks.length > 0 ? (
+                activeTasks.map((task, index) => (
+                  <SwipeableMilestoneTask
+                    key={task.id}
+                    task={task}
+                    tasks={allTasks}
+                    onPress={() => onTaskPress(task)}
+                    onToggle={() => onTaskToggle(task.id)}
+                    onDeleteTask={onDeleteTask}
+                    isLast={index === activeTasks.length - 1 && !isAddingTask}
+                  />
+                ))
+              ) : !isAddingTask ? (
+                <View className="items-center justify-center py-10">
+                  <Text className="text-muted-foreground">No active tasks</Text>
+                </View>
+              ) : null}
+
+              {isAddingTask ? (
+                <InlineTaskInput
+                  projectId={milestone.projectId}
+                  milestoneId={milestone.id}
+                  onComplete={() => setIsAddingTask(false)}
+                  autoFocus
                 />
-                <Text className="text-xs text-muted-foreground ml-1.5">
-                  Recently completed ({completedTasks.length})
-                </Text>
-              </Pressable>
-
-              {completedExpanded && (
-                <>
-                  {visibleCompleted.map((task, index) => (
-                    <View key={task.id} className="flex-row items-center">
-                      <View className="flex-1">
-                        <SwipeableMilestoneTask
-                          task={task}
-                          tasks={allTasks}
-                          onPress={() => onTaskPress(task)}
-                          onToggle={() => onTaskToggle(task.id)}
-                          onDeleteTask={onDeleteTask}
-                          isLast={
-                            index === visibleCompleted.length - 1 &&
-                            hiddenCount <= 0 &&
-                            activeTasks.length === 0
-                          }
-                        />
-                      </View>
-                      {task.completedAt && (
-                        <Text className="text-xs text-muted-foreground pr-4 shrink-0">
-                          {formatRelativeTime(task.completedAt)}
-                        </Text>
-                      )}
-                    </View>
-                  ))}
-                  {!showAllCompleted && hiddenCount > 0 && (
-                    <Pressable
-                      onPress={() => setShowAllCompleted(true)}
-                      className="px-4 py-2"
-                    >
-                      <Text className="text-xs text-blue-500">
-                        Show {hiddenCount} more
-                      </Text>
-                    </Pressable>
-                  )}
-                </>
+              ) : (
+                <Pressable
+                  onPress={() => setIsAddingTask(true)}
+                  className="flex-row items-center px-4 py-3"
+                >
+                  <Plus size={18} color="#9CA3AF" />
+                  <Text className="ml-2 text-base text-muted-foreground">New task</Text>
+                </Pressable>
               )}
-            </View>
+            </>
+          ) : (
+            <>
+              {completedTasks.length === 0 ? (
+                <View className="items-center justify-center py-10">
+                  <Text className="text-muted-foreground">No completed tasks</Text>
+                </View>
+              ) : (
+                completedTasks.map((task, index) => (
+                  <View key={task.id} className="flex-row items-center">
+                    <View className="flex-1">
+                      <SwipeableMilestoneTask
+                        task={task}
+                        tasks={allTasks}
+                        onPress={() => onTaskPress(task)}
+                        onToggle={() => onTaskToggle(task.id)}
+                        onDeleteTask={onDeleteTask}
+                        isLast={index === completedTasks.length - 1}
+                      />
+                    </View>
+                    {task.completedAt && (
+                      <Text className="text-xs text-muted-foreground pr-4 shrink-0">
+                        {formatRelativeTime(task.completedAt)}
+                      </Text>
+                    )}
+                  </View>
+                ))
+              )}
+            </>
           )}
-
-          {activeTasks.length > 0 ? (
-            activeTasks.map((task, index) => (
-              <SwipeableMilestoneTask
-                key={task.id}
-                task={task}
-                tasks={allTasks}
-                onPress={() => onTaskPress(task)}
-                onToggle={() => onTaskToggle(task.id)}
-                onDeleteTask={onDeleteTask}
-                isLast={index === activeTasks.length - 1}
-              />
-            ))
-          ) : completedTasks.length === 0 ? (
-            <View className="px-4 py-3">
-              <Text className="text-sm text-muted-foreground">No tasks</Text>
-            </View>
-          ) : null}
         </Animated.View>
       )}
 
