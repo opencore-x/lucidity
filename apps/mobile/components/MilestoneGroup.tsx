@@ -10,7 +10,8 @@ import Animated, {
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Text } from '@/components/ui/text';
 import { Separator } from '@/components/ui/separator';
-import { ChevronDown, ChevronRight, Trash2, Check } from '@/lib/icons';
+import { InlineTaskInput } from '@/components/InlineTaskInput';
+import { ChevronDown, ChevronRight, Plus, Trash2, Check } from '@/lib/icons';
 import { TaskItem } from './TaskItem';
 import { getSubtaskProgress, formatRelativeTime } from '@/utils/helpers';
 import { useMilestoneProgress } from '@/hooks/useMilestones';
@@ -123,6 +124,7 @@ interface MilestoneGroupProps {
   onTaskPress: (task: Task) => void;
   onTaskToggle: (taskId: string) => void;
   onDeleteTask: (taskId: string) => void;
+  onDeleteMilestone: (milestoneId: string) => void;
 }
 
 export function MilestoneGroup({
@@ -133,10 +135,14 @@ export function MilestoneGroup({
   onTaskPress,
   onTaskToggle,
   onDeleteTask,
+  onDeleteMilestone,
 }: MilestoneGroupProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isAddingTask, setIsAddingTask] = React.useState(false);
   const chevronRotation = useSharedValue(-90);
   const { data: progress } = useMilestoneProgress(milestone.id);
+  const headerSwipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
+  const [headerConfirmed, setHeaderConfirmed] = React.useState(false);
 
   React.useEffect(() => {
     chevronRotation.value = withTiming(isExpanded ? 0 : -90, { duration: 200 });
@@ -181,38 +187,85 @@ export function MilestoneGroup({
     : completedTasks.slice(0, INITIAL_COMPLETED_COUNT);
   const hiddenCount = completedTasks.length - INITIAL_COMPLETED_COUNT;
 
+  const renderHeaderRightActions = React.useCallback(
+    () => <DeleteRightAction confirmed={headerConfirmed} />,
+    [headerConfirmed]
+  );
+
+  const handleHeaderSwipeOpen = React.useCallback(
+    (direction: 'left' | 'right') => {
+      if (direction === 'left') {
+        onDeleteMilestone(milestone.id);
+        setHeaderConfirmed(true);
+        setTimeout(() => {
+          headerSwipeableRef.current?.close();
+          setHeaderConfirmed(false);
+        }, 1200);
+      }
+    },
+    [milestone.id, onDeleteMilestone]
+  );
+
+  const handleAddTask = React.useCallback(() => {
+    if (!isExpanded) setIsExpanded(true);
+    setIsAddingTask(true);
+  }, [isExpanded]);
+
+  const headerContent = (
+    <Pressable
+      onPress={() => setIsExpanded(!isExpanded)}
+      className="px-4 py-3 bg-background"
+    >
+      <View className="flex-row items-center">
+        <Animated.View style={chevronStyle} className="mr-2">
+          <ChevronDown size={18} color="#6B7280" />
+        </Animated.View>
+        <View className="flex-1">
+          <Text className="text-base font-semibold">{milestone.name}</Text>
+          {project && (
+            <Text className="text-xs text-muted-foreground mt-0.5">
+              {project.name}
+              {milestone.dueDate
+                ? ` · Due ${new Date(milestone.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                : ''}
+            </Text>
+          )}
+        </View>
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation();
+            handleAddTask();
+          }}
+          hitSlop={8}
+          className="p-1 self-start"
+        >
+          <Plus size={20} color="#3B82F6" />
+        </Pressable>
+      </View>
+      <View className="flex-row items-center mt-2 ml-7">
+        <Text className="text-xs text-muted-foreground mr-2">
+          {completed}/{total}
+        </Text>
+        <ProgressBar percent={percent} />
+        <Text className="text-xs text-muted-foreground ml-2 w-8 text-right">
+          {percent}%
+        </Text>
+      </View>
+    </Pressable>
+  );
+
   return (
     <View>
-      <Pressable
-        onPress={() => setIsExpanded(!isExpanded)}
-        className="px-4 py-3 bg-background"
+      <ReanimatedSwipeable
+        ref={headerSwipeableRef}
+        renderRightActions={renderHeaderRightActions}
+        onSwipeableOpen={handleHeaderSwipeOpen}
+        overshootRight={false}
+        friction={1}
+        rightThreshold={SCREEN_WIDTH * 0.4}
       >
-        <View className="flex-row items-center">
-          <Animated.View style={chevronStyle} className="mr-2">
-            <ChevronDown size={18} color="#6B7280" />
-          </Animated.View>
-          <View className="flex-1">
-            <Text className="text-base font-semibold">{milestone.name}</Text>
-            {project && (
-              <Text className="text-xs text-muted-foreground mt-0.5">
-                {project.name}
-                {milestone.dueDate
-                  ? ` · Due ${new Date(milestone.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                  : ''}
-              </Text>
-            )}
-          </View>
-          <Text className="text-xs text-muted-foreground mr-2">
-            {completed}/{total}
-          </Text>
-        </View>
-        <View className="flex-row items-center mt-2 ml-7">
-          <ProgressBar percent={percent} />
-          <Text className="text-xs text-muted-foreground ml-2 w-8 text-right">
-            {percent}%
-          </Text>
-        </View>
-      </Pressable>
+        {headerContent}
+      </ReanimatedSwipeable>
 
       {isExpanded && (
         <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}>
@@ -281,14 +334,31 @@ export function MilestoneGroup({
                 onPress={() => onTaskPress(task)}
                 onToggle={() => onTaskToggle(task.id)}
                 onDeleteTask={onDeleteTask}
-                isLast={index === activeTasks.length - 1}
+                isLast={index === activeTasks.length - 1 && !isAddingTask}
               />
             ))
-          ) : completedTasks.length === 0 ? (
+          ) : completedTasks.length === 0 && !isAddingTask ? (
             <View className="px-4 py-3">
               <Text className="text-sm text-muted-foreground">No tasks</Text>
             </View>
           ) : null}
+
+          {isAddingTask ? (
+            <InlineTaskInput
+              projectId={milestone.projectId}
+              milestoneId={milestone.id}
+              onComplete={() => setIsAddingTask(false)}
+              autoFocus
+            />
+          ) : (
+            <Pressable
+              onPress={() => setIsAddingTask(true)}
+              className="flex-row items-center px-4 py-3"
+            >
+              <Plus size={18} color="#9CA3AF" />
+              <Text className="ml-2 text-base text-muted-foreground">New task</Text>
+            </Pressable>
+          )}
         </Animated.View>
       )}
 
