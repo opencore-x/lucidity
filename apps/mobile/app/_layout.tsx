@@ -13,6 +13,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { Stack } from 'expo-router';
 import * as Font from 'expo-font';
 import { FONT_ASSETS } from '@/lib/fonts';
+import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
@@ -94,8 +95,8 @@ function Routes() {
       {/* Screens only shown when the user IS signed in */}
       <Stack.Protected guard={isSignedIn}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="project/[id]" options={{ headerBackTitle: 'Back' }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="project/[id]" options={{ ...LARGE_TITLE_SCREEN_OPTIONS, headerBackTitle: 'Back' }} />
+        <Stack.Screen name="settings" options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: 'Settings', headerBackTitle: 'Back' }} />
       </Stack.Protected>
 
       {/* Screens outside the guards are accessible to everyone (e.g. not found) */}

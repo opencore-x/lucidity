@@ -39,9 +39,9 @@ export function UserMenu() {
           <UserAvatar />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" side="bottom" sideOffset={-36} className="w-64 p-0">
+      <PopoverContent align="end" side="bottom" sideOffset={130} className="w-64 p-0">
         <View className="gap-2 p-3">
-          <View className="flex-row items-center gap-3 mb-1">
+          <View className="mb-1 flex-row items-center gap-3">
             <UserAvatar className="size-10" />
             <View className="flex-1">
               <Text className="font-medium leading-5">
@@ -54,27 +54,15 @@ export function UserMenu() {
               ) : null}
             </View>
           </View>
-          <Button
-            variant="outline"
-            size="sm"
-            className="justify-start"
-            onPress={onToggleTheme}>
+          <Button variant="outline" size="sm" className="justify-start" onPress={onToggleTheme}>
             <Icon as={colorScheme === 'dark' ? MoonStarIcon : SunIcon} className="size-4" />
             <Text>{colorScheme === 'dark' ? 'Dark' : 'Light'} Mode</Text>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="justify-start"
-            onPress={onApiKeys}>
+          <Button variant="outline" size="sm" className="justify-start" onPress={onApiKeys}>
             <Icon as={KeyRoundIcon} className="size-4" />
             <Text>API Keys</Text>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="justify-start"
-            onPress={onSignOut}>
+          <Button variant="outline" size="sm" className="justify-start" onPress={onSignOut}>
             <Icon as={LogOutIcon} className="size-4" />
             <Text>Sign Out</Text>
           </Button>

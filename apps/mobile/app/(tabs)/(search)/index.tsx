@@ -1,11 +1,10 @@
-import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { TaskItem } from '@/components/TaskItem';
 import { TaskSheet } from '@/components/TaskSheet';
-import { MoonStarIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
+import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
 import {
   View,
@@ -14,10 +13,10 @@ import {
   ActivityIndicator,
   TextInput,
   Pressable,
+  Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useTasks, useToggleTask } from '@/hooks/useTasks';
+import { Stack, useRouter } from 'expo-router';
+import { useTasks, useCreateTask, useToggleTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtaskProgress } from '@/utils/helpers';
@@ -31,6 +30,7 @@ export default function SearchScreen() {
 
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
+  const createTask = useCreateTask();
   const toggleTask = useToggleTask();
   const { openSheet } = useSheetStore();
 
@@ -105,6 +105,20 @@ export default function SearchScreen() {
     [router]
   );
 
+  const handleCreateTask = React.useCallback(() => {
+    Alert.prompt('New Task', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Add Task',
+        onPress: (title?: string) => {
+          if (title?.trim()) {
+            createTask.mutate({ title: title.trim() });
+          }
+        },
+      },
+    ], 'plain-text');
+  }, [createTask]);
+
   const handleClear = React.useCallback(() => {
     setQuery('');
     inputRef.current?.focus();
@@ -119,11 +133,26 @@ export default function SearchScreen() {
     }
   }, [sheetTask, tasks]);
 
+  const headerRight = React.useCallback(
+    () => (
+      <View className="flex-row items-center gap-4">
+        <Pressable onPress={handleCreateTask} hitSlop={8} className="pl-2">
+          <Icon as={PlusIcon} className="size-6 text-foreground" />
+        </Pressable>
+        <UserMenu />
+      </View>
+    ),
+    [handleCreateTask]
+  );
+
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="large" />
-      </SafeAreaView>
+      <>
+        <Stack.Screen options={{ title: 'Search', headerRight }} />
+        <View className="flex-1 items-center justify-center bg-background">
+          <ActivityIndicator size="large" />
+        </View>
+      </>
     );
   }
 
@@ -131,50 +160,40 @@ export default function SearchScreen() {
   const noResults = hasQuery && filteredTasks.length === 0 && filteredProjects.length === 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
-        <View className="flex-row items-center gap-3">
-          <UserMenu />
-          <Text className="text-2xl font-bold">Search</Text>
-        </View>
-        <ThemeToggle />
-      </View>
-
-      {/* Search input */}
-      <View className="px-4 pb-4">
-        <View className="flex-row items-center bg-muted rounded-lg px-3 py-2 gap-2">
-          <Search size={18} className="text-muted-foreground" />
-          <TextInput
-            ref={inputRef}
-            className="flex-1 text-base text-foreground font-sans"
-            placeholder="Search tasks and projects..."
-            placeholderTextColor={colorScheme === 'dark' ? '#71717a' : '#a1a1aa'}
-            value={query}
-            onChangeText={setQuery}
-            autoCorrect={false}
-            returnKeyType="search"
-          />
-          {hasQuery && (
-            <Pressable onPress={handleClear} hitSlop={8}>
-              <X size={18} className="text-muted-foreground" />
-            </Pressable>
-          )}
-        </View>
-      </View>
-
-      {/* Results */}
+    <>
+      <Stack.Screen options={{ title: 'Search', headerRight }} />
       <ScrollView
-        className="flex-1"
+        contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
       >
+        {/* Search input */}
+        <View className="px-4 pb-4">
+          <View className="flex-row items-center bg-muted rounded-lg px-3 py-2 gap-2">
+            <Search size={18} className="text-muted-foreground" />
+            <TextInput
+              ref={inputRef}
+              className="flex-1 text-base text-foreground font-sans"
+              placeholder="Search tasks and projects..."
+              placeholderTextColor={colorScheme === 'dark' ? '#71717a' : '#a1a1aa'}
+              value={query}
+              onChangeText={setQuery}
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {hasQuery && (
+              <Pressable onPress={handleClear} hitSlop={8}>
+                <X size={18} className="text-muted-foreground" />
+              </Pressable>
+            )}
+          </View>
+        </View>
+
         {hasQuery ? (
           <>
-            {/* Projects section */}
             {filteredProjects.length > 0 && (
               <View className="mb-4">
                 <View className="px-4 py-2">
@@ -203,7 +222,6 @@ export default function SearchScreen() {
               </View>
             )}
 
-            {/* Tasks section */}
             {filteredTasks.length > 0 && (
               <View className="mb-4">
                 <View className="px-4 py-2">
@@ -224,7 +242,6 @@ export default function SearchScreen() {
               </View>
             )}
 
-            {/* No results */}
             {noResults && (
               <View className="items-center justify-center px-8 pt-16">
                 <Text className="text-lg font-semibold text-center mb-2">No results</Text>
@@ -235,7 +252,6 @@ export default function SearchScreen() {
             )}
           </>
         ) : (
-          /* Empty state: recent tasks */
           <View className="mb-4">
             <View className="px-4 py-2">
               <Text className="text-sm font-semibold text-muted-foreground">
@@ -262,31 +278,10 @@ export default function SearchScreen() {
           </View>
         )}
 
-        {/* Bottom padding */}
         <View className="h-32" />
       </ScrollView>
 
-      {/* Task Sheet */}
       <TaskSheet tasks={tasks} projects={projects} />
-    </SafeAreaView>
-  );
-}
-
-const THEME_ICONS = {
-  light: SunIcon,
-  dark: MoonStarIcon,
-};
-
-function ThemeToggle() {
-  const { colorScheme, setColorScheme } = useColorScheme();
-
-  const toggleTheme = React.useCallback(() => {
-    setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
-  }, [colorScheme, setColorScheme]);
-
-  return (
-    <Button onPress={toggleTheme} size="icon" variant="ghost" className="rounded-full">
-      <Icon as={THEME_ICONS[colorScheme ?? 'light']} className="size-6" />
-    </Button>
+    </>
   );
 }

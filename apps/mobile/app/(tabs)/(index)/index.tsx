@@ -1,15 +1,19 @@
-import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { ProjectGroup } from '@/components/ProjectGroup';
 import { ProjectSheet } from '@/components/ProjectSheet';
 import { TaskSheet } from '@/components/TaskSheet';
-import { useUser } from '@clerk/clerk-expo';
-import { ChevronsDownUpIcon, ChevronsUpDownIcon, PlusIcon } from 'lucide-react-native';
+import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  View,
+  ScrollView,
+  RefreshControl,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+} from 'react-native';
+import { Stack } from 'expo-router';
 import { ScrollProvider } from '@/contexts/ScrollContext';
 import { useTasks, useToggleTask, useUpdateTask, useReorderTasks } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
@@ -19,7 +23,6 @@ import { groupTasksByProject } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
 
 export default function ProjectsScreen() {
-  const { user } = useUser();
   const scrollViewRef = React.useRef<ScrollView>(null);
 
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
@@ -40,7 +43,6 @@ export default function ProjectsScreen() {
 
   const isLoading = tasksLoading || projectsLoading;
   const [refreshing, setRefreshing] = React.useState(false);
-  const [expandAll, setExpandAll] = React.useState<boolean | null>(null);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
@@ -86,17 +88,22 @@ export default function ProjectsScreen() {
   );
 
   const handleCreateProject = React.useCallback(() => {
-    Alert.prompt('New Project', undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Add Project',
-        onPress: (name?: string) => {
-          if (name?.trim()) {
-            createProject.mutate({ name: name.trim(), isArchived: false });
-          }
+    Alert.prompt(
+      'New Project',
+      undefined,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Add Project',
+          onPress: (name?: string) => {
+            if (name?.trim()) {
+              createProject.mutate({ name: name.trim(), isArchived: false });
+            }
+          },
         },
-      },
-    ], 'plain-text');
+      ],
+      'plain-text'
+    );
   }, [createProject]);
 
   const groupedTasks = React.useMemo(() => groupTasksByProject(tasks, projects), [tasks, projects]);
@@ -112,65 +119,47 @@ export default function ProjectsScreen() {
     }
   }, [sheetTask, tasks]);
 
-  const displayName = user?.firstName
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}`
-    : user?.emailAddresses?.[0]?.emailAddress || 'User';
+  const headerRight = React.useCallback(
+    () => (
+      <View className="flex-row items-center gap-4">
+        <Pressable onPress={handleCreateProject} hitSlop={8} className="pl-2">
+          <Icon as={PlusIcon} className="size-6 text-foreground" />
+        </Pressable>
+        <UserMenu />
+      </View>
+    ),
+    [handleCreateProject]
+  );
 
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="large" />
-      </SafeAreaView>
+      <>
+        <Stack.Screen options={{ title: 'Projects', headerRight }} />
+        <View className="flex-1 items-center justify-center bg-background">
+          <ActivityIndicator size="large" />
+        </View>
+      </>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      {/* Header with avatar and greeting */}
-      <View className="flex-row items-center gap-3 px-4 pb-8 pt-2">
-        <UserMenu />
-        <View>
-          <Text className="text-2xl font-bold">Projects</Text>
-          <Text className="text-sm text-muted-foreground">
-            {projects.length} {projects.length === 1 ? 'project' : 'projects'}
-          </Text>
-        </View>
-      </View>
-
-      {/* Task list - always show Inbox + projects */}
+    <>
+      <Stack.Screen options={{ title: 'Projects', headerRight }} />
       <ScrollProvider scrollViewRef={scrollViewRef}>
         <ScrollView
           ref={scrollViewRef}
-          className="flex-1"
+          contentInsetAdjustmentBehavior="automatic"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag">
-          <View className="flex-row justify-end px-4 pb-2">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="rounded-full"
-              onPress={handleCreateProject}>
-              <Icon as={PlusIcon} className="size-5 text-muted-foreground" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="rounded-full"
-              onPress={() => setExpandAll(prev => (prev === null ? true : !prev))}>
-              <Icon
-                as={expandAll ? ChevronsDownUpIcon : ChevronsUpDownIcon}
-                className="size-5 text-muted-foreground"
-              />
-            </Button>
-          </View>
+          <View className="h-4" />
           {Array.from(groupedTasks.entries()).map(([project, projectTasks]) => (
             <ProjectGroup
               key={project.id}
               project={project}
               tasks={projectTasks}
               allTasks={tasks}
-              expandAll={expandAll}
+
               onTaskPress={handleTaskPress}
               onTaskToggle={handleTaskToggle}
               onReorderTasks={handleReorderTasks}
@@ -186,7 +175,6 @@ export default function ProjectsScreen() {
       {/* Sheets */}
       <ProjectSheet />
       <TaskSheet tasks={tasks} projects={projects} />
-    </SafeAreaView>
+    </>
   );
 }
-

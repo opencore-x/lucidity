@@ -1,8 +1,12 @@
 import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { PlusIcon } from 'lucide-react-native';
+import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { UserMenu } from '@/components/user-menu';
+import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
 import { TaskSheet } from '@/components/TaskSheet';
 import { ProjectSheet } from '@/components/ProjectSheet';
 import { InlineTaskInput } from '@/components/InlineTaskInput';
@@ -12,7 +16,7 @@ import {
   DropIndicator,
 } from '@/components/ProjectGroup';
 import { useProject } from '@/hooks/useProjects';
-import { useTasks, useToggleTask, useUpdateTask, useReorderTasks } from '@/hooks/useTasks';
+import { useTasks, useCreateTask, useToggleTask, useUpdateTask, useReorderTasks } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
@@ -25,6 +29,7 @@ export default function ProjectScreen() {
   const { data: project, isLoading: projectLoading } = useProject(id);
   const { data: allTasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: allProjects = [], refetch: refetchProjects } = useProjects();
+  const createTask = useCreateTask();
   const toggleTask = useToggleTask();
   const updateTask = useUpdateTask();
   const reorderTasks = useReorderTasks();
@@ -127,6 +132,20 @@ export default function ProjectScreen() {
     setDropIndex(targetIndex);
   }, []);
 
+  const handleCreateTask = React.useCallback(() => {
+    Alert.prompt('New Task', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Add Task',
+        onPress: (title?: string) => {
+          if (title?.trim()) {
+            createTask.mutate({ title: title.trim(), projectId: id });
+          }
+        },
+      },
+    ], 'plain-text');
+  }, [createTask, id]);
+
   const handleDragEnd = React.useCallback(() => {
     setIsDragging(false);
     setDropIndex(null);
@@ -147,10 +166,10 @@ export default function ProjectScreen() {
   if (isLoading) {
     return (
       <>
-        <Stack.Screen options={{ title: '' }} />
-        <SafeAreaView className="flex-1 items-center justify-center bg-background">
+        <Stack.Screen options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: '' }} />
+        <View className="flex-1 items-center justify-center bg-background">
           <ActivityIndicator size="large" />
-        </SafeAreaView>
+        </View>
       </>
     );
   }
@@ -158,22 +177,30 @@ export default function ProjectScreen() {
   if (!project) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Not Found' }} />
-        <SafeAreaView className="flex-1 items-center justify-center bg-background">
+        <Stack.Screen options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: 'Not Found' }} />
+        <View className="flex-1 items-center justify-center bg-background">
           <Text className="text-muted-foreground">Project not found</Text>
-        </SafeAreaView>
+        </View>
       </>
     );
   }
 
-  const activeCount = activeTasks.length;
 
   return (
     <>
       <Stack.Screen
         options={{
+          ...LARGE_TITLE_SCREEN_OPTIONS,
           title: project.name,
           headerTintColor: project.color ?? undefined,
+          headerRight: () => (
+            <View className="flex-row items-center gap-4">
+              <Pressable onPress={handleCreateTask} hitSlop={8} className="pl-2">
+                <Icon as={PlusIcon} className="size-6 text-foreground" />
+              </Pressable>
+              <UserMenu />
+            </View>
+          ),
         }}
       />
       <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
@@ -181,6 +208,7 @@ export default function ProjectScreen() {
         <ScrollView
           ref={scrollViewRef}
           className="flex-1"
+          contentInsetAdjustmentBehavior="automatic"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -188,16 +216,13 @@ export default function ProjectScreen() {
           keyboardDismissMode="on-drag"
         >
           {/* Project info */}
-          <View className="px-4 pt-2 pb-2">
-            {project.description ? (
-              <Text className="text-sm text-muted-foreground mb-2">
+          {project.description ? (
+            <View className="px-4 pt-2 pb-2">
+              <Text className="text-sm text-muted-foreground">
                 {project.description}
               </Text>
-            ) : null}
-            <Text className="text-sm text-muted-foreground">
-              {activeCount} task{activeCount !== 1 ? 's' : ''} remaining
-            </Text>
-          </View>
+            </View>
+          ) : null}
 
           {/* Filter tabs */}
           <View
