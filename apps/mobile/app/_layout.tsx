@@ -20,6 +20,7 @@ import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { requestNotificationPermissions } from '@/lib/notifications';
+import { useQuickActions } from '@/hooks/useQuickActions';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -71,6 +72,9 @@ SplashScreen.preventAutoHideAsync();
 
 function Routes() {
   const { isSignedIn, isLoaded } = useAuth();
+
+  // Set up quick actions for signed-in users
+  useQuickActions();
 
   React.useEffect(() => {
     if (isLoaded) {

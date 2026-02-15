@@ -187,6 +187,7 @@ export default function MilestonesScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
+        <View className="h-3" />
         {/* Project filter tabs */}
         {projectsWithMilestones.length > 1 && (
           <ScrollView
