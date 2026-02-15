@@ -7,10 +7,12 @@ import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable, Alert, ActionSheetIOS } from 'react-native';
 import { Stack } from 'expo-router';
+import { ScrollProvider } from '@/contexts/ScrollContext';
 import { useTasks, useToggleTask } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useAllMilestones, useCreateMilestone } from '@/hooks/useMilestones';
+import { useUndoableDeleteMilestone } from '@/hooks/useUndoableDeleteMilestone';
 import { useSheetStore } from '@/stores/sheetStore';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Task } from '@lucidity/shared';
@@ -20,6 +22,7 @@ export default function MilestonesScreen() {
   const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const { data: milestones = [], isLoading: milestonesLoading, refetch: refetchMilestones } = useAllMilestones();
   const createMilestone = useCreateMilestone();
+  const { deleteMilestone } = useUndoableDeleteMilestone();
   const toggleTask = useToggleTask();
   const { deleteTask } = useUndoableDeleteTask();
   const { openSheet } = useSheetStore();
@@ -30,6 +33,7 @@ export default function MilestonesScreen() {
     [allProjects]
   );
 
+  const scrollViewRef = React.useRef<ScrollView>(null);
   const isLoading = tasksLoading || projectsLoading || milestonesLoading;
   const [refreshing, setRefreshing] = React.useState(false);
   const [selectedProjectId, setSelectedProjectId] = React.useState<string | null>(null);
@@ -86,6 +90,13 @@ export default function MilestonesScreen() {
       deleteTask(taskId);
     },
     [deleteTask]
+  );
+
+  const handleDeleteMilestone = React.useCallback(
+    (milestoneId: string) => {
+      deleteMilestone(milestoneId);
+    },
+    [deleteMilestone]
   );
 
   const promptMilestoneName = React.useCallback(
@@ -166,7 +177,9 @@ export default function MilestonesScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Milestones', headerRight }} />
+      <ScrollProvider scrollViewRef={scrollViewRef}>
       <ScrollView
+        ref={scrollViewRef}
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -241,12 +254,14 @@ export default function MilestonesScreen() {
               onTaskPress={handleTaskPress}
               onTaskToggle={handleTaskToggle}
               onDeleteTask={handleDeleteTask}
+              onDeleteMilestone={handleDeleteMilestone}
             />
           ))
         )}
 
         <View className="h-32" />
       </ScrollView>
+      </ScrollProvider>
 
       <TaskSheet tasks={tasks} projects={projects} />
     </>
