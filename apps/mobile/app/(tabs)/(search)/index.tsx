@@ -171,7 +171,7 @@ export default function SearchScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Search input */}
-        <View className="px-4 pb-4">
+        <View className="px-4 pt-3 pb-4">
           <View className="flex-row items-center bg-muted rounded-lg px-3 py-2 gap-2">
             <Search size={18} className="text-muted-foreground" />
             <TextInput
