@@ -185,7 +185,6 @@ export default function ProjectScreen() {
     );
   }
 
-  const activeCount = activeTasks.length;
 
   return (
     <>
@@ -217,16 +216,13 @@ export default function ProjectScreen() {
           keyboardDismissMode="on-drag"
         >
           {/* Project info */}
-          <View className="px-4 pt-2 pb-2">
-            {project.description ? (
-              <Text className="text-sm text-muted-foreground mb-2">
+          {project.description ? (
+            <View className="px-4 pt-2 pb-2">
+              <Text className="text-sm text-muted-foreground">
                 {project.description}
               </Text>
-            ) : null}
-            <Text className="text-sm text-muted-foreground">
-              {activeCount} task{activeCount !== 1 ? 's' : ''} remaining
-            </Text>
-          </View>
+            </View>
+          ) : null}
 
           {/* Filter tabs */}
           <View
