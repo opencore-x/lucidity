@@ -32,6 +32,7 @@ interface ProjectGroupProps {
   tasks: Task[];
   allTasks: Task[];
   expandAll?: boolean | null;
+  triggerAddTask?: boolean;
   onTaskPress: (task: Task) => void;
   onTaskToggle: (taskId: string) => void;
   onReorderTasks: (taskIds: string[]) => void;
@@ -325,6 +326,7 @@ export function ProjectGroup({
   onDeleteTask,
   onSetDueToday,
   expandAll,
+  triggerAddTask,
 }: ProjectGroupProps) {
   const activeTasks = React.useMemo(
     () => tasks.filter((t) => t.status !== 'completed'),
@@ -377,6 +379,13 @@ export function ProjectGroup({
       setIsExpanded(expandAll);
     }
   }, [expandAll]);
+
+  React.useEffect(() => {
+    if (triggerAddTask) {
+      setIsExpanded(true);
+      setIsAddingTask(true);
+    }
+  }, [triggerAddTask]);
 
   React.useEffect(() => {
     chevronRotation.value = withTiming(isExpanded ? 0 : -90, { duration: 200 });

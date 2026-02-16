@@ -13,6 +13,11 @@ import { KeyRoundIcon, CopyIcon, TrashIcon, Loader2Icon } from 'lucide-react-nat
 import * as Clipboard from 'expo-clipboard';
 import * as React from 'react';
 import { View, ScrollView, Alert } from 'react-native';
+import {
+  saveApiKeyToKeychain,
+  removeApiKeyFromKeychain,
+  getApiKeyFromKeychain,
+} from '@/lib/keychain';
 
 export default function SettingsScreen() {
   const { data: apiKeyData, isLoading } = useApiKey();
@@ -21,6 +26,20 @@ export default function SettingsScreen() {
   const [newlyCreatedKey, setNewlyCreatedKey] = React.useState<string | null>(
     null,
   );
+  const [isInKeychain, setIsInKeychain] = React.useState<boolean>(false);
+
+  // Check if existing API key is in Keychain (for Shortcuts support)
+  React.useEffect(() => {
+    if (apiKeyData?.exists && !newlyCreatedKey) {
+      getApiKeyFromKeychain()
+        .then((key) => setIsInKeychain(!!key))
+        .catch((error) => {
+          // Keychain access may fail if App Group isn't provisioned yet
+          console.log('Keychain check skipped:', error.message);
+          setIsInKeychain(false);
+        });
+    }
+  }, [apiKeyData, newlyCreatedKey]);
 
   function handleGenerate() {
     if (apiKeyData?.exists) {
@@ -43,8 +62,13 @@ export default function SettingsScreen() {
 
   function doGenerate() {
     createApiKey.mutate(undefined, {
-      onSuccess: (data) => {
+      onSuccess: async (data) => {
         setNewlyCreatedKey(data.key);
+        // Save to Keychain for iOS Shortcuts access
+        const saved = await saveApiKeyToKeychain(data.key);
+        if (!saved) {
+          console.warn('API key created but not saved to Keychain');
+        }
       },
     });
   }
@@ -67,7 +91,11 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: () => {
             revokeApiKey.mutate(undefined, {
-              onSuccess: () => setNewlyCreatedKey(null),
+              onSuccess: async () => {
+                setNewlyCreatedKey(null);
+                // Remove from Keychain
+                await removeApiKeyFromKeychain();
+              },
             });
           },
         },
@@ -84,8 +112,8 @@ export default function SettingsScreen() {
               <CardTitle>API Key</CardTitle>
             </View>
             <CardDescription>
-              Connect AI assistants like Claude Desktop or Cursor to your tasks
-              via the Lucidity MCP server.
+              Connect AI assistants (Claude Desktop, Cursor) and enable ultra-fast
+              task capture from your iPhone Lock Screen via iOS Shortcuts.
             </CardDescription>
           </CardHeader>
 
@@ -145,6 +173,13 @@ export default function SettingsScreen() {
                     )}
                   </View>
                 </View>
+                {!isInKeychain && (
+                  <View className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3">
+                    <Text className="text-xs text-amber-600 dark:text-amber-400">
+                      💡 Regenerate this key to enable iOS Shortcuts support
+                    </Text>
+                  </View>
+                )}
                 <View className="flex-row gap-2">
                   <Button
                     variant="outline"
@@ -152,7 +187,7 @@ export default function SettingsScreen() {
                     className="flex-1"
                     onPress={handleGenerate}>
                     <Icon as={KeyRoundIcon} className="size-4" />
-                    <Text>Regenerate</Text>
+                    <Text>{isInKeychain ? 'Regenerate' : 'Enable Shortcuts'}</Text>
                   </Button>
                   <Button
                     variant="destructive"
