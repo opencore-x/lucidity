@@ -6,7 +6,7 @@ const API_KEY_SERVICE = 'com.lucidity.api-key';
 
 /**
  * Save API key to iOS Keychain with App Group access.
- * This allows iOS Shortcuts to retrieve the key programmatically.
+ * Note: iOS Shortcuts cannot read Keychain, so use manual shortcut with copied API key.
  */
 export async function saveApiKeyToKeychain(apiKey: string): Promise<boolean> {
   if (Platform.OS !== 'ios') {
@@ -15,24 +15,24 @@ export async function saveApiKeyToKeychain(apiKey: string): Promise<boolean> {
   }
 
   try {
-    // Try with App Group first (for Shortcuts access)
+    // Try with App Group first (for future native App Intent)
     await Keychain.setGenericPassword('api-key', apiKey, {
       service: API_KEY_SERVICE,
       accessGroup: APP_GROUP,
       accessible: Keychain.ACCESSIBLE.AFTER_FIRST_UNLOCK,
     });
-    console.log('✅ API key saved to Keychain with App Group access (Shortcuts enabled)');
+    console.log('✅ API key saved to Keychain with App Group access');
     return true;
   } catch (error) {
     console.warn('⚠️ App Group access failed, trying without App Group...');
 
-    // Fallback: save without App Group (won't work with Shortcuts but still secure)
+    // Fallback: save without App Group
     try {
       await Keychain.setGenericPassword('api-key', apiKey, {
         service: API_KEY_SERVICE,
         accessible: Keychain.ACCESSIBLE.AFTER_FIRST_UNLOCK,
       });
-      console.log('✅ API key saved to Keychain (App Group pending - Shortcuts not available yet)');
+      console.log('✅ API key saved to Keychain (App Group pending)');
       return true;
     } catch (fallbackError) {
       console.error('❌ Failed to save API key to Keychain:', fallbackError);
