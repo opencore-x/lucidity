@@ -287,6 +287,7 @@ export default function TodayScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
+        <View className="h-3" />
         {todayTasks.length === 0 ? (
           <View className="items-center justify-center px-8 pt-32">
             <Text className="text-6xl mb-4">🎉</Text>

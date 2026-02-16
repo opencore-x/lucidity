@@ -13,17 +13,18 @@ import {
   Alert,
   Pressable,
 } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { ScrollProvider } from '@/contexts/ScrollContext';
 import { useTasks, useToggleTask, useUpdateTask, useReorderTasks } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects, useCreateProject } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
-import { groupTasksByProject } from '@/utils/helpers';
+import { groupTasksByProject, INBOX_PROJECT_ID } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
 
 export default function ProjectsScreen() {
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const { quickCapture } = useLocalSearchParams<{ quickCapture?: string }>();
 
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const {
@@ -37,6 +38,8 @@ export default function ProjectsScreen() {
   const { deleteTask } = useUndoableDeleteTask();
   const createProject = useCreateProject();
   const { openSheet } = useSheetStore();
+
+  const [triggerQuickCapture, setTriggerQuickCapture] = React.useState(false);
 
   // Filter out archived projects
   const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
@@ -108,6 +111,15 @@ export default function ProjectsScreen() {
 
   const groupedTasks = React.useMemo(() => groupTasksByProject(tasks, projects), [tasks, projects]);
 
+  // Handle quick capture from quick action
+  React.useEffect(() => {
+    if (quickCapture === 'true' && !isLoading) {
+      setTriggerQuickCapture(true);
+      // Reset after triggering
+      setTimeout(() => setTriggerQuickCapture(false), 100);
+    }
+  }, [quickCapture, isLoading]);
+
   // Get current sheet data for stale validation
   const { currentTask } = useSheetStore();
   const sheetTask = currentTask();
@@ -152,14 +164,14 @@ export default function ProjectsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag">
-          <View className="h-4" />
+          <View className="h-3" />
           {Array.from(groupedTasks.entries()).map(([project, projectTasks]) => (
             <ProjectGroup
               key={project.id}
               project={project}
               tasks={projectTasks}
               allTasks={tasks}
-
+              triggerAddTask={project.id === INBOX_PROJECT_ID && triggerQuickCapture}
               onTaskPress={handleTaskPress}
               onTaskToggle={handleTaskToggle}
               onReorderTasks={handleReorderTasks}
