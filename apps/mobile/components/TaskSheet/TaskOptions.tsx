@@ -38,7 +38,7 @@ const STATUS_OPTIONS = [
   { value: 'deferred', label: 'Deferred' },
 ];
 
-const PRIORITY_STEPS = [1, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
+const PRIORITY_STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
 
 function snapToStep(value: number): number {
   let closest = PRIORITY_STEPS[0];
@@ -78,7 +78,7 @@ function OptionRow({ icon, label, children }: OptionRowProps) {
 
 const THUMB_SIZE = 24;
 const TRACK_HEIGHT = 6;
-const STEP_COUNT = 10; // 0..10 = 11 positions
+const STEP_COUNT = 9; // 0..9 = 10 positions
 
 function PrioritySlider({ value, onValueChange, onLiveChange }: { value: number; onValueChange: (index: number) => void; onLiveChange?: (index: number) => void }) {
   const trackWidth = useSharedValue(0);
