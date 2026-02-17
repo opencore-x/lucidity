@@ -6,6 +6,7 @@ export {
   PRIORITY_MAX,
   COMMENT_SOURCE_VALUES,
   AI_REVIEW_DEPTH_VALUES,
+  TIME_SESSION_DEVICE_VALUES,
 } from './constants.js';
 
 // Schemas
@@ -39,6 +40,12 @@ export {
   UpdateCommentSchema,
 } from './schemas/comment.js';
 
+export {
+  TimeSessionSchema,
+  CreateTimeSessionSchema,
+  UpdateTimeSessionSchema,
+} from './schemas/timeSession.js';
+
 // Types
 export type {
   Task,
@@ -56,4 +63,7 @@ export type {
   Comment,
   CreateComment,
   UpdateComment,
+  TimeSession,
+  CreateTimeSession,
+  UpdateTimeSession,
 } from './types.js';

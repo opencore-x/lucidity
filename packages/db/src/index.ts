@@ -8,6 +8,7 @@ export * from './schema/projects.js';
 export * from './schema/milestones.js';
 export * from './schema/comments.js';
 export * from './schema/apiKeys.js';
+export * from './schema/timeSessions.js';
 
 // Re-export drizzle-orm helpers
 export { eq, and, or, desc, asc, isNull, isNotNull, sql } from 'drizzle-orm';

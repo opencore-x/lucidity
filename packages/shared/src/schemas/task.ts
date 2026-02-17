@@ -39,6 +39,8 @@ export const TaskSchema = CreateTaskSchema.extend({
   reminderAt: z.coerce.date().nullable(),
   recurringFrequency: z.enum(RECURRING_FREQUENCY_VALUES).nullable(),
   reviewedAt: z.coerce.date().nullable(),
+  activeTimerStartedAt: z.coerce.date().nullable(),
+  totalElapsedSeconds: z.number(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });
