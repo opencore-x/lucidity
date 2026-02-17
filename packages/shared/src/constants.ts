@@ -16,3 +16,5 @@ export const RECURRING_FREQUENCY_VALUES = ['daily', 'weekly', 'monthly', 'yearly
 export const COMMENT_SOURCE_VALUES = ['user', 'claude'] as const;
 export const AI_REVIEW_DEPTH_VALUES = ['deep', 'light', 'none'] as const;
 
+export const TIME_SESSION_DEVICE_VALUES = ['mobile', 'watch', 'web'] as const;
+
