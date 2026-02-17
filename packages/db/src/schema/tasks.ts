@@ -40,6 +40,8 @@ export const tasks = pgTable('tasks', {
   completedAt: timestamp('completed_at'),
   recurringFrequency: varchar('recurring_frequency', { length: 20 }),
   reviewedAt: timestamp('reviewed_at'),
+  activeTimerStartedAt: timestamp('active_timer_started_at'),
+  totalElapsedSeconds: integer('total_elapsed_seconds').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (table) => [
