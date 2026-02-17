@@ -12,6 +12,7 @@ import projectRouter from './routes/projects.js';
 import milestoneRouter from './routes/milestones.js';
 import apiKeyRouter from './routes/apiKey.js';
 import commentRouter from './routes/comments.js';
+import timeSessionRouter from './routes/timeSessions.js';
 import { taskQueryRouter, searchRouter } from './routes/taskQueries.js';
 
 const app = new Hono();
@@ -32,8 +33,9 @@ app.onError((err, c) => {
 app.get('/', (c) => c.json({ status: 'ok' }));
 
 app.route('/api/auth/api-key', apiKeyRouter);
-app.route('/api/tasks', commentRouter);     // :taskId/comments/* must be before /:id
-app.route('/api/tasks', taskQueryRouter);  // Must be before taskRouter so /today, /week match first
+app.route('/api/tasks', commentRouter);      // :taskId/comments/* must be before /:id
+app.route('/api/tasks', timeSessionRouter); // :taskId/timer/*, :taskId/time-sessions/* before /:id
+app.route('/api/tasks', taskQueryRouter);   // Must be before taskRouter so /today, /week match first
 app.route('/api/tasks', taskRouter);
 app.route('/api/users', userRouter);
 app.route('/api/projects', projectRouter);
