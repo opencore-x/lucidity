@@ -29,6 +29,12 @@ import {
   UpdateCommentSchema,
 } from './schemas/comment.js';
 
+import {
+  TimeSessionSchema,
+  CreateTimeSessionSchema,
+  UpdateTimeSessionSchema,
+} from './schemas/timeSession.js';
+
 export type Task = z.infer<typeof TaskSchema>;
 export type CreateTask = z.input<typeof CreateTaskSchema>;
 export type UpdateTask = z.infer<typeof UpdateTaskSchema>;
@@ -48,3 +54,7 @@ export type UpdateMilestone = z.infer<typeof UpdateMilestoneSchema>;
 export type Comment = z.infer<typeof CommentSchema>;
 export type CreateComment = z.input<typeof CreateCommentSchema>;
 export type UpdateComment = z.infer<typeof UpdateCommentSchema>;
+
+export type TimeSession = z.infer<typeof TimeSessionSchema>;
+export type CreateTimeSession = z.input<typeof CreateTimeSessionSchema>;
+export type UpdateTimeSession = z.infer<typeof UpdateTimeSessionSchema>;
