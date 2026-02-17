@@ -15,7 +15,7 @@ import { SubtaskList } from './SubtaskList';
 import { TaskOptions } from './TaskOptions';
 import { CommentSection } from './CommentSection';
 import { StatusPill } from './StatusPill';
-import { ChevronLeft, Plus, FileText, RefreshCw, X } from '@/lib/icons';
+import { ChevronLeft, Plus, RefreshCw, X } from '@/lib/icons';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtasks } from '@/utils/helpers';
 import { useToggleTask, useCreateTask, useUpdateTask } from '@/hooks/useTasks';
@@ -212,7 +212,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
         {/* Task header */}
         <View className="px-4 py-4">
           <View>
-            {/* Title row with optional description icon */}
+            {/* Title row with recurring indicator */}
             <View className="flex-row items-center justify-between">
               <View className="flex-1 mr-2">
                 {isEditingTitle ? (
@@ -240,46 +240,39 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
                   </Pressable>
                 )}
               </View>
-              {/* Header icons */}
-              <View className="flex-row items-center">
-                {/* Recurring indicator */}
-                {task.recurringFrequency && (
-                  <RefreshCw size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
-                )}
-                {/* Show add description icon only when no description and not editing */}
-                {!task.description && !isEditingDescription && (
-                  <Pressable
-                    onPress={() => setIsEditingDescription(true)}
-                    className="p-2"
-                    hitSlop={8}
-                  >
-                    <FileText size={20} color="#9CA3AF" />
-                  </Pressable>
-                )}
-              </View>
+              {/* Recurring indicator */}
+              {task.recurringFrequency && (
+                <RefreshCw size={18} color="#9CA3AF" />
+              )}
             </View>
 
-            {/* Description section */}
-            {isEditingDescription ? (
-              <BottomSheetTextInput
-                className="text-muted-foreground mt-2 font-sans"
-                style={{ padding: 0, margin: 0, minHeight: 20 }}
-                value={descriptionValue}
-                onChangeText={setDescriptionValue}
-                onBlur={handleDescriptionSubmit}
-                onSubmitEditing={handleDescriptionSubmit}
-                autoFocus
-                returnKeyType="done"
-                blurOnSubmit
-                placeholder="Add description..."
-                placeholderTextColor="#9CA3AF"
-                multiline
-              />
-            ) : task.description ? (
-              <Pressable onPress={() => setIsEditingDescription(true)} className="mt-1">
-                <MarkdownText muted>{task.description}</MarkdownText>
-              </Pressable>
-            ) : null}
+            {/* Description section - always visible */}
+            <View className="mt-2">
+              {isEditingDescription ? (
+                <BottomSheetTextInput
+                  className="text-muted-foreground font-sans"
+                  style={{ padding: 0, margin: 0, minHeight: 20 }}
+                  value={descriptionValue}
+                  onChangeText={setDescriptionValue}
+                  onBlur={handleDescriptionSubmit}
+                  onSubmitEditing={handleDescriptionSubmit}
+                  autoFocus
+                  returnKeyType="done"
+                  blurOnSubmit
+                  placeholder="Add description..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline
+                />
+              ) : task.description ? (
+                <Pressable onPress={() => setIsEditingDescription(true)}>
+                  <MarkdownText muted>{task.description}</MarkdownText>
+                </Pressable>
+              ) : (
+                <Pressable onPress={() => setIsEditingDescription(true)}>
+                  <Text className="text-muted-foreground">Add description...</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
         </View>
 
