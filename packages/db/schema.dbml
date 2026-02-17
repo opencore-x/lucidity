@@ -1,0 +1,181 @@
+Project Lucidity {
+  database_type: 'PostgreSQL'
+  Note: 'Personal productivity & task management'
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+Enum task_status {
+  pending
+  in_progress
+  completed
+  blocked
+  deferred
+}
+
+Enum comment_source {
+  user
+  claude
+}
+
+Enum ai_review_depth {
+  deep
+  light
+  none
+}
+
+// ============================================
+// USERS
+// ============================================
+
+Table users {
+  id uuid [pk]
+  clerk_id varchar(255)
+  email varchar(500) [unique, not null]
+  name varchar(255) [not null]
+  avatar_url varchar
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+// ============================================
+// PROJECTS
+// ============================================
+
+Table projects {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  name varchar(255) [not null]
+  color varchar(7) [note: 'Hex color e.g. #3B82F6']
+  description varchar
+  is_archived boolean [default: false]
+  ai_review_depth ai_review_depth [not null, default: 'light']
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    user_id
+  }
+}
+
+// ============================================
+// MILESTONES
+// ============================================
+
+Table milestones {
+  id uuid [pk]
+  project_id uuid [not null, ref: > projects.id]
+  user_id uuid [not null, ref: > users.id]
+  name varchar(255) [not null]
+  description text
+  due_date timestamp
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    project_id
+    user_id
+  }
+
+  Note: 'On delete cascade from project'
+}
+
+// ============================================
+// TASKS
+// ============================================
+
+Table tasks {
+  id uuid [pk]
+  user_id uuid [not null, ref: > users.id]
+  project_id uuid [ref: > projects.id, note: 'null = Inbox (virtual)']
+  milestone_id uuid [ref: > milestones.id, note: 'On delete set null']
+  parent_task_id uuid [ref: > tasks.id, note: 'Self-ref for subtasks']
+  title varchar(500) [not null]
+  description text
+  status task_status [default: 'pending']
+  priority integer [not null, default: 500, note: '1-1000, lower = higher priority']
+  position integer
+  task_number integer [note: 'Auto-incremented per project']
+  due_date timestamp
+  reminder_at timestamp
+  completed_at timestamp
+  recurring_frequency varchar(20) [note: 'daily, weekly, monthly, yearly']
+  reviewed_at timestamp [note: 'Last AI review timestamp']
+  active_timer_started_at timestamp [note: 'Non-null = timer is running']
+  total_elapsed_seconds integer [not null, default: 0, note: 'Accumulated time across all sessions']
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    user_id
+    project_id
+    parent_task_id
+    status
+    due_date
+    (project_id, task_number) [unique]
+  }
+}
+
+// ============================================
+// TIME SESSIONS
+// ============================================
+
+Table time_sessions {
+  id uuid [pk]
+  task_id uuid [not null, ref: > tasks.id]
+  user_id uuid [not null, ref: > users.id]
+  started_at timestamp [not null]
+  ended_at timestamp [note: 'null = currently tracking']
+  elapsed_seconds integer [not null, default: 0]
+  device varchar(50) [note: 'mobile, watch, web']
+  notes text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    task_id
+    user_id
+    (user_id, ended_at) [note: 'Find active sessions for user']
+  }
+
+  Note: 'On delete cascade from task'
+}
+
+// ============================================
+// COMMENTS
+// ============================================
+
+Table comments {
+  id uuid [pk]
+  task_id uuid [not null, ref: > tasks.id]
+  user_id uuid [not null, ref: > users.id]
+  content text [not null]
+  source comment_source [not null, default: 'user']
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    task_id
+  }
+
+  Note: 'On delete cascade from task'
+}
+
+// ============================================
+// API KEYS
+// ============================================
+
+Table api_keys {
+  id uuid [pk]
+  user_id uuid [not null, unique, ref: > users.id]
+  key_hash varchar(64) [not null]
+  key_prefix varchar(16) [not null]
+  created_at timestamp [default: `now()`]
+  last_used_at timestamp
+
+  indexes {
+    (key_hash) [name: 'api_keys_key_hash_idx']
+  }
+}
