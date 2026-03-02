@@ -48,6 +48,8 @@ export function useCreateTask() {
         reminderAt: newTask.reminderAt ? new Date(newTask.reminderAt as string | number | Date) : null,
         recurringFrequency: newTask.recurringFrequency ?? null,
         reviewedAt: null,
+        activeTimerStartedAt: null,
+        totalElapsedSeconds: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
