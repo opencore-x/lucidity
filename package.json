@@ -6,6 +6,7 @@
     "dev": "turbo run dev",
     "dev:api": "pnpm --filter @lucidity/api dev",
     "dev:mobile": "pnpm --filter @lucidity/mobile dev",
+    "dev:web": "pnpm --filter @lucidity/web dev",
     "ios:local": "pnpm --filter @lucidity/mobile ios:local",
     "ios:prod": "pnpm --filter @lucidity/mobile ios:prod",
     "lint": "turbo run lint",
