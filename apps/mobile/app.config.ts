@@ -16,7 +16,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   icon: './assets/images/icon.png',
   scheme: 'lucidity',
   userInterfaceStyle: 'automatic',
-  newArchEnabled: true,
   splash: {
     image: './assets/images/splash.png',
     resizeMode: 'contain',
@@ -31,7 +30,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
-    edgeToEdgeEnabled: true,
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#000000',
@@ -47,6 +45,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-router',
     'expo-secure-store',
     'expo-web-browser',
+    'expo-font',
     '@react-native-community/datetimepicker',
     // 'expo-notifications',
     'expo-quick-actions',
@@ -54,6 +53,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ],
   experiments: {
     typedRoutes: true,
+    reactCompiler: true,
   },
   extra: {
     APP_ENV,
