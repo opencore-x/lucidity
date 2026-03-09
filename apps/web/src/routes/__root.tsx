@@ -1,10 +1,19 @@
 /// <reference types="vite/client" />
 import { ClerkProvider } from '@clerk/tanstack-react-start'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRoute,
+} from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import * as React from 'react'
+import { Show } from '@clerk/tanstack-react-start'
 import { ApiProvider } from '~/providers/ApiProvider'
+import { TooltipProvider } from '~/components/ui/tooltip'
+import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
+import { AppSidebar } from '~/components/app-sidebar'
 import appCss from '~/styles/app.css?url'
 
 const queryClient = new QueryClient({
@@ -26,6 +35,7 @@ export const Route = createRootRoute({
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
   shellComponent: RootDocument,
+  component: RootComponent,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -38,7 +48,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <ClerkProvider>
           <QueryClientProvider client={queryClient}>
             <ApiProvider>
-              {children}
+              <TooltipProvider>
+                {children}
+              </TooltipProvider>
             </ApiProvider>
           </QueryClientProvider>
         </ClerkProvider>
@@ -48,5 +60,23 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <Scripts />
       </body>
     </html>
+  )
+}
+
+function RootComponent() {
+  return (
+    <>
+      <Show when="signed-in">
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <Outlet />
+          </SidebarInset>
+        </SidebarProvider>
+      </Show>
+      <Show when="signed-out">
+        <Outlet />
+      </Show>
+    </>
   )
 }
