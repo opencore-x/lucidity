@@ -1,13 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '~/api/client'
+import { useAuthReady } from '~/providers/ApiProvider'
 import type { Comment } from '@lucidity/shared'
 
 export function useComments(taskId: string) {
+  const authReady = useAuthReady()
   return useQuery({
     queryKey: ['comments', taskId],
     queryFn: () =>
       apiClient<Comment[]>(`/api/tasks/${taskId}/comments`),
-    enabled: !!taskId,
+    enabled: authReady && !!taskId,
   })
 }
 

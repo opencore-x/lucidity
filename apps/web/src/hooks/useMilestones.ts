@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '~/api/client'
+import { useAuthReady } from '~/providers/ApiProvider'
 import type { CreateMilestone, UpdateMilestone, Milestone, Task } from '@lucidity/shared'
 
 export interface MilestoneProgress {
@@ -12,26 +13,31 @@ export interface MilestoneProgress {
 }
 
 export function useMilestones(projectId: string | null) {
+  const authReady = useAuthReady()
   return useQuery({
     queryKey: ['milestones', projectId],
     queryFn: () =>
       apiClient<Milestone[]>(`/api/milestones?project_id=${projectId}`),
-    enabled: !!projectId,
+    enabled: authReady && !!projectId,
   })
 }
 
 export function useAllMilestones() {
+  const authReady = useAuthReady()
   return useQuery({
     queryKey: ['milestones'],
     queryFn: () => apiClient<Milestone[]>('/api/milestones'),
+    enabled: authReady,
   })
 }
 
 export function useMilestoneProgress(milestoneId: string) {
+  const authReady = useAuthReady()
   return useQuery({
     queryKey: ['milestoneProgress', milestoneId],
     queryFn: () =>
       apiClient<MilestoneProgress>(`/api/milestones/${milestoneId}/progress`),
+    enabled: authReady,
   })
 }
 
