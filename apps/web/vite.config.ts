@@ -6,7 +6,6 @@ import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
 export default defineConfig({
-  envDir: '../..',
   server: {
     port: 3001,
   },

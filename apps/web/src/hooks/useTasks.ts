@@ -1,19 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '~/api/client'
+import { useAuthReady } from '~/providers/ApiProvider'
 import type { CreateTask, UpdateTask, Task } from '@lucidity/shared'
 
 export function useTasks() {
+  const authReady = useAuthReady()
   return useQuery({
     queryKey: ['tasks'],
-    queryFn: () => apiClient<Task[]>('/api/tasks?limit=200'),
+    queryFn: async () => {
+      const res = await apiClient<{ tasks: Task[]; total: number; hasMore: boolean }>('/api/tasks?limit=200')
+      return res.tasks
+    },
+    enabled: authReady,
   })
 }
 
 export function useTask(id: string) {
+  const authReady = useAuthReady()
   return useQuery({
     queryKey: ['tasks', id],
     queryFn: () => apiClient<Task>(`/api/tasks/${id}`),
-    enabled: !!id,
+    enabled: authReady && !!id,
   })
 }
 
