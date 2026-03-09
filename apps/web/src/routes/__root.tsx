@@ -1,9 +1,20 @@
 /// <reference types="vite/client" />
 import { ClerkProvider } from '@clerk/tanstack-react-start'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import * as React from 'react'
+import { ApiProvider } from '~/providers/ApiProvider'
 import appCss from '~/styles/app.css?url'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60,
+      retry: 1,
+    },
+  },
+})
 
 export const Route = createRootRoute({
   head: () => ({
@@ -25,7 +36,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ClerkProvider>
-          {children}
+          <QueryClientProvider client={queryClient}>
+            <ApiProvider>
+              {children}
+            </ApiProvider>
+          </QueryClientProvider>
         </ClerkProvider>
         {process.env.NODE_ENV === 'development' && (
           <TanStackRouterDevtools position="bottom-right" />
