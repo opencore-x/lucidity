@@ -14,6 +14,7 @@ import { ApiProvider } from '~/providers/ApiProvider'
 import { TooltipProvider } from '~/components/ui/tooltip'
 import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
 import { AppSidebar } from '~/components/app-sidebar'
+import { CommandPalette } from '~/components/command-palette'
 import appCss from '~/styles/app.css?url'
 
 const queryClient = new QueryClient({
@@ -73,6 +74,7 @@ function RootComponent() {
             <Outlet />
           </SidebarInset>
         </SidebarProvider>
+        <CommandPalette />
       </Show>
       <Show when="signed-out">
         <Outlet />
