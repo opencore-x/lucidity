@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { ClerkProvider } from '@clerk/tanstack-react-start'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import * as React from 'react'
@@ -23,7 +24,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <ClerkProvider>
+          {children}
+        </ClerkProvider>
         {process.env.NODE_ENV === 'development' && (
           <TanStackRouterDevtools position="bottom-right" />
         )}
