@@ -31,7 +31,11 @@ export function NavMain({
           <SidebarMenuItem key={item.title}>
             <SidebarMenuButton
               asChild
-              isActive={currentPath === item.url}
+              isActive={
+                item.url === '/'
+                  ? currentPath === '/' || currentPath.startsWith('/projects/')
+                  : currentPath === item.url
+              }
               tooltip={item.title}
             >
               <Link to={item.url}>

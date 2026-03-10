@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type { Task, Project } from '@lucidity/shared'
 import { ChevronRight, Plus } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 import { cn } from '~/lib/utils'
 import { isInboxProject } from '~/utils/helpers'
 import { TaskItem } from '~/components/task-item'
@@ -72,12 +73,24 @@ export function ProjectGroup({
             isOpen && 'rotate-90',
           )}
         />
-        <span
-          className="truncate text-sm font-semibold"
-          style={project.color ? { color: project.color } : undefined}
-        >
-          {project.name}
-        </span>
+        {inbox ? (
+          <span
+            className="truncate text-sm font-semibold"
+            style={project.color ? { color: project.color } : undefined}
+          >
+            {project.name}
+          </span>
+        ) : (
+          <Link
+            to="/projects/$id"
+            params={{ id: project.id }}
+            onClick={(e) => e.stopPropagation()}
+            className="truncate text-sm font-semibold hover:underline"
+            style={project.color ? { color: project.color } : undefined}
+          >
+            {project.name}
+          </Link>
+        )}
         {totalCount > 0 && (
           <span className="ml-auto text-xs text-muted-foreground">
             {completedCount}/{totalCount}
