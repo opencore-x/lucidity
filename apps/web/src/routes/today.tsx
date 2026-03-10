@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useTasks, useToggleTask } from '~/hooks/useTasks'
 import { useProjects } from '~/hooks/useProjects'
 import { TaskItem } from '~/components/task-item'
+import { TaskPanel } from '~/components/task-panel'
 import { ChevronRight } from 'lucide-react'
 import { cn } from '~/lib/utils'
 import type { Task, Project } from '@lucidity/shared'
@@ -15,6 +16,7 @@ function Today() {
   const tasksQuery = useTasks()
   const projectsQuery = useProjects()
   const toggleTask = useToggleTask()
+  const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(null)
 
   const allTasks = tasksQuery.data ?? []
   const projects = projectsQuery.data ?? []
@@ -78,6 +80,7 @@ function Today() {
             allTasks={allTasks}
             projectMap={projectMap}
             onToggleTask={(id) => toggleTask.mutate(id)}
+            onClickTask={(task) => setSelectedTaskId(task.id)}
           />
         )}
 
@@ -88,6 +91,7 @@ function Today() {
             allTasks={allTasks}
             projectMap={projectMap}
             onToggleTask={(id) => toggleTask.mutate(id)}
+            onClickTask={(task) => setSelectedTaskId(task.id)}
           />
         )}
 
@@ -103,9 +107,15 @@ function Today() {
             allTasks={allTasks}
             projectMap={projectMap}
             onToggleTask={(id) => toggleTask.mutate(id)}
+            onClickTask={(task) => setSelectedTaskId(task.id)}
           />
         )}
       </div>
+      <TaskPanel
+        taskId={selectedTaskId}
+        onClose={() => setSelectedTaskId(null)}
+        allTasks={allTasks}
+      />
     </div>
   )
 }
@@ -117,6 +127,7 @@ function TaskGroup({
   allTasks,
   projectMap,
   onToggleTask,
+  onClickTask,
 }: {
   title: string
   titleClassName?: string
@@ -124,6 +135,7 @@ function TaskGroup({
   allTasks: Task[]
   projectMap: Map<string, Project>
   onToggleTask: (id: string) => void
+  onClickTask?: (task: Task) => void
 }) {
   return (
     <div className="rounded-lg border bg-card">
@@ -143,6 +155,7 @@ function TaskGroup({
                 task={task}
                 allTasks={allTasks}
                 onToggle={onToggleTask}
+                onClick={onClickTask}
               />
             </div>
             {task.projectId && projectMap.has(task.projectId) && (
@@ -167,11 +180,13 @@ function CompletedTodayGroup({
   allTasks,
   projectMap,
   onToggleTask,
+  onClickTask,
 }: {
   tasks: Task[]
   allTasks: Task[]
   projectMap: Map<string, Project>
   onToggleTask: (id: string) => void
+  onClickTask?: (task: Task) => void
 }) {
   const [isOpen, setIsOpen] = React.useState(false)
 
@@ -203,6 +218,7 @@ function CompletedTodayGroup({
                   task={task}
                   allTasks={allTasks}
                   onToggle={onToggleTask}
+                  onClick={onClickTask}
                 />
               </div>
               {task.projectId && projectMap.has(task.projectId) && (
