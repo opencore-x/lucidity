@@ -1,6 +1,8 @@
 import {
   FolderOpen,
   Sun,
+  Moon,
+  Monitor,
   Flag,
   Search,
   Settings,
@@ -8,6 +10,7 @@ import {
 
 import { NavMain } from '~/components/nav-main'
 import { NavUser } from '~/components/nav-user'
+import { ThemeToggle } from '~/components/theme-toggle'
 import {
   Sidebar,
   SidebarContent,
@@ -58,6 +61,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={bottomItems} label="Settings" />
       </SidebarContent>
       <SidebarFooter>
+        <ThemeToggle />
         <NavUser />
       </SidebarFooter>
       <SidebarRail />
