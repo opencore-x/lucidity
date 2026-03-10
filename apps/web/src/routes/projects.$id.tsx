@@ -11,6 +11,7 @@ import {
   getSubtaskProgress,
 } from '~/utils/helpers'
 import { TaskItem } from '~/components/task-item'
+import { TaskPanel } from '~/components/task-panel'
 import type { Task, Milestone } from '@lucidity/shared'
 
 export const Route = createFileRoute('/projects/$id')({
@@ -24,6 +25,7 @@ function ProjectDetailPage() {
   const milestonesQuery = useMilestones(id)
   const toggleTask = useToggleTask()
   const createTask = useCreateTask()
+  const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(null)
 
   const project = projectQuery.data
   const allTasks = tasksQuery.data ?? []
@@ -122,6 +124,7 @@ function ProjectDetailPage() {
               onCreateTask={(title, milestoneId) =>
                 createTask.mutate({ title, projectId: id, milestoneId })
               }
+              onClickTask={(task) => setSelectedTaskId(task.id)}
             />
           )
         })}
@@ -134,6 +137,7 @@ function ProjectDetailPage() {
           projectId={id}
           onToggleTask={(taskId) => toggleTask.mutate(taskId)}
           onCreateTask={(title) => createTask.mutate({ title, projectId: id })}
+          onClickTask={(task) => setSelectedTaskId(task.id)}
         />
 
         {/* Completed tasks */}
@@ -142,9 +146,15 @@ function ProjectDetailPage() {
             tasks={completedTasks}
             allTasks={allTasks}
             onToggleTask={(taskId) => toggleTask.mutate(taskId)}
+            onClickTask={(task) => setSelectedTaskId(task.id)}
           />
         )}
       </div>
+      <TaskPanel
+        taskId={selectedTaskId}
+        onClose={() => setSelectedTaskId(null)}
+        allTasks={allTasks}
+      />
     </div>
   )
 }
@@ -156,6 +166,7 @@ function MilestoneSection({
   projectId,
   onToggleTask,
   onCreateTask,
+  onClickTask,
 }: {
   milestone: Milestone
   tasks: Task[]
@@ -163,6 +174,7 @@ function MilestoneSection({
   projectId: string
   onToggleTask: (id: string) => void
   onCreateTask: (title: string, milestoneId: string) => void
+  onClickTask?: (task: Task) => void
 }) {
   const [isOpen, setIsOpen] = React.useState(true)
   const [isAdding, setIsAdding] = React.useState(false)
@@ -237,6 +249,7 @@ function MilestoneSection({
               task={task}
               allTasks={allTasks}
               onToggle={onToggleTask}
+              onClick={onClickTask}
             />
           ))}
 
@@ -280,6 +293,7 @@ function TaskSection({
   projectId,
   onToggleTask,
   onCreateTask,
+  onClickTask,
 }: {
   title: string
   tasks: Task[]
@@ -287,6 +301,7 @@ function TaskSection({
   projectId: string
   onToggleTask: (id: string) => void
   onCreateTask: (title: string) => void
+  onClickTask?: (task: Task) => void
 }) {
   const [isOpen, setIsOpen] = React.useState(true)
   const [isAdding, setIsAdding] = React.useState(false)
@@ -356,6 +371,7 @@ function TaskSection({
               task={task}
               allTasks={allTasks}
               onToggle={onToggleTask}
+              onClick={onClickTask}
             />
           ))}
 
@@ -396,10 +412,12 @@ function CompletedSection({
   tasks,
   allTasks,
   onToggleTask,
+  onClickTask,
 }: {
   tasks: Task[]
   allTasks: Task[]
   onToggleTask: (id: string) => void
+  onClickTask?: (task: Task) => void
 }) {
   const [isOpen, setIsOpen] = React.useState(false)
 
@@ -431,6 +449,7 @@ function CompletedSection({
               task={task}
               allTasks={allTasks}
               onToggle={onToggleTask}
+              onClick={onClickTask}
             />
           ))}
         </div>

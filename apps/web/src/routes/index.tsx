@@ -1,3 +1,4 @@
+import * as React from 'react'
 import {
   Show,
   SignInButton,
@@ -8,6 +9,7 @@ import { useTasks, useToggleTask } from '~/hooks/useTasks'
 import { useProjects } from '~/hooks/useProjects'
 import { groupTasksByProject } from '~/utils/helpers'
 import { ProjectGroup } from '~/components/project-group'
+import { TaskPanel } from '~/components/task-panel'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -30,6 +32,7 @@ function ProjectsView() {
   const tasksQuery = useTasks()
   const projectsQuery = useProjects()
   const toggleTask = useToggleTask()
+  const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(null)
 
   const tasks = tasksQuery.data ?? []
   const projects = projectsQuery.data ?? []
@@ -69,9 +72,15 @@ function ProjectsView() {
             tasks={projectTasks}
             allTasks={tasks}
             onToggleTask={(id) => toggleTask.mutate(id)}
+            onClickTask={(task) => setSelectedTaskId(task.id)}
           />
         ))}
       </div>
+      <TaskPanel
+        taskId={selectedTaskId}
+        onClose={() => setSelectedTaskId(null)}
+        allTasks={tasks}
+      />
     </div>
   )
 }
