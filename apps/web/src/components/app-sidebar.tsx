@@ -3,6 +3,7 @@ import {
   Sun,
   Moon,
   Monitor,
+  Columns3,
   Flag,
   Search,
   Settings,
@@ -26,6 +27,7 @@ import { Link } from '@tanstack/react-router'
 const navItems = [
   { title: 'Projects', url: '/', icon: FolderOpen },
   { title: 'Today', url: '/today', icon: Sun },
+  { title: 'Board', url: '/kanban', icon: Columns3 },
   { title: 'Milestones', url: '/milestones', icon: Flag },
   { title: 'Search', url: '/search', icon: Search },
 ]

@@ -13,6 +13,7 @@ import { Route as TodayRouteImport } from './routes/today'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as MilestonesRouteImport } from './routes/milestones'
+import { Route as KanbanRouteImport } from './routes/kanban'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 
@@ -36,6 +37,11 @@ const MilestonesRoute = MilestonesRouteImport.update({
   path: '/milestones',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KanbanRoute = KanbanRouteImport.update({
+  id: '/kanban',
+  path: '/kanban',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -49,6 +55,7 @@ const ProjectsIdRoute = ProjectsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/kanban': typeof KanbanRoute
   '/milestones': typeof MilestonesRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/kanban': typeof KanbanRoute
   '/milestones': typeof MilestonesRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/kanban': typeof KanbanRoute
   '/milestones': typeof MilestonesRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
@@ -76,16 +85,25 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/kanban'
     | '/milestones'
     | '/search'
     | '/settings'
     | '/today'
     | '/projects/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/milestones' | '/search' | '/settings' | '/today' | '/projects/$id'
+  to:
+    | '/'
+    | '/kanban'
+    | '/milestones'
+    | '/search'
+    | '/settings'
+    | '/today'
+    | '/projects/$id'
   id:
     | '__root__'
     | '/'
+    | '/kanban'
     | '/milestones'
     | '/search'
     | '/settings'
@@ -95,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  KanbanRoute: typeof KanbanRoute
   MilestonesRoute: typeof MilestonesRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
@@ -132,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MilestonesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kanban': {
+      id: '/kanban'
+      path: '/kanban'
+      fullPath: '/kanban'
+      preLoaderRoute: typeof KanbanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -151,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  KanbanRoute: KanbanRoute,
   MilestonesRoute: MilestonesRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
