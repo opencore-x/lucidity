@@ -13,7 +13,9 @@ import { Route as TodayRouteImport } from './routes/today'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as MilestonesRouteImport } from './routes/milestones'
+import { Route as KanbanRouteImport } from './routes/kanban'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProjectsIdRouteImport } from './routes/projects.$id'
 
 const TodayRoute = TodayRouteImport.update({
   id: '/today',
@@ -35,48 +37,88 @@ const MilestonesRoute = MilestonesRouteImport.update({
   path: '/milestones',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KanbanRoute = KanbanRouteImport.update({
+  id: '/kanban',
+  path: '/kanban',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsIdRoute = ProjectsIdRouteImport.update({
+  id: '/projects/$id',
+  path: '/projects/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/kanban': typeof KanbanRoute
   '/milestones': typeof MilestonesRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
+  '/projects/$id': typeof ProjectsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/kanban': typeof KanbanRoute
   '/milestones': typeof MilestonesRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
+  '/projects/$id': typeof ProjectsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/kanban': typeof KanbanRoute
   '/milestones': typeof MilestonesRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/today': typeof TodayRoute
+  '/projects/$id': typeof ProjectsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/milestones' | '/search' | '/settings' | '/today'
+  fullPaths:
+    | '/'
+    | '/kanban'
+    | '/milestones'
+    | '/search'
+    | '/settings'
+    | '/today'
+    | '/projects/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/milestones' | '/search' | '/settings' | '/today'
-  id: '__root__' | '/' | '/milestones' | '/search' | '/settings' | '/today'
+  to:
+    | '/'
+    | '/kanban'
+    | '/milestones'
+    | '/search'
+    | '/settings'
+    | '/today'
+    | '/projects/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/kanban'
+    | '/milestones'
+    | '/search'
+    | '/settings'
+    | '/today'
+    | '/projects/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  KanbanRoute: typeof KanbanRoute
   MilestonesRoute: typeof MilestonesRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   TodayRoute: typeof TodayRoute
+  ProjectsIdRoute: typeof ProjectsIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -109,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MilestonesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kanban': {
+      id: '/kanban'
+      path: '/kanban'
+      fullPath: '/kanban'
+      preLoaderRoute: typeof KanbanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -116,15 +165,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$id': {
+      id: '/projects/$id'
+      path: '/projects/$id'
+      fullPath: '/projects/$id'
+      preLoaderRoute: typeof ProjectsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  KanbanRoute: KanbanRoute,
   MilestonesRoute: MilestonesRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   TodayRoute: TodayRoute,
+  ProjectsIdRoute: ProjectsIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

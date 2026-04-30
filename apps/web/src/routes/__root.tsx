@@ -11,6 +11,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import * as React from 'react'
 import { Show } from '@clerk/tanstack-react-start'
 import { ApiProvider } from '~/providers/ApiProvider'
+import { ThemeProvider } from '~/providers/ThemeProvider'
 import { TooltipProvider } from '~/components/ui/tooltip'
 import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
 import { AppSidebar } from '~/components/app-sidebar'
@@ -46,12 +47,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('lucidity-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(e){}})()`,
+          }}
+        />
         <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
           <QueryClientProvider client={queryClient}>
             <ApiProvider>
-              <TooltipProvider>
-                {children}
-              </TooltipProvider>
+              <ThemeProvider>
+                <TooltipProvider>
+                  {children}
+                </TooltipProvider>
+              </ThemeProvider>
             </ApiProvider>
           </QueryClientProvider>
         </ClerkProvider>

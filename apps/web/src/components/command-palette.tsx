@@ -8,6 +8,7 @@ import {
 } from '~/components/ui/dialog'
 import { Input } from '~/components/ui/input'
 import {
+  Columns3,
   FolderOpen,
   Sun,
   Flag,
@@ -18,6 +19,7 @@ import {
 const commands = [
   { label: 'Projects', icon: FolderOpen, to: '/' as const },
   { label: 'Today', icon: Sun, to: '/today' as const },
+  { label: 'Board', icon: Columns3, to: '/kanban' as const },
   { label: 'Milestones', icon: Flag, to: '/milestones' as const },
   { label: 'Search', icon: Search, to: '/search' as const },
   { label: 'Settings', icon: Settings, to: '/settings' as const },
