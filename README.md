@@ -22,7 +22,7 @@ But the productivity app isn't why Lucidity exists.
 
 The long-term wedge is this: **two people who both use Lucidity don't message each other directly. Their Lucidities do.**
 
-When your mom asks for last weekend's photos at 11pm her time, she asks her Lucidity. Her Lucidity asks yours. Yours checks the permission you granted ("Mom can see photos. Mom does not bypass quiet hours."), pulls the album, delivers it to her — without pinging you. You see what happened in your agent journal in the morning.
+A friend in Tokyo wants to send a long message at 3am their time. A coworker wants to know your earliest free slot. A family member needs the wifi password while you're in a meeting. None of these need to interrupt you — and none of them do. Their Lucidity asks yours; yours responds within the permissions you've set.
 
 This is what makes Lucidity different from a todo app, a chat app, or another AI assistant:
 
