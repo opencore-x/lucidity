@@ -85,7 +85,7 @@ buildBriefingPrompt(userId) → { messages, tools, schema }
 | Layer | Technology |
 |---|---|
 | Mobile | Expo (React Native), Expo Router v6 |
-| Web | Next.js |
+| Web | TanStack Start + TanStack Router (Vite) |
 | Backend | Hono on Node.js |
 | Database | PostgreSQL (Neon) + Drizzle ORM |
 | Server state | TanStack React Query |
@@ -101,7 +101,7 @@ buildBriefingPrompt(userId) → { messages, tools, schema }
 apps/
   api/        Hono REST API
   mobile/     Expo React Native app
-  web/        Next.js web app
+  web/        TanStack Start web app
 packages/
   db/                  Drizzle ORM schema + migrations  [AGPL-3.0]
   shared/              Zod schemas and TypeScript types [AGPL-3.0]
@@ -117,7 +117,7 @@ pnpm install
 pnpm dev          # Start all packages
 pnpm dev:api      # API server on :3000
 pnpm dev:mobile   # Expo dev server
-pnpm dev:web      # Next.js dev server
+pnpm dev:web      # Vite / TanStack Start dev server
 
 pnpm lint
 pnpm check-types
