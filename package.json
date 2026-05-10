@@ -27,7 +27,7 @@
   "engines": {
     "node": ">=18"
   },
-  "version": "1.0.0",
+  "version": "0.1.0",
   "dependencies": {
     "expo": "~55.0.4",
     "react": "19.2.0",
