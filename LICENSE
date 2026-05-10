@@ -1,0 +1,59 @@
+Lucidity — Licensing Map
+========================
+
+This repository contains code under multiple licenses. The license that
+applies to each piece of code is determined by the directory it lives in.
+Each licensed directory contains its own LICENSE file with the full text.
+
+Quick reference:
+
+  packages/mcp-server/         AGPL-3.0
+  packages/shared/             AGPL-3.0
+  packages/db/                 AGPL-3.0
+
+  apps/api/                    Lucidity Commercial License (proprietary)
+  apps/web/                    Lucidity Commercial License (proprietary)
+  apps/mobile/                 Lucidity Commercial License (proprietary)
+
+  packages/eslint-config/      MIT
+  packages/typescript-config/  MIT
+
+What this means in practice
+---------------------------
+
+The "runtime" pieces — the MCP server, the shared schemas/types, and the
+database layer — are AGPL-3.0. You can self-host them, modify them, and
+build on top of them, subject to AGPL's network-copyleft terms (any
+service that exposes a modified version over the network must also publish
+its source under AGPL).
+
+The "product" pieces — the Hono API server, the Next.js web app, and the
+Expo mobile app — are under the Lucidity Commercial License. You may read
+them and run them locally for personal evaluation, but you may not operate
+them as a service for others or use them in a commercial production
+context without a separate commercial license.
+
+The shared tooling configs (ESLint, TypeScript) are MIT, because configs
+should be permissively licensed.
+
+Why this structure
+------------------
+
+The intent is straightforward:
+
+  1. Make the runtime auditable and self-hostable. If Lucidity will
+     hold your wifi passwords and family photos, you should be able to
+     read every line of code that handles them, and run your own copy
+     if you want to.
+
+  2. Reserve the hosted product. Running lucidity.today as a SaaS is
+     the business model that funds development. A competitor building
+     a Lucidity-clone hosted service is the one thing this licensing
+     prevents.
+
+  3. Keep configs friction-free.
+
+This is the same pattern used by Cal.com, Sentry, Plausible, and PostHog
+— a single monorepo with mixed licensing per folder.
+
+Commercial licensing inquiries: ankit@sejw.al
