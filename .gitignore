@@ -41,3 +41,6 @@ yarn-error.log*
 # Internal docs
 docs.local/
 .expo/
+
+# Local Claude Code state (per-user, do not commit)
+.claude/

@@ -1,0 +1,35 @@
+Lucidity Commercial License
+Copyright (c) 2026 Ankit Sejwal
+
+This source code is made available for the purpose of reference, education,
+and personal evaluation only. All rights are reserved by the copyright holder.
+
+You MAY:
+
+  1. View, read, and study this source code.
+  2. Fork this repository on GitHub for the purposes above.
+  3. Run this code locally on your own machine for non-commercial,
+     personal evaluation.
+  4. Submit issues or suggestions back to the project.
+
+You MAY NOT, without prior written permission from the copyright holder:
+
+  1. Operate this code, in whole or in part, as a hosted or managed service
+     for any third party.
+  2. Use this code, in whole or in part, in any production environment that
+     serves users other than yourself.
+  3. Distribute, sublicense, sell, or rent this code or any derivative work.
+  4. Remove, obscure, or alter this notice in any copy.
+
+For commercial licensing inquiries, partnership requests, or any use beyond
+what is permitted above, contact: ankit@sejw.al
+
+This license applies only to the directory in which this LICENSE file
+resides. Other directories in this repository may be subject to different
+licenses; see the top-level LICENSE file for the licensing map.
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY
+ARISING FROM THE USE OR OTHER DEALINGS IN THE SOFTWARE.
