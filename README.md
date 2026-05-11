@@ -1,8 +1,8 @@
 # Lucidity
 
-> Your Lucidity is your personal assistant. Yours alone. The interesting part is what happens when two Lucidities meet.
+> Your personal assistant. The interesting part is what happens when two of them meet.
 
-[![License](https://img.shields.io/badge/license-AGPL--3.0%20%2F%20Commercial-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0%20%2F%20Commercial-blue)](LICENSE) · [lucidity.my](https://lucidity.my)
 
 **Status:** Active development, building in public. Some of what's described below works today; some is documented design that hasn't shipped yet. See [What works today](#what-works-today) for the honest split.
 
@@ -10,13 +10,9 @@
 
 ## What Lucidity is
 
-Lucidity is a personal assistant — yours alone, running on hardware you control, using the AI you already pay for.
+A personal assistant that runs on your hardware and uses the AI you already pay for. Today she manages your life: tasks, projects, milestones, sub-tasks, recurring schedules, comments — across mobile, web, and API. Talk to her through Claude Desktop, Claude Code, Codex, or Cursor by plugging in her MCP server, or use the apps directly.
 
-Today, she manages your life: tasks, projects, milestones, sub-tasks, recurring schedules, comments, mobile + web + API. You can talk to her through your existing AI client (Claude Desktop, Claude Code, Codex, Cursor) by plugging in her MCP server. Or use the apps directly.
-
-That much is shipped.
-
-But the productivity app isn't why Lucidity exists.
+That much is shipped. But the productivity app isn't why Lucidity exists.
 
 ## The interesting part
 
@@ -41,26 +37,27 @@ It's not shipped yet. It's where Lucidity is going.
 
 ## A note on dogfooding
 
-Lucidity's own roadmap, milestones, and bug list live inside Lucidity. The author uses her daily. The project uses her daily. Nothing in this README is productivity advice from someone with a Notion template — it's the system running this project. (Yes, that's a chicken-and-egg problem for the public roadmap. We'll get there.)
+Lucidity's own roadmap, milestones, and bug list live inside Lucidity. The author uses her daily. The project uses her daily. Nothing in this README is productivity advice from someone with a Notion template — it's the system running this project.
 
-## What works today
+## Shipped
 
-| Area | Status |
-|---|---|
-| Task management (mobile + web + API) | ✅ Shipped |
-| Projects, milestones, comments, recurring tasks, sub-tasks | ✅ Shipped |
-| Inline task and project creation, swipe gestures, drag-to-reorder | ✅ Shipped |
-| Native bottom tabs (Today, Week, Search) | ✅ Shipped |
-| Optimistic updates, dark mode, keyboard handling | ✅ Shipped |
-| Clerk auth + API key auth | ✅ Shipped |
-| MCP server (`@lucidity/mcp-server`) for BYOAI | ✅ Shipped |
-| Web app with Kanban, theme toggle, settings | ✅ Shipped |
-| Daily briefing (pull via MCP) | 🚧 Designed |
-| Local always-on daemon (free self-host tier) | 🚧 Designed |
-| Server-side scheduled actions (paid tier) | 🚧 Designed |
-| Agent-mediated comms with trust gradients | 🚧 Designed |
-| Push notifications and reminders | 🚧 Designed |
-| Offline-first sync | 🚧 Designed |
+- Task management across mobile, web, and API
+- Projects, milestones, comments, recurring tasks, sub-tasks
+- Inline task and project creation, swipe gestures, drag-to-reorder
+- Native bottom tabs (Today, Week, Search)
+- Optimistic updates, dark mode, keyboard handling
+- Clerk auth + API key auth
+- MCP server (`@lucidity/mcp-server`) for BYOAI
+- Web app with Kanban, theme toggle, settings
+
+## On the roadmap
+
+- Daily briefing (pull via MCP)
+- Local always-on daemon (free self-host tier)
+- Server-side scheduled actions (paid tier)
+- Agent-mediated comms with trust gradients
+- Push notifications and reminders
+- Offline-first sync
 
 ## Architecture sketch
 
@@ -82,6 +79,9 @@ buildBriefingPrompt(userId) → { messages, tools, schema }
 
 ## Tech stack
 
+<details>
+<summary>Expand</summary>
+
 | Layer | Technology |
 |---|---|
 | Mobile | Expo (React Native), Expo Router v6 |
@@ -94,6 +94,8 @@ buildBriefingPrompt(userId) → { messages, tools, schema }
 | Auth | Clerk + API keys |
 | MCP | Official MCP SDK |
 | Monorepo | Turborepo + pnpm workspaces |
+
+</details>
 
 ## Monorepo
 
@@ -149,7 +151,9 @@ Per-folder licensing, same pattern as Cal.com, Sentry, Plausible, and PostHog:
 
 Full details: [`LICENSE`](LICENSE) and per-folder `LICENSE` files.
 
-Commercial licensing inquiries: ankit@sejw.al
+## Contact
+
+Commercial licensing, partnerships, or just want to talk: ankit@sejw.al
 
 ## Contributing
 
