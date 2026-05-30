@@ -126,6 +126,8 @@ pnpm check-types
 pnpm format
 ```
 
+The `shared` and `db` packages compile to `dist/` (`tsc`). The dev scripts build them automatically before starting (Turbo's `dev` task `dependsOn: ["^build"]`) and watch-recompile on changes, so a clean checkout needs no manual build step — `pnpm dev` / `pnpm dev:api` just work. Production builds the same way via `pnpm build`.
+
 ### Database
 
 ```bash
