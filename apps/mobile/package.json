@@ -17,6 +17,7 @@
     "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/montserrat": "^0.4.2",
+    "@expo/dom-webview": "56.0.5",
     "@expo/metro-runtime": "~56.0.13",
     "@gorhom/bottom-sheet": "^5.2.8",
     "@lucidity/shared": "workspace:^",
