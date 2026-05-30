@@ -208,7 +208,10 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
           </Pressable>
         </View>
 
-        <BottomSheetScrollView className="flex-1">
+        {/* NativeWind 5 (SDK 56) does not wire `className` into gorhom's
+            BottomSheetScrollView, so `flex-1` no-ops and the body collapses to
+            zero height — size it with an inline style instead. */}
+        <BottomSheetScrollView style={{ flex: 1 }}>
         {/* Task header */}
         <View className="px-4 py-4">
           <View>
