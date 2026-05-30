@@ -79,3 +79,36 @@ export const NAV_THEME: Record<'light' | 'dark', Theme> = {
     },
   },
 };
+
+/**
+ * Convert a `hsl(H S% L%)` string (the format used in THEME) to a `#rrggbb`
+ * hex string. `@expo/ui` color props (e.g. presentationBackground, tint) require
+ * hex, not CSS hsl(). Returns `#000000` on a parse failure.
+ */
+export function hslToHex(hsl: string): string {
+  const match = hsl.match(/hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)/i);
+  if (!match) return '#000000';
+  const h = parseFloat(match[1]);
+  const s = parseFloat(match[2]) / 100;
+  const l = parseFloat(match[3]) / 100;
+
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (h < 60) [r, g] = [c, x];
+  else if (h < 120) [r, g] = [x, c];
+  else if (h < 180) [g, b] = [c, x];
+  else if (h < 240) [g, b] = [x, c];
+  else if (h < 300) [r, b] = [x, c];
+  else [r, b] = [c, x];
+
+  const toHex = (v: number) =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}

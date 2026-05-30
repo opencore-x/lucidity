@@ -2,7 +2,6 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { TaskItem } from '@/components/TaskItem';
-import { TaskSheet } from '@/components/TaskSheet';
 import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator, Text as RNText, Dimensions, Alert, Pressable } from 'react-native';
@@ -244,15 +243,6 @@ export default function TodayScreen() {
     ], 'plain-text');
   }, [createTask]);
 
-  const { currentTask } = useSheetStore();
-  const sheetTask = currentTask();
-
-  React.useEffect(() => {
-    if (sheetTask && !tasks.find((t) => t.id === sheetTask.id)) {
-      useSheetStore.getState().closeSheet();
-    }
-  }, [sheetTask, tasks]);
-
   const headerRight = React.useCallback(
     () => (
       <View className="flex-row items-center gap-4">
@@ -346,8 +336,6 @@ export default function TodayScreen() {
 
         <View className="h-32" />
       </ScrollView>
-
-      <TaskSheet tasks={tasks} projects={projects} />
     </>
   );
 }
