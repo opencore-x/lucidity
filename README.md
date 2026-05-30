@@ -128,6 +128,14 @@ pnpm format
 
 The `shared` and `db` packages compile to `dist/` (`tsc`). The dev scripts build them automatically before starting (Turbo's `dev` task `dependsOn: ["^build"]`) and watch-recompile on changes, so a clean checkout needs no manual build step — `pnpm dev` / `pnpm dev:api` just work. Production builds the same way via `pnpm build`.
 
+### Agent skills
+
+The repo pins a set of [Expo agent skills](https://github.com/vercel-labs/skills) in `skills-lock.json` (committed). The actual skill content in `.agents/skills/` is regenerable cache and is gitignored — like `node_modules` vs a lockfile. `pnpm install` restores it automatically via a `postinstall` hook, or run it directly:
+
+```bash
+npx skills install   # restore .agents/skills/ from skills-lock.json
+```
+
 ### Database
 
 ```bash

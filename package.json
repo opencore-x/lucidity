@@ -2,6 +2,7 @@
   "name": "lucidity",
   "private": true,
   "scripts": {
+    "postinstall": "npx -y skills install",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "dev:api": "turbo run dev --filter=@lucidity/api...",

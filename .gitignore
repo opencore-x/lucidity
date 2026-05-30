@@ -44,3 +44,6 @@ docs.local/
 
 # Local Claude Code state (per-user, do not commit)
 .claude/
+
+# Fetched agent skills (regenerable from skills-lock.json). Commit the lockfile, not the cache.
+.agents/skills/
