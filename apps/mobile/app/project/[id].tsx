@@ -2,6 +2,13 @@ import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { Host, HStack, Button } from '@expo/ui/swift-ui';
+import {
+  buttonStyle,
+  tint,
+  controlSize,
+  padding,
+} from '@expo/ui/swift-ui/modifiers';
 import { PlusIcon } from 'lucide-react-native';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
@@ -224,44 +231,33 @@ export default function ProjectScreen() {
             </View>
           ) : null}
 
-          {/* Filter tabs */}
-          <View
-            className="flex-row pb-3 pt-1"
-            style={{ paddingHorizontal: 16, gap: 8 }}
-          >
-            <Pressable
-              onPress={() => setSelectedTab('active')}
-              className={`px-3 py-1.5 rounded-full border ${
-                selectedTab === 'active'
-                  ? 'bg-foreground border-foreground'
-                  : 'border-border'
-              }`}
-            >
-              <Text
-                className={`text-sm font-medium ${
-                  selectedTab === 'active' ? 'text-background' : 'text-foreground'
-                }`}
-              >
-                Active ({activeTasks.length})
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setSelectedTab('completed')}
-              className={`px-3 py-1.5 rounded-full border ${
-                selectedTab === 'completed'
-                  ? 'bg-foreground border-foreground'
-                  : 'border-border'
-              }`}
-            >
-              <Text
-                className={`text-sm font-medium ${
-                  selectedTab === 'completed' ? 'text-background' : 'text-foreground'
-                }`}
-              >
-                Completed ({completedTasks.length})
-              </Text>
-            </Pressable>
-          </View>
+          {/* Filter tabs — native @expo/ui Liquid Glass buttons (iOS 26+) */}
+          <Host matchContents style={{ paddingTop: 4, paddingBottom: 4 }}>
+            <HStack spacing={8} modifiers={[padding({ horizontal: 16, vertical: 6 })]}>
+              <Button
+                label={`Active (${activeTasks.length})`}
+                onPress={() => setSelectedTab('active')}
+                modifiers={[
+                  controlSize('small'),
+                  buttonStyle(
+                    selectedTab === 'active' ? 'glassProminent' : 'glass'
+                  ),
+                  ...(project?.color ? [tint(project.color)] : []),
+                ]}
+              />
+              <Button
+                label={`Completed (${completedTasks.length})`}
+                onPress={() => setSelectedTab('completed')}
+                modifiers={[
+                  controlSize('small'),
+                  buttonStyle(
+                    selectedTab === 'completed' ? 'glassProminent' : 'glass'
+                  ),
+                  ...(project?.color ? [tint(project.color)] : []),
+                ]}
+              />
+            </HStack>
+          </Host>
 
           {selectedTab === 'active' ? (
             <>
