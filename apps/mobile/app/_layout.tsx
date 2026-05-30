@@ -5,7 +5,7 @@ import { ApiProvider } from '@/providers/ApiProvider';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { tokenCache } from '@clerk/clerk-expo/token-cache';
 import Constants from 'expo-constants';
-import { ThemeProvider } from '@react-navigation/native';
+import { ThemeProvider } from 'expo-router/react-navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PortalHost } from '@rn-primitives/portal';
 import { Toast } from '@/components/Toast';
@@ -53,7 +53,7 @@ export default function RootLayout() {
       >
         <QueryClientProvider client={queryClient}>
           <ApiProvider>
-            <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
+            <ThemeProvider value={NAV_THEME[colorScheme === 'dark' ? 'dark' : 'light']}>
               <BottomSheetModalProvider>
                 <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
                 <Routes />

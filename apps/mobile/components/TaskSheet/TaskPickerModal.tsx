@@ -27,7 +27,7 @@ export function TaskPickerModal({
 }: TaskPickerModalProps) {
   const [search, setSearch] = React.useState('');
   const { colorScheme } = useColorScheme();
-  const theme = THEME[colorScheme ?? 'light'];
+  const theme = THEME[colorScheme === 'dark' ? 'dark' : 'light'];
   const projectMap = React.useMemo(() => {
     const map = new Map<string, string>();
     projects.forEach((p) => map.set(p.id, p.name));

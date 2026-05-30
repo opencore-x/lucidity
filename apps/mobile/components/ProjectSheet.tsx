@@ -50,7 +50,7 @@ function OptionRow({ icon, label, children }: OptionRowProps) {
 
 export function ProjectSheet() {
   const { colorScheme } = useColorScheme();
-  const theme = THEME[colorScheme ?? 'light'];
+  const theme = THEME[colorScheme === 'dark' ? 'dark' : 'light'];
 
   const { project, sheetRef, closeSheet, clearProject } = useProjectSheetStore();
   const updateProject = useUpdateProject();

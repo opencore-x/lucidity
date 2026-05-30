@@ -36,7 +36,7 @@ export function TaskSheet({ tasks, projects }: TaskSheetProps) {
   const [titleValue, setTitleValue] = React.useState('');
   const [descriptionValue, setDescriptionValue] = React.useState('');
   const { colorScheme } = useColorScheme();
-  const theme = THEME[colorScheme ?? 'light'];
+  const theme = THEME[colorScheme === 'dark' ? 'dark' : 'light'];
 
 
   const {
