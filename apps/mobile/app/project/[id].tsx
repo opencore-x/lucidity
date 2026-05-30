@@ -203,11 +203,11 @@ export default function ProjectScreen() {
           ),
         }}
       />
-      <SafeAreaView className="flex-1 bg-background" edges={['bottom']}>
+      <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['bottom']}>
         <ScrollProvider scrollViewRef={scrollViewRef}>
         <ScrollView
           ref={scrollViewRef}
-          className="flex-1"
+          className="flex-1 bg-background"
           contentInsetAdjustmentBehavior="automatic"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
