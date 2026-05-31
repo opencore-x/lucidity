@@ -4,7 +4,7 @@ import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
 import { View, ActivityIndicator, Alert, Pressable } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Host, List, HStack, Text, Image, Spacer } from '@expo/ui/swift-ui';
+import { Host, List, HStack, Text, Image, Spacer, SwipeActions, Button } from '@expo/ui/swift-ui';
 import {
   listStyle,
   onTapGesture,
@@ -12,45 +12,39 @@ import {
   shapes,
   foregroundStyle,
   refreshable,
-  deleteDisabled,
+  tint,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { useTasks } from '@/hooks/useTasks';
-import { useProjects, useCreateProject } from '@/hooks/useProjects';
-import { useConfirmDeleteProject } from '@/hooks/useConfirmDeleteProject';
+import { useProjects, useCreateProject, useDeleteProject } from '@/hooks/useProjects';
+import { useProjectSheetStore } from '@/stores/projectSheetStore';
 import { groupTasksByProject, INBOX_PROJECT_ID } from '@/utils/helpers';
 import type { Project } from '@lucidity/shared';
 
 // Secondary gray for the trailing count + the Inbox/no-color dot (systemGray).
 const MUTED_GRAY = '#8E8E93';
+// Amber-yellow for the Edit swipe action (sits just before Delete on the trailing edge).
+const EDIT_YELLOW = '#F59E0B';
 
 type ProjectRowData = { project: Project; total: number; completed: number };
 
 /**
  * One project row: a color dot (gray for Inbox / colorless projects), the name,
  * and a completed/total count. The whole row is tappable via `contentShape` +
- * `onTapGesture`. `canDelete=false` (Inbox) disables the swipe-to-delete on this
- * row while keeping it in the same ForEach (so all rows share one inset card).
+ * `onTapGesture`. Swipe actions (Edit / Delete) are attached by the parent.
  */
-function ProjectRow({
-  row,
-  canDelete,
-  onPress,
-}: {
-  row: ProjectRowData;
-  canDelete: boolean;
-  onPress: () => void;
-}) {
+function ProjectRow({ row, onPress }: { row: ProjectRowData; onPress: () => void }) {
   const { project, total, completed } = row;
   return (
-    <HStack
-      spacing={12}
-      modifiers={[
-        contentShape(shapes.rectangle()),
-        onTapGesture(onPress),
-        ...(canDelete ? [] : [deleteDisabled(true)]),
-      ]}>
-      <Image systemName="circle.fill" size={12} color={project.color ?? MUTED_GRAY} />
+    <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onPress)]}>
+      {/* key on the color so the native Image re-paints when the color changes
+          (the SwiftUI color prop can otherwise stick to its first value). */}
+      <Image
+        key={project.color ?? 'none'}
+        systemName="circle.fill"
+        size={12}
+        color={project.color ?? MUTED_GRAY}
+      />
       <Text>{project.name}</Text>
       <Spacer />
       <Text modifiers={[foregroundStyle(MUTED_GRAY)]}>{`${completed}/${total}`}</Text>
@@ -60,11 +54,10 @@ function ProjectRow({
 
 /**
  * Projects landing — a native @expo/ui `List` of tappable project rows (replaces
- * the old accordion ProjectGroup stack). Inbox sorts first and opens its own
- * detail view; real projects open `/project/[id]`. Pull-to-refresh via the native
- * `refreshable` modifier; swipe-to-delete (confirm first — cascades to all tasks)
- * via `List.ForEach` `onDelete`, with Inbox excluded. The project editor lives on
- * the detail screen (Phase 3); this screen is pure navigation + create/delete.
+ * the old accordion ProjectGroup stack). Inbox sorts first and opens its own detail
+ * view; real projects open `/project/[id]`. Pull-to-refresh via `refreshable`. Each
+ * real project carries native swipe actions: Edit (opens the project editor) and
+ * Delete (confirm first — cascades to all tasks). Inbox has no swipe actions.
  */
 export default function ProjectsScreen() {
   const router = useRouter();
@@ -78,7 +71,8 @@ export default function ProjectsScreen() {
     refetch: refetchProjects,
   } = useProjects();
   const createProject = useCreateProject();
-  const confirmDeleteProject = useConfirmDeleteProject();
+  const deleteProject = useDeleteProject();
+  const openProjectSheet = useProjectSheetStore((s) => s.openSheet);
 
   const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
   const isLoading = tasksLoading || projectsLoading;
@@ -115,6 +109,27 @@ export default function ProjectsScreen() {
     );
   }, [createProject]);
 
+  // Swipe-to-delete a project — confirm first (cascades to all its tasks). A custom
+  // swipe Button doesn't auto-remove the row, so the optimistic removal in
+  // useDeleteProject runs only on confirm; Cancel simply leaves the row.
+  const handleDeleteProject = React.useCallback(
+    (row: ProjectRowData) => {
+      Alert.alert(
+        'Delete Project',
+        `Delete "${row.project.name}" and all ${row.total} of its tasks?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => deleteProject.mutate(row.project.id),
+          },
+        ]
+      );
+    },
+    [deleteProject]
+  );
+
   const headerRight = React.useCallback(
     () => (
       <View className="flex-row items-center gap-4">
@@ -144,24 +159,37 @@ export default function ProjectsScreen() {
       <View className="flex-1 bg-background">
         <Host style={{ flex: 1 }} colorScheme={scheme}>
           <List modifiers={[listStyle('insetGrouped'), refreshable(onRefresh)]}>
-            <List.ForEach
-              onDelete={(indices) =>
-                indices.forEach((i) => {
-                  const r = rows[i];
-                  if (r && r.project.id !== INBOX_PROJECT_ID) {
-                    confirmDeleteProject(r.project, r.total);
-                  }
-                })
-              }>
-              {rows.map((r) => (
-                <ProjectRow
-                  key={r.project.id}
-                  row={r}
-                  canDelete={r.project.id !== INBOX_PROJECT_ID}
-                  onPress={() => router.push(`/project/${r.project.id}`)}
-                />
-              ))}
-            </List.ForEach>
+            {rows.map((r) => {
+              const isInbox = r.project.id === INBOX_PROJECT_ID;
+              const open = () => router.push(`/project/${r.project.id}`);
+
+              // Inbox can't be edited or deleted — render it without swipe actions.
+              if (isInbox) {
+                return <ProjectRow key={r.project.id} row={r} onPress={open} />;
+              }
+
+              return (
+                <SwipeActions key={r.project.id}>
+                  <ProjectRow row={r} onPress={open} />
+                  {/* Both actions on the trailing edge: Delete at the edge, Edit
+                      (yellow) just before it. */}
+                  <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
+                    <Button
+                      label="Delete"
+                      systemImage="trash"
+                      role="destructive"
+                      onPress={() => handleDeleteProject(r)}
+                    />
+                    <Button
+                      label="Edit"
+                      systemImage="pencil"
+                      onPress={() => openProjectSheet(r.project)}
+                      modifiers={[tint(EDIT_YELLOW)]}
+                    />
+                  </SwipeActions.Actions>
+                </SwipeActions>
+              );
+            })}
           </List>
         </Host>
       </View>
