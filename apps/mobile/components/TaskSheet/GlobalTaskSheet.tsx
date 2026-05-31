@@ -17,7 +17,10 @@ import {
   Slider,
   DatePicker,
   Toggle,
+  TextField,
+  useNativeState,
 } from '@expo/ui/swift-ui';
+import type { TextFieldRef } from '@expo/ui/swift-ui';
 import {
   frame,
   padding,
@@ -35,6 +38,9 @@ import {
   resizable,
   clipShape,
   listStyle,
+  font,
+  textFieldStyle,
+  scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { useSheetStore } from '@/stores/sheetStore';
@@ -519,6 +525,65 @@ function CommentsSection({ taskId }: { taskId: string }) {
 }
 
 /**
+ * Always-editable native `TextField` for title / description. Native-state backed, so
+ * keystrokes don't re-render the tree; the latest value is tracked via `onTextChange`
+ * and committed on blur (`onFocusChange(false)`) only if it changed. The PARENT remounts
+ * this via `key={task.id}` on drill-down so the field resets to the new task's value
+ * (no mid-focus `setText` races). `allowEmpty=false` reverts an emptied field to `value`.
+ */
+function EditableField({
+  value,
+  onCommit,
+  allowEmpty = false,
+  multiline = false,
+  placeholder,
+  onFocusEnter,
+  onFocusLeave,
+  modifiers: extraModifiers = [],
+}: {
+  value: string;
+  onCommit: (text: string) => void;
+  allowEmpty?: boolean;
+  multiline?: boolean;
+  placeholder?: string;
+  // Lets the parent show a "Done" affordance while editing; `blur` dismisses + commits.
+  onFocusEnter?: (blur: () => void) => void;
+  onFocusLeave?: () => void;
+  modifiers?: React.ComponentProps<typeof TextField>['modifiers'];
+}) {
+  const textState = useNativeState(value);
+  const ref = React.useRef<TextFieldRef>(null);
+  const valueRef = React.useRef(value);
+
+  return (
+    <TextField
+      ref={ref}
+      text={textState}
+      placeholder={placeholder}
+      axis={multiline ? 'vertical' : 'horizontal'}
+      onTextChange={(t) => {
+        valueRef.current = t;
+      }}
+      onFocusChange={(focused) => {
+        if (focused) {
+          onFocusEnter?.(() => ref.current?.blur());
+          return;
+        }
+        const trimmed = valueRef.current.trim();
+        if (!allowEmpty && !trimmed) {
+          valueRef.current = value;
+          ref.current?.setText(value);
+        } else if (trimmed !== value.trim()) {
+          onCommit(trimmed);
+        }
+        onFocusLeave?.();
+      }}
+      modifiers={extraModifiers}
+    />
+  );
+}
+
+/**
  * Single global native (@expo/ui) bottom sheet for task details. Mounted once in
  * the root layout (signed-in only) and driven by `sheetStore.isPresented`. Sources
  * its own data from hooks. Phases done: 3.1 shell, 3.2 top bar + status pill,
@@ -564,6 +629,18 @@ export function GlobalTaskSheet() {
       closeSheet();
     }
   }, [task, allTasks, closeSheet]);
+
+  // While a title/description field is focused, the top-bar close button becomes a
+  // "Done" button that blurs the field (the explicit save affordance for the
+  // multiline notes, which can't submit on Enter). blurFieldRef holds the focused
+  // field's blur fn.
+  const [isEditingText, setIsEditingText] = React.useState(false);
+  const blurFieldRef = React.useRef<(() => void) | null>(null);
+  const handleFieldFocus = React.useCallback((blur: () => void) => {
+    blurFieldRef.current = blur;
+    setIsEditingText(true);
+  }, []);
+  const handleFieldBlur = React.useCallback(() => setIsEditingText(false), []);
 
   // Optimistic field update; sync the server response back into the task stack
   // so the open sheet stays fresh (matches the old per-screen TaskSheet flow).
@@ -628,17 +705,51 @@ export function GlobalTaskSheet() {
                 />
               ) : null}
               <Spacer />
-              <Button onPress={closeSheet} modifiers={circleGlass}>
-                <Image systemName="xmark" size={18} />
-              </Button>
+              {isEditingText ? (
+                <Button
+                  label="Done"
+                  onPress={() => blurFieldRef.current?.()}
+                  modifiers={[buttonStyle('glassProminent')]}
+                />
+              ) : (
+                <Button onPress={closeSheet} modifiers={circleGlass}>
+                  <Image systemName="xmark" size={18} />
+                </Button>
+              )}
             </HStack>
 
             {task ? (
-              <Text modifiers={[padding({ leading: 16, trailing: 16 })]}>{task.title}</Text>
+              <EditableField
+                key={`title-${task.id}`}
+                value={task.title}
+                onCommit={(t) => handleUpdateField({ title: t })}
+                onFocusEnter={handleFieldFocus}
+                onFocusLeave={handleFieldBlur}
+                modifiers={[
+                  textFieldStyle('plain'),
+                  font({ size: 22, weight: 'semibold' }),
+                  padding({ leading: 16, trailing: 16 }),
+                ]}
+              />
             ) : null}
 
             {task ? (
-              <List modifiers={[listStyle('insetGrouped')]}>
+              <List
+                modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
+                {/* Description lives in the scrollable list (not pinned) so a long note
+                    scrolls away instead of hogging the top of the sheet. */}
+                <EditableField
+                  key={`desc-${task.id}`}
+                  value={task.description ?? ''}
+                  onCommit={(t) => handleUpdateField({ description: t || null })}
+                  onFocusEnter={handleFieldFocus}
+                  onFocusLeave={handleFieldBlur}
+                  allowEmpty
+                  multiline
+                  placeholder="Notes…"
+                  modifiers={[textFieldStyle('plain')]}
+                />
+
                 <CommentsSection taskId={task.id} />
 
                 <SubtaskSection
