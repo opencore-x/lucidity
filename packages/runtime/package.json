@@ -1,0 +1,27 @@
+{
+  "name": "@lucidity/runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && cp src/persona/lucid.md dist/persona/lucid.md",
+    "dev": "tsc --watch --preserveWatchOutput",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lucidity/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^20.11.17",
+    "typescript": "^5.8.3"
+  }
+}
