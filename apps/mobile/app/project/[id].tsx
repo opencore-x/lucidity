@@ -14,7 +14,6 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
-import { TaskSheet } from '@/components/TaskSheet';
 import { ProjectSheet } from '@/components/ProjectSheet';
 import { InlineTaskInput } from '@/components/InlineTaskInput';
 import {
@@ -158,15 +157,6 @@ export default function ProjectScreen() {
     setDropIndex(null);
     setDragFromIndex(null);
   }, []);
-
-  const { currentTask } = useSheetStore();
-  const sheetTask = currentTask();
-
-  React.useEffect(() => {
-    if (sheetTask && !allTasks.find((t) => t.id === sheetTask.id)) {
-      useSheetStore.getState().closeSheet();
-    }
-  }, [sheetTask, allTasks]);
 
   const isLoading = projectLoading || tasksLoading;
 
@@ -347,7 +337,6 @@ export default function ProjectScreen() {
 
         {/* Sheets */}
         <ProjectSheet />
-        <TaskSheet tasks={allTasks} projects={projects} />
       </SafeAreaView>
     </>
   );

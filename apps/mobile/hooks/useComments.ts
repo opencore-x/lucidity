@@ -1,6 +1,55 @@
+import { useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { commentsApi } from '@/api/comments';
+import { useToastStore } from '@/stores/toastStore';
 import type { Comment } from '@lucidity/shared';
+
+const UNDO_DELAY = 4000;
+
+/**
+ * Delete a comment with a 4s undo window + toast (mirrors useUndoableDeleteTask).
+ * Optimistically removes from cache; the real API delete is deferred so "Undo"
+ * can cancel it and restore the snapshot.
+ */
+export function useUndoableDeleteComment() {
+  const queryClient = useQueryClient();
+  const showToast = useToastStore((s) => s.showToast);
+  const pendingDeleteRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const deleteComment = useCallback(
+    (taskId: string, commentId: string) => {
+      if (pendingDeleteRef.current) {
+        clearTimeout(pendingDeleteRef.current);
+        pendingDeleteRef.current = null;
+      }
+
+      const previous = queryClient.getQueryData<Comment[]>(['comments', taskId]);
+      queryClient.setQueryData<Comment[]>(['comments', taskId], (old) =>
+        old?.filter((c) => c.id !== commentId)
+      );
+
+      pendingDeleteRef.current = setTimeout(() => {
+        pendingDeleteRef.current = null;
+        commentsApi.delete(taskId, commentId).then(() => {
+          queryClient.invalidateQueries({ queryKey: ['comments', taskId] });
+        });
+      }, UNDO_DELAY);
+
+      showToast('Comment deleted', () => {
+        if (pendingDeleteRef.current) {
+          clearTimeout(pendingDeleteRef.current);
+          pendingDeleteRef.current = null;
+        }
+        if (previous) {
+          queryClient.setQueryData(['comments', taskId], previous);
+        }
+      });
+    },
+    [queryClient, showToast]
+  );
+
+  return { deleteComment };
+}
 
 export function useComments(taskId: string) {
   return useQuery({

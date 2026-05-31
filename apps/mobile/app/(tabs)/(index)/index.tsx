@@ -2,7 +2,6 @@ import { Icon } from '@/components/ui/icon';
 import { UserMenu } from '@/components/user-menu';
 import { ProjectGroup } from '@/components/ProjectGroup';
 import { ProjectSheet } from '@/components/ProjectSheet';
-import { TaskSheet } from '@/components/TaskSheet';
 import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
 import {
@@ -120,17 +119,6 @@ export default function ProjectsScreen() {
     }
   }, [quickCapture, isLoading]);
 
-  // Get current sheet data for stale validation
-  const { currentTask } = useSheetStore();
-  const sheetTask = currentTask();
-
-  // Close task sheet if task was deleted
-  React.useEffect(() => {
-    if (sheetTask && !tasks.find((t) => t.id === sheetTask.id)) {
-      useSheetStore.getState().closeSheet();
-    }
-  }, [sheetTask, tasks]);
-
   const headerRight = React.useCallback(
     () => (
       <View className="flex-row items-center gap-4">
@@ -186,7 +174,6 @@ export default function ProjectsScreen() {
 
       {/* Sheets */}
       <ProjectSheet />
-      <TaskSheet tasks={tasks} projects={projects} />
     </>
   );
 }

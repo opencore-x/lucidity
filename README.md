@@ -4,13 +4,13 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0%20%2F%20Commercial-blue)](LICENSE) · [lucidity.my](https://lucidity.my)
 
-**Status:** Active development, building in public. Some of what's described below works today; some is documented design that hasn't shipped yet. See [What works today](#what-works-today) for the honest split.
+**Status:** Active development, building in public. Some of what's described below works today; some is documented design that hasn't shipped yet. See [Shipped](#shipped) and [On the roadmap](#on-the-roadmap) for the honest split.
 
 ---
 
 ## What Lucidity is
 
-A personal assistant that runs on your hardware and uses the AI you already pay for. Today she manages your life: tasks, projects, milestones, sub-tasks, recurring schedules, comments — across mobile, web, and API. Talk to her through Claude Desktop, Claude Code, Codex, or Cursor by plugging in her MCP server, or use the apps directly.
+A personal assistant — named **Lucid** by default — that runs on your hardware and uses the AI you already pay for. Today she manages your life: tasks, projects, milestones, sub-tasks, recurring schedules, and comments, across mobile and web. Talk to her through Claude Desktop, Claude Code, Codex, or Cursor by plugging in the MCP server, or use the apps directly.
 
 That much is shipped. But the productivity app isn't why Lucidity exists.
 
@@ -28,6 +28,16 @@ This is what makes Lucidity different from a todo app, a chat app, or another AI
 - **Delegation without disturbance.** Family asks; your Lucidity answers within her grants; you stay focused.
 
 It's not shipped yet. It's where Lucidity is going.
+
+## Tasks today, life-graph tomorrow
+
+Tasks are the entry point, not the destination. The next pillar is a **markdown notes vault you own** — real `.md` files on your device, the way Obsidian works, except the notes link to your tasks and projects and Lucid can read and write them.
+
+- **Files are the source of truth.** A note is a plain `.md` file in a folder; the database is only a derived, regenerable index. If the two ever disagree, the files win.
+- **Your notes never have to leave your device.** Most task apps are cloud-by-default; the vault is local-first by design.
+- **Agents are filesystem-native.** `claude --print "summarise my notes"` over the folder just works — the folder *is* the API.
+
+A note linking to a note linking to a task linking to a project *is* the life-graph. That's the direction. (Design stage — see the roadmap.)
 
 ## What Lucidity isn't
 
@@ -48,14 +58,18 @@ Lucidity's own roadmap, milestones, and bug list live inside Lucidity. The autho
 - Optimistic updates, dark mode, keyboard handling
 - Clerk auth + API key auth
 - MCP server (`@lucidity/mcp-server`) for BYOAI
-- Web app with Kanban, theme toggle, settings
+- Web app with Kanban, theme toggle, settings _(being superseded by a desktop app — see roadmap)_
 
 ## On the roadmap
 
+- Markdown notes vault — files-as-truth `.md` files, wikilinks, and a notes ↔ tasks graph (the life-graph)
+- Desktop app (Tauri/Electron) — direct vault access; runs the daemon in-process and hosts the CLI; supersedes the web app
+- `lucidity` CLI over the vault
 - Daily briefing (pull via MCP)
 - Local always-on daemon (free self-host tier)
 - Server-side scheduled actions (paid tier)
 - Agent-mediated comms with trust gradients
+- Bring-your-own-sync (iCloud / Google Drive / Git), plus hosted vault sync (Pro)
 - Push notifications and reminders
 - Offline-first sync
 
@@ -76,6 +90,35 @@ buildBriefingPrompt(userId) → { messages, tools, schema }
 
 - **Free / self-host**: MCP + local daemon on your always-on hardware (Mac mini, VPS, Docker host). Uses your existing Claude Pro/Max plan.
 - **Pro tier** (price TBD): Lucidity-hosted always-on agent for users without local always-on infra.
+- **Clients**: mobile, a desktop app, and a `lucidity` CLI. The desktop app — replacing the web app — has real filesystem access: it reads the vault directly, runs the daemon in-process, and hosts the CLI.
+
+## Connect your AI (BYOAI)
+
+The MCP server (`@lucidity/mcp-server`) exposes your tasks, projects, milestones, and today/week views to any MCP-capable client — Claude Desktop, Claude Code, Codex, Cursor. You bring the AI plan you already pay for; Lucidity brings the context.
+
+1. **Generate an API key** in the app (Settings → API keys) — it looks like `luc_…`.
+2. **Build the server** (not yet published to npm):
+   ```bash
+   pnpm install
+   pnpm --filter @lucidity/mcp-server build
+   ```
+3. **Register it with your client.** For Claude Desktop, add to `claude_desktop_config.json`:
+   ```json
+   {
+     "mcpServers": {
+       "lucidity": {
+         "command": "node",
+         "args": ["/absolute/path/to/lucidity/packages/mcp-server/dist/index.js"],
+         "env": {
+           "LUCIDITY_API_KEY": "luc_your_key_here"
+         }
+       }
+     }
+   }
+   ```
+4. **Restart the client.** Lucid's tools — `list_tasks`, `create_task`, `complete_task`, `get_today`, `get_week`, `search`, and more — are now available.
+
+`LUCIDITY_API_URL` defaults to `http://localhost:3000`; set it in `env` to point at your Lucidity API — the hosted `https://api.lucidity.my` or a self-hosted instance.
 
 ## Tech stack
 

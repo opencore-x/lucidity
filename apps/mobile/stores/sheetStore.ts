@@ -1,13 +1,9 @@
-import { createRef } from 'react';
 import { create } from 'zustand';
-import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import type { Task } from '@lucidity/shared';
-
-const sheetRef = createRef<BottomSheetModal>();
 
 interface SheetState {
   taskStack: Task[];
-  sheetRef: typeof sheetRef;
+  isPresented: boolean;
 
   // Computed getters
   currentTask: () => Task | null;
@@ -17,6 +13,7 @@ interface SheetState {
   // Actions
   openSheet: (task: Task) => void;
   closeSheet: () => void;
+  onDismissed: () => void;
   resetState: () => void;
   drillDown: (task: Task) => void;
   goBack: () => void;
@@ -25,7 +22,7 @@ interface SheetState {
 
 export const useSheetStore = create<SheetState>((set, get) => ({
   taskStack: [],
-  sheetRef,
+  isPresented: false,
 
   currentTask: () => {
     const stack = get().taskStack;
@@ -39,18 +36,18 @@ export const useSheetStore = create<SheetState>((set, get) => ({
 
   canGoBack: () => get().taskStack.length > 1,
 
-  openSheet: (task) => {
-    set({ taskStack: [task] });
-    sheetRef.current?.present();
-  },
+  // Present the sheet on a fresh single-task stack. The native BottomSheet is
+  // driven by `isPresented` (state), not an imperative ref.
+  openSheet: (task) => set({ taskStack: [task], isPresented: true }),
 
-  closeSheet: () => {
-    sheetRef.current?.dismiss();
-  },
+  // Request dismissal. taskStack is cleared in onDismissed (after the sheet has
+  // fully animated away) so the content doesn't blank mid-animation.
+  closeSheet: () => set({ isPresented: false }),
 
-  resetState: () => {
-    set({ taskStack: [] });
-  },
+  // Wired to the native BottomSheet `onDismiss` (fires post-animation).
+  onDismissed: () => set({ taskStack: [] }),
+
+  resetState: () => set({ taskStack: [], isPresented: false }),
 
   drillDown: (task) =>
     set((state) => ({

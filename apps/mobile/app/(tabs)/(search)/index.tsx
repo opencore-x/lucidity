@@ -2,7 +2,6 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { TaskItem } from '@/components/TaskItem';
-import { TaskSheet } from '@/components/TaskSheet';
 import { useColorScheme } from 'nativewind';
 import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
@@ -123,15 +122,6 @@ export default function SearchScreen() {
     setQuery('');
     inputRef.current?.focus();
   }, []);
-
-  const { currentTask } = useSheetStore();
-  const sheetTask = currentTask();
-
-  React.useEffect(() => {
-    if (sheetTask && !tasks.find((t) => t.id === sheetTask.id)) {
-      useSheetStore.getState().closeSheet();
-    }
-  }, [sheetTask, tasks]);
 
   const headerRight = React.useCallback(
     () => (
@@ -280,8 +270,6 @@ export default function SearchScreen() {
 
         <View className="h-32" />
       </ScrollView>
-
-      <TaskSheet tasks={tasks} projects={projects} />
     </>
   );
 }

@@ -1,10 +1,7 @@
 import * as React from 'react';
-import { View } from 'react-native';
-import { Text } from '@/components/ui/text';
-import * as SelectPrimitive from '@rn-primitives/select';
-import { SelectContent, SelectItem } from '@/components/ui/select';
+import { Menu, HStack, Image, Text, Button } from '@expo/ui/swift-ui';
+import { glassEffect, padding, foregroundStyle } from '@expo/ui/swift-ui/modifiers';
 import type { Task } from '@lucidity/shared';
-import type { Option } from '@rn-primitives/select';
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
@@ -27,30 +24,44 @@ interface StatusPillProps {
   onStatusChange: (status: Task['status']) => void;
 }
 
+/**
+ * Native @expo/ui status selector: a Liquid Glass capsule (label = a glass-effect
+ * HStack with a status-colored dot + text) that opens a native menu of statuses.
+ * Returns a bare Menu (no Host) so it composes inside GlobalTaskSheet's SwiftUI
+ * tree. The selected status carries a checkmark.
+ */
 export function StatusPill({ status, onStatusChange }: StatusPillProps) {
   const currentOption = STATUS_OPTIONS.find((s) => s.value === status);
   const dotColor = STATUS_COLORS[status] ?? '#9CA3AF';
 
-  const handleChange = (option: Option) => {
-    if (option?.value && option.value !== status) {
-      onStatusChange(option.value as Task['status']);
-    }
-  };
-
   return (
-    <SelectPrimitive.Root value={currentOption} onValueChange={handleChange}>
-      <SelectPrimitive.Trigger
-        className="self-center flex-row items-center rounded-full border border-border bg-transparent px-3"
-        style={{ height: 28, gap: 6 }}
-      >
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dotColor }} />
-        <Text className="text-xs text-muted-foreground">{currentOption?.label ?? 'Pending'}</Text>
-      </SelectPrimitive.Trigger>
-      <SelectContent>
-        {STATUS_OPTIONS.map((s) => (
-          <SelectItem key={s.value} value={s.value} label={s.label} />
-        ))}
-      </SelectContent>
-    </SelectPrimitive.Root>
+    <Menu
+      label={
+        <HStack
+          spacing={6}
+          modifiers={[
+            padding({ horizontal: 14, vertical: 7 }),
+            glassEffect({
+              glass: { variant: 'regular', interactive: true },
+              shape: 'capsule',
+            }),
+          ]}>
+          <Image systemName="circle.fill" size={5} color={dotColor} />
+          <Text modifiers={[foregroundStyle(dotColor)]}>{currentOption?.label ?? 'Pending'}</Text>
+        </HStack>
+      }>
+      {STATUS_OPTIONS.map((s) => (
+        <Button
+          key={s.value}
+          label={s.label}
+          systemImage={s.value === status ? 'checkmark' : undefined}
+          onPress={() => {
+            if (s.value !== status) {
+              onStatusChange(s.value as Task['status']);
+            }
+          }}
+        />
+      ))}
+    </Menu>
   );
 }

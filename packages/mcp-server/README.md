@@ -28,7 +28,7 @@ Add the MCP server with `--scope user` to make it available across all projects:
 claude mcp add lucidity \
   --scope user \
   -e LUCIDITY_API_KEY=luc_your_api_key_here \
-  -e LUCIDITY_API_URL=https://lucidity-api.onrender.com \
+  -e LUCIDITY_API_URL=https://api.lucidity.my \
   -- lucidity-mcp
 ```
 
@@ -76,7 +76,11 @@ claude mcp remove lucidity
 
 ## Tools
 
-`list_tasks` `create_task` `update_task` `complete_task` `delete_task` `list_projects` `create_project` `get_today` `get_week` `search` `get_task_stats`
+- **Tasks:** `list_tasks` `create_task` `update_task` `complete_task` `delete_task` `mark_task_reviewed`
+- **Projects:** `list_projects` `create_project` `update_project`
+- **Milestones:** `list_milestones` `create_milestone` `update_milestone` `delete_milestone` `get_milestone_progress`
+- **Comments:** `list_comments` `create_comment`
+- **Queries:** `get_today` `get_week` `search` `get_task_stats` `get_unreviewed_tasks`
 
 ## Docs
 
