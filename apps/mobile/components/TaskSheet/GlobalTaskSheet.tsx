@@ -9,6 +9,9 @@ import {
   Button,
   Image,
   Spacer,
+  List,
+  Picker,
+  Slider,
 } from '@expo/ui/swift-ui';
 import {
   frame,
@@ -18,23 +21,83 @@ import {
   buttonStyle,
   glassEffect,
   hidden,
+  pickerStyle,
+  tag,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { useSheetStore } from '@/stores/sheetStore';
 import { useTasks, useUpdateTask } from '@/hooks/useTasks';
+import { useProjects } from '@/hooks/useProjects';
+import { useMilestones } from '@/hooks/useMilestones';
 import { StatusPill } from '@/components/TaskSheet/StatusPill';
-import type { UpdateTask } from '@lucidity/shared';
+import { INBOX_PROJECT_ID } from '@/utils/helpers';
+import type { Task, UpdateTask } from '@lucidity/shared';
+
+const MILESTONE_NONE = '__none__';
+const REPEAT_NONE = '__never__';
+const REPEAT_OPTIONS = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly', label: 'Yearly' },
+] as const;
+
+/**
+ * Priority slider row. Keeps the live drag value in LOCAL state so dragging only
+ * re-renders this row (not the whole sheet), and commits once on release.
+ */
+const PriorityRow = React.memo(function PriorityRow({
+  priority,
+  onCommit,
+}: {
+  priority: number;
+  onCommit: (priority: number) => void;
+}) {
+  const [live, setLive] = React.useState<number | null>(null);
+  const liveRef = React.useRef<number | null>(null);
+
+  return (
+    <VStack spacing={4}>
+      <HStack spacing={8}>
+        <Image systemName="flag" size={14} />
+        <Text>Priority</Text>
+        <Spacer />
+        <Text>{String(live ?? priority)}</Text>
+      </HStack>
+      <Slider
+        value={priority}
+        min={100}
+        max={1000}
+        step={100}
+        onValueChange={(v) => {
+          const val = Math.round(v);
+          liveRef.current = val;
+          setLive(val);
+        }}
+        onEditingChanged={(editing) => {
+          if (!editing) {
+            const val = liveRef.current;
+            liveRef.current = null;
+            setLive(null);
+            if (val != null && val !== priority) onCommit(val);
+          }
+        }}
+      />
+    </VStack>
+  );
+});
 
 /**
  * Single global native (@expo/ui) bottom sheet for task details. Mounted once in
- * the root layout (signed-in only) and driven by `sheetStore.isPresented`, it
- * replaces the five per-screen <TaskSheet> mounts and sources its own data from
- * hooks. Phase 3.1: shell + title only; content is migrated in later phases.
+ * the root layout (signed-in only) and driven by `sheetStore.isPresented`. Sources
+ * its own data from hooks. Phases done: 3.1 shell, 3.2 top bar + status pill,
+ * 3.3a options (Project/Milestone/Repeat pickers + priority slider). Still to
+ * migrate: due/reminder pickers (3.3b), subtasks (3.4), comments (3.5), inline
+ * title/description editing (3.6), parent picker (3.7).
  *
- * Canonical @expo/ui sheet pattern (validated in the spike): each BottomSheet
- * sits in its own zero-size absolute Host, and the content Group MUST carry
- * `frame({ maxWidth: Infinity })` or the SwiftUI content collapses and the sheet
- * presents invisibly.
+ * Canonical @expo/ui sheet pattern: each BottomSheet sits in its own zero-size
+ * absolute Host, and the content Group MUST carry `frame({ maxWidth: Infinity })`
+ * or the SwiftUI content collapses and the sheet presents invisibly.
  */
 export function GlobalTaskSheet() {
   const { colorScheme } = useColorScheme();
@@ -50,12 +113,29 @@ export function GlobalTaskSheet() {
   const task = taskStack.length > 0 ? taskStack[taskStack.length - 1] : null;
   const canGoBack = taskStack.length > 1;
 
+  // Source data globally (replaces the per-screen props). Auto-close if the open
+  // task disappears from the list (deleted elsewhere).
+  const { data: allTasks = [] } = useTasks();
+  const { data: allProjects = [] } = useProjects();
+  const projects = allProjects.filter((p) => !p.isArchived);
+  const { data: milestones = [] } = useMilestones(task?.projectId ?? null);
+
+  React.useEffect(() => {
+    if (task && !allTasks.find((t) => t.id === task.id)) {
+      closeSheet();
+    }
+  }, [task, allTasks, closeSheet]);
+
   // Optimistic field update; sync the server response back into the task stack
   // so the open sheet stays fresh (matches the old per-screen TaskSheet flow).
   const updateTask = useUpdateTask();
   const handleUpdateField = React.useCallback(
     (data: Partial<UpdateTask>) => {
       if (!task) return;
+      // Reflect the change in the open sheet immediately (optimistic) so the UI
+      // doesn't wait for the server round-trip; the mutation also updates the
+      // query cache and re-syncs the authoritative task on success.
+      updateCurrentTask({ ...task, ...data } as Task);
       updateTask.mutate(
         { id: task.id, data },
         { onSuccess: (updatedTask) => updateCurrentTask(updatedTask) }
@@ -63,16 +143,6 @@ export function GlobalTaskSheet() {
     },
     [task, updateTask, updateCurrentTask]
   );
-
-  // Source data globally (replaces the per-screen `tasks` prop). Auto-close the
-  // sheet if the open task disappears from the list (e.g. deleted elsewhere) —
-  // consolidates the identical effect that lived in all five screens.
-  const { data: allTasks = [] } = useTasks();
-  React.useEffect(() => {
-    if (task && !allTasks.find((t) => t.id === task.id)) {
-      closeSheet();
-    }
-  }, [task, allTasks, closeSheet]);
 
   // A circular Liquid Glass icon button (back / close).
   const circleGlass = [
@@ -106,9 +176,8 @@ export function GlobalTaskSheet() {
           ]}
         >
           <VStack spacing={12}>
+            {/* Top bar: back (hidden at root, reserves width) / status / close */}
             <HStack spacing={8}>
-              {/* Back is always rendered (hidden when at the root) so it reserves
-                  symmetric width with Close, keeping the status pill centered. */}
               <Button
                 onPress={goBack}
                 modifiers={canGoBack ? circleGlass : [...circleGlass, hidden(true)]}
@@ -127,7 +196,90 @@ export function GlobalTaskSheet() {
                 <Image systemName="xmark" size={16} />
               </Button>
             </HStack>
-            <Text>{task?.title ?? ''}</Text>
+
+            {task ? (
+              <Text modifiers={[padding({ leading: 4, trailing: 4 })]}>
+                {task.title}
+              </Text>
+            ) : null}
+
+            {task ? (
+              <List>
+                <Picker
+                  label="Project"
+                  systemImage="folder"
+                  selection={task.projectId ?? INBOX_PROJECT_ID}
+                  onSelectionChange={(value) => {
+                    const projectId =
+                      value === INBOX_PROJECT_ID ? null : (value as string);
+                    if (projectId !== task.projectId) {
+                      handleUpdateField({ projectId, milestoneId: null });
+                    }
+                  }}
+                  modifiers={[pickerStyle('menu')]}
+                >
+                  <Text modifiers={[tag(INBOX_PROJECT_ID)]}>Inbox</Text>
+                  {projects.map((p) => (
+                    <Text key={p.id} modifiers={[tag(p.id)]}>
+                      {p.name}
+                    </Text>
+                  ))}
+                </Picker>
+
+                {task.projectId ? (
+                  <Picker
+                    label="Milestone"
+                    systemImage="flag"
+                    selection={task.milestoneId ?? MILESTONE_NONE}
+                    onSelectionChange={(value) => {
+                      const milestoneId =
+                        value === MILESTONE_NONE ? null : (value as string);
+                      if (milestoneId !== task.milestoneId) {
+                        handleUpdateField({ milestoneId });
+                      }
+                    }}
+                    modifiers={[pickerStyle('menu')]}
+                  >
+                    <Text modifiers={[tag(MILESTONE_NONE)]}>None</Text>
+                    {milestones.map((m) => (
+                      <Text key={m.id} modifiers={[tag(m.id)]}>
+                        {m.name}
+                      </Text>
+                    ))}
+                  </Picker>
+                ) : null}
+
+                {task.dueDate ? (
+                  <Picker
+                    label="Repeat"
+                    systemImage="arrow.triangle.2.circlepath"
+                    selection={task.recurringFrequency ?? REPEAT_NONE}
+                    onSelectionChange={(value) => {
+                      const rf =
+                        value === REPEAT_NONE
+                          ? null
+                          : (value as 'daily' | 'weekly' | 'monthly' | 'yearly');
+                      if (rf !== task.recurringFrequency) {
+                        handleUpdateField({ recurringFrequency: rf });
+                      }
+                    }}
+                    modifiers={[pickerStyle('menu')]}
+                  >
+                    <Text modifiers={[tag(REPEAT_NONE)]}>Never</Text>
+                    {REPEAT_OPTIONS.map((r) => (
+                      <Text key={r.value} modifiers={[tag(r.value)]}>
+                        {r.label}
+                      </Text>
+                    ))}
+                  </Picker>
+                ) : null}
+
+                <PriorityRow
+                  priority={task.priority}
+                  onCommit={(priority) => handleUpdateField({ priority })}
+                />
+              </List>
+            ) : null}
           </VStack>
         </Group>
       </BottomSheet>
