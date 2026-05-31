@@ -27,12 +27,16 @@ import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { ScrollProvider } from '@/contexts/ScrollContext';
-import { formatRelativeTime } from '@/utils/helpers';
+import { formatRelativeTime, INBOX_PROJECT, INBOX_PROJECT_ID } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
 
 export default function ProjectScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: project, isLoading: projectLoading } = useProject(id);
+  const { id, quickCapture } = useLocalSearchParams<{ id: string; quickCapture?: string }>();
+  // Inbox is a virtual project (no DB row): synthesize it and skip the fetch.
+  const isInbox = id === INBOX_PROJECT_ID;
+  const { data: fetchedProject, isLoading: fetchedProjectLoading } = useProject(isInbox ? '' : id);
+  const project = isInbox ? INBOX_PROJECT : fetchedProject;
+  const projectLoading = isInbox ? false : fetchedProjectLoading;
   const { data: allTasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: allProjects = [], refetch: refetchProjects } = useProjects();
   const createTask = useCreateTask();
@@ -49,8 +53,11 @@ export default function ProjectScreen() {
   );
 
   const rootTasks = React.useMemo(
-    () => allTasks.filter((t) => t.projectId === id && !t.parentTaskId),
-    [allTasks, id]
+    () =>
+      allTasks.filter(
+        (t) => (isInbox ? t.projectId === null : t.projectId === id) && !t.parentTaskId
+      ),
+    [allTasks, id, isInbox]
   );
 
   const activeTasks = React.useMemo(
@@ -145,12 +152,12 @@ export default function ProjectScreen() {
         text: 'Add Task',
         onPress: (title?: string) => {
           if (title?.trim()) {
-            createTask.mutate({ title: title.trim(), projectId: id });
+            createTask.mutate({ title: title.trim(), projectId: isInbox ? null : id });
           }
         },
       },
     ], 'plain-text');
-  }, [createTask, id]);
+  }, [createTask, id, isInbox]);
 
   const handleDragEnd = React.useCallback(() => {
     setIsDragging(false);
@@ -297,7 +304,11 @@ export default function ProjectScreen() {
               />
 
               {/* Inline task input */}
-              <InlineTaskInput projectId={id} onComplete={() => {}} />
+              <InlineTaskInput
+                projectId={isInbox ? null : id}
+                onComplete={() => {}}
+                autoFocus={quickCapture === 'true'}
+              />
             </>
           ) : (
             <>
