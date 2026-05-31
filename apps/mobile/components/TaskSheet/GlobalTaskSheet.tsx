@@ -28,14 +28,16 @@ import {
   lineLimit,
   truncationMode,
   foregroundStyle,
+  onTapGesture,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { useSheetStore } from '@/stores/sheetStore';
-import { useTasks, useUpdateTask } from '@/hooks/useTasks';
+import { useTasks, useUpdateTask, useToggleTask, useReorderTasks } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useMilestones } from '@/hooks/useMilestones';
+import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { StatusPill } from '@/components/TaskSheet/StatusPill';
-import { INBOX_PROJECT_ID } from '@/utils/helpers';
+import { INBOX_PROJECT_ID, getSubtasks, getSubtaskProgress } from '@/utils/helpers';
 import type { Task, UpdateTask } from '@lucidity/shared';
 
 // Match the tinted, larger SF Symbols that Picker rows render automatically.
@@ -45,6 +47,9 @@ const ICON_SIZE = 22;
 const ICON_COL = 30;
 // Secondary gray for the trailing selected-value text + chevron (systemGray, reads in both modes).
 const MENU_VALUE_GRAY = '#8E8E93';
+// Subtask checkbox: green when complete, systemGray3 ring when not.
+const SUBTASK_DONE_GREEN = '#22C55E';
+const CHECKBOX_GRAY = '#C7C7CC';
 
 const MILESTONE_NONE = '__none__';
 const REPEAT_NONE = '__never__';
@@ -91,9 +96,7 @@ function MenuRow({
       <Text>{label}</Text>
       <Menu
         label={
-          <HStack
-            spacing={4}
-            modifiers={[frame({ maxWidth: Infinity, alignment: 'trailing' })]}>
+          <HStack spacing={4} modifiers={[frame({ maxWidth: Infinity, alignment: 'trailing' })]}>
             <Text
               modifiers={[
                 foregroundStyle(MENU_VALUE_GRAY),
@@ -103,11 +106,7 @@ function MenuRow({
               ]}>
               {value}
             </Text>
-            <Image
-              systemName="chevron.up.chevron.down"
-              size={12}
-              color={MENU_VALUE_GRAY}
-            />
+            <Image systemName="chevron.up.chevron.down" size={12} color={MENU_VALUE_GRAY} />
           </HStack>
         }>
         {options.map((o) => (
@@ -175,6 +174,114 @@ const PriorityRow = React.memo(function PriorityRow({
   );
 });
 
+/** A single subtask row: native circle checkbox + title + nested progress. */
+function SubtaskRow({
+  task,
+  progress,
+  onToggle,
+  onOpen,
+}: {
+  task: Task;
+  progress: { completed: number; total: number } | null;
+  onToggle: () => void;
+  onOpen: () => void;
+}) {
+  const completed = task.status === 'completed';
+  const titleMods = [
+    lineLimit(1),
+    truncationMode('tail'),
+    frame({ maxWidth: Infinity, alignment: 'leading' }),
+    ...(completed ? [foregroundStyle(MENU_VALUE_GRAY)] : []),
+  ];
+  return (
+    <HStack spacing={12} modifiers={[onTapGesture(onOpen)]}>
+      <Image
+        systemName={completed ? 'checkmark.circle.fill' : 'circle'}
+        size={22}
+        color={completed ? SUBTASK_DONE_GREEN : CHECKBOX_GRAY}
+        onPress={onToggle}
+      />
+      <Text modifiers={titleMods}>{task.title}</Text>
+      {progress ? (
+        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>
+          {`${progress.completed}/${progress.total}`}
+        </Text>
+      ) : null}
+    </HStack>
+  );
+}
+
+/**
+ * The open task's subtasks as a native `List.ForEach` (swipe-to-delete + long-press
+ * drag-to-reorder). Owns a LOCAL ordered copy so a reorder reflects immediately —
+ * `useReorderTasks` only invalidates on settle, so without this the row would snap
+ * back until the refetch lands. Memoized + given a stable `subtasks` prop so its own
+ * re-renders (from the mutation hooks) don't resync and clobber an in-flight drag.
+ *
+ * Returns a Fragment (not a VStack) on purpose: the `List.ForEach` must stay a direct
+ * child of the parent `List` for its native reorder/delete gestures to bind.
+ */
+const SubtaskSection = React.memo(function SubtaskSection({
+  subtasks,
+  allTasks,
+  onOpen,
+}: {
+  subtasks: Task[];
+  allTasks: Task[];
+  onOpen: (task: Task) => void;
+}) {
+  const reorderTasks = useReorderTasks();
+  const toggleTask = useToggleTask();
+  const { deleteTask } = useUndoableDeleteTask();
+
+  const [order, setOrder] = React.useState(subtasks);
+  React.useEffect(() => {
+    setOrder(subtasks);
+  }, [subtasks]);
+
+  if (order.length === 0) return null;
+
+  const completedCount = order.filter((t) => t.status === 'completed').length;
+
+  return (
+    <>
+      <HStack modifiers={[padding({ leading: 4, top: 4 })]}>
+        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>Subtasks</Text>
+        <Spacer />
+        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>
+          {`${completedCount}/${order.length}`}
+        </Text>
+      </HStack>
+      <List.ForEach
+        onMove={(from, to) => {
+          const next = [...order];
+          const src = from[0];
+          const [moved] = next.splice(src, 1);
+          // Mirror SwiftUI's Array.move(fromOffsets:toOffset:) index semantics.
+          next.splice(src < to ? to - 1 : to, 0, moved);
+          setOrder(next);
+          reorderTasks.mutate(next.map((t) => t.id));
+        }}
+        onDelete={(indices) => {
+          indices.forEach((i) => {
+            const t = order[i];
+            if (t) deleteTask(t.id);
+          });
+        }}>
+        {order.map((st) => (
+          <SubtaskRow
+            key={st.id}
+            task={st}
+            progress={getSubtaskProgress(allTasks, st.id)}
+            onToggle={() => toggleTask.mutate(st.id)}
+            onOpen={() => onOpen(st)}
+          />
+        ))}
+      </List.ForEach>
+    </>
+  );
+});
+
 /**
  * Single global native (@expo/ui) bottom sheet for task details. Mounted once in
  * the root layout (signed-in only) and driven by `sheetStore.isPresented`. Sources
@@ -196,6 +303,7 @@ export function GlobalTaskSheet() {
   const closeSheet = useSheetStore((s) => s.closeSheet);
   const onDismissed = useSheetStore((s) => s.onDismissed);
   const goBack = useSheetStore((s) => s.goBack);
+  const drillDown = useSheetStore((s) => s.drillDown);
   const updateCurrentTask = useSheetStore((s) => s.updateCurrentTask);
 
   const task = taskStack.length > 0 ? taskStack[taskStack.length - 1] : null;
@@ -207,6 +315,13 @@ export function GlobalTaskSheet() {
   const { data: allProjects = [] } = useProjects();
   const projects = allProjects.filter((p) => !p.isArchived);
   const { data: milestones = [] } = useMilestones(task?.projectId ?? null);
+
+  // Stable per (allTasks, task.id) so SubtaskSection's local order isn't resynced
+  // (and a live drag clobbered) on unrelated re-renders.
+  const subtasks = React.useMemo(
+    () => (task ? getSubtasks(allTasks, task.id) : []),
+    [allTasks, task?.id]
+  );
 
   React.useEffect(() => {
     if (task && !allTasks.find((t) => t.id === task.id)) {
@@ -288,6 +403,8 @@ export function GlobalTaskSheet() {
 
             {task ? (
               <List>
+                <SubtaskSection subtasks={subtasks} allTasks={allTasks} onOpen={drillDown} />
+
                 <MenuRow
                   icon="folder"
                   label="Project"
