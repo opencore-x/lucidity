@@ -9,12 +9,11 @@ import {
   controlSize,
   padding,
 } from '@expo/ui/swift-ui/modifiers';
-import { PlusIcon } from 'lucide-react-native';
+import { PlusIcon, Pencil } from 'lucide-react-native';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
-import { ProjectSheet } from '@/components/ProjectSheet';
 import { InlineTaskInput } from '@/components/InlineTaskInput';
 import {
   DraggableTask,
@@ -26,6 +25,7 @@ import { useTasks, useCreateTask, useToggleTask, useUpdateTask, useReorderTasks 
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
+import { useProjectSheetStore } from '@/stores/projectSheetStore';
 import { ScrollProvider } from '@/contexts/ScrollContext';
 import { formatRelativeTime, INBOX_PROJECT, INBOX_PROJECT_ID } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
@@ -45,6 +45,7 @@ export default function ProjectScreen() {
   const reorderTasks = useReorderTasks();
   const { deleteTask } = useUndoableDeleteTask();
   const { openSheet } = useSheetStore();
+  const openProjectSheet = useProjectSheetStore((s) => s.openSheet);
   const scrollViewRef = React.useRef<ScrollView>(null);
 
   const projects = React.useMemo(
@@ -199,6 +200,11 @@ export default function ProjectScreen() {
           headerTintColor: project.color ?? undefined,
           headerRight: () => (
             <View className="flex-row items-center gap-4">
+              {!isInbox && project ? (
+                <Pressable onPress={() => openProjectSheet(project)} hitSlop={8}>
+                  <Icon as={Pencil} className="size-6 text-foreground" />
+                </Pressable>
+              ) : null}
               <Pressable onPress={handleCreateTask} hitSlop={8} className="pl-2">
                 <Icon as={PlusIcon} className="size-6 text-foreground" />
               </Pressable>
@@ -345,9 +351,6 @@ export default function ProjectScreen() {
           <View className="h-80" />
         </ScrollView>
         </ScrollProvider>
-
-        {/* Sheets */}
-        <ProjectSheet />
       </SafeAreaView>
     </>
   );

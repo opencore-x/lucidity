@@ -1,33 +1,28 @@
-import { createRef } from 'react';
 import { create } from 'zustand';
-import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import type { Project } from '@lucidity/shared';
-
-const sheetRef = createRef<BottomSheetModal>();
 
 interface ProjectSheetState {
   project: Project | null;
-  sheetRef: typeof sheetRef;
+  isPresented: boolean;
 
   openSheet: (project: Project) => void;
   closeSheet: () => void;
-  clearProject: () => void;
+  onDismissed: () => void;
+  updateProject: (project: Project) => void;
 }
 
+/**
+ * State-driven store for the global native (@expo/ui) project editor sheet.
+ * Mirrors `sheetStore`: the BottomSheet is driven by `isPresented` (not an
+ * imperative ref). `project` holds the open project; `onDismissed` clears it after
+ * the sheet has animated away so the content doesn't blank mid-dismiss.
+ */
 export const useProjectSheetStore = create<ProjectSheetState>((set) => ({
   project: null,
-  sheetRef,
+  isPresented: false,
 
-  openSheet: (project) => {
-    set({ project });
-    sheetRef.current?.present();
-  },
-
-  closeSheet: () => {
-    sheetRef.current?.dismiss();
-  },
-
-  clearProject: () => {
-    set({ project: null });
-  },
+  openSheet: (project) => set({ project, isPresented: true }),
+  closeSheet: () => set({ isPresented: false }),
+  onDismissed: () => set({ project: null }),
+  updateProject: (project) => set({ project }),
 }));
