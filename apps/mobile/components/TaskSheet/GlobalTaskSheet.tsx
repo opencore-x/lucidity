@@ -12,6 +12,8 @@ import {
   List,
   Picker,
   Slider,
+  Toggle,
+  DatePicker,
 } from '@expo/ui/swift-ui';
 import {
   frame,
@@ -247,6 +249,44 @@ export function GlobalTaskSheet() {
                       </Text>
                     ))}
                   </Picker>
+                ) : null}
+
+                <Toggle
+                  label="Due Date"
+                  systemImage="calendar"
+                  isOn={!!task.dueDate}
+                  onIsOnChange={(on) =>
+                    handleUpdateField({ dueDate: on ? new Date() : null })
+                  }
+                />
+                {task.dueDate ? (
+                  <DatePicker
+                    title="Due"
+                    selection={new Date(task.dueDate)}
+                    displayedComponents={['date']}
+                    onDateChange={(d) => handleUpdateField({ dueDate: d })}
+                  />
+                ) : null}
+
+                <Toggle
+                  label="Reminder"
+                  systemImage="bell"
+                  isOn={!!task.reminderAt}
+                  onIsOnChange={(on) =>
+                    handleUpdateField({
+                      reminderAt: on
+                        ? new Date(Date.now() + 60 * 60 * 1000)
+                        : null,
+                    })
+                  }
+                />
+                {task.reminderAt ? (
+                  <DatePicker
+                    title="Reminder"
+                    selection={new Date(task.reminderAt)}
+                    displayedComponents={['date', 'hourAndMinute']}
+                    onDateChange={(d) => handleUpdateField({ reminderAt: d })}
+                  />
                 ) : null}
 
                 {task.dueDate ? (
