@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { View, ActivityIndicator, Alert } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
 import {
   Host,
+  VStack,
   Button,
   List,
   Section,
@@ -23,6 +24,7 @@ import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { TaskRow } from '@/components/native/TaskRow';
+import { TaskComposer } from '@/components/native/TaskComposer';
 import { useTasks, useCreateTask, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
@@ -46,6 +48,7 @@ export default function TodayScreen() {
   const updateTask = useUpdateTask();
   const { deleteTask } = useUndoableDeleteTask();
   const { openSheet } = useSheetStore();
+  const [composing, setComposing] = React.useState(false);
 
   const isLoading = tasksLoading || projectsLoading;
 
@@ -91,26 +94,15 @@ export default function TodayScreen() {
   );
   const handleDeleteTask = React.useCallback((taskId: string) => deleteTask(taskId), [deleteTask]);
 
-  const handleCreateTask = React.useCallback(() => {
-    Alert.prompt(
-      'New Task',
-      'This task will be due today.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Add Task',
-          onPress: (title?: string) => {
-            if (title?.trim()) {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              createTask.mutate({ title: title.trim(), dueDate: today });
-            }
-          },
-        },
-      ],
-      'plain-text'
-    );
-  }, [createTask]);
+  const handleCreateTask = React.useCallback(() => setComposing(true), []);
+  const handleSubmitTask = React.useCallback(
+    (title: string) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      createTask.mutate({ title, dueDate: today });
+    },
+    [createTask]
+  );
 
   const headerRight = React.useCallback(
     () => (
@@ -156,7 +148,7 @@ export default function TodayScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Today', headerRight }} />
-        <View className="flex-1 items-center justify-center bg-background">
+        <View className="bg-background flex-1 items-center justify-center">
           <ActivityIndicator size="large" />
         </View>
       </>
@@ -166,48 +158,64 @@ export default function TodayScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Today', headerRight }} />
-      <View className="flex-1 bg-background">
+      <View className="bg-background flex-1">
         <Host style={{ flex: 1 }} colorScheme={scheme}>
-          {/* insetGrouped paints a solid background that fills the whole Host, so dark
-              mode covers the entire body (matches the project screen). */}
-          <List modifiers={[listStyle('insetGrouped'), refreshable(onRefresh)]}>
-            {todayTasks.length === 0 ? (
-              <UIText
-                modifiers={[
-                  foregroundStyle(MUTED_GRAY),
-                  frame({ maxWidth: Infinity, alignment: 'center' }),
-                  padding({ vertical: 56 }),
-                ]}>
-                🎉  All caught up — nothing due today.
-              </UIText>
-            ) : (
-              <>
-                {overdueTasks.length > 0 ? (
-                  <Section
-                    header={
-                      <UIText
-                        modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle(OVERDUE_RED)]}>
-                        {`Overdue (${overdueTasks.length})`}
-                      </UIText>
-                    }>
-                    {overdueTasks.map(renderRow)}
-                  </Section>
-                ) : null}
+          {/* List + composer share one VStack so SwiftUI floats the composer above the
+              keyboard (same as the task sheet). insetGrouped paints a solid background
+              that fills the whole Host, so dark mode covers the entire body. */}
+          <VStack spacing={0} modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
+            <List modifiers={[listStyle('insetGrouped'), refreshable(onRefresh)]}>
+              {todayTasks.length === 0 ? (
+                <UIText
+                  modifiers={[
+                    foregroundStyle(MUTED_GRAY),
+                    frame({ maxWidth: Infinity, alignment: 'center' }),
+                    padding({ vertical: 56 }),
+                  ]}>
+                  🎉 All caught up — nothing due today.
+                </UIText>
+              ) : (
+                <>
+                  {overdueTasks.length > 0 ? (
+                    <Section
+                      header={
+                        <UIText
+                          modifiers={[
+                            font({ size: 13, weight: 'semibold' }),
+                            foregroundStyle(OVERDUE_RED),
+                          ]}>
+                          {`Overdue (${overdueTasks.length})`}
+                        </UIText>
+                      }>
+                      {overdueTasks.map(renderRow)}
+                    </Section>
+                  ) : null}
 
-                {dueTodayTasks.length > 0 ? (
-                  <Section
-                    header={
-                      <UIText
-                        modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle(MUTED_GRAY)]}>
-                        {`Due Today (${dueTodayTasks.length})`}
-                      </UIText>
-                    }>
-                    {dueTodayTasks.map(renderRow)}
-                  </Section>
-                ) : null}
-              </>
-            )}
-          </List>
+                  {dueTodayTasks.length > 0 ? (
+                    <Section
+                      header={
+                        <UIText
+                          modifiers={[
+                            font({ size: 13, weight: 'semibold' }),
+                            foregroundStyle(MUTED_GRAY),
+                          ]}>
+                          {`Due Today (${dueTodayTasks.length})`}
+                        </UIText>
+                      }>
+                      {dueTodayTasks.map(renderRow)}
+                    </Section>
+                  ) : null}
+                </>
+              )}
+            </List>
+            {composing ? (
+              <TaskComposer
+                placeholder="Add task…"
+                onSubmit={handleSubmitTask}
+                onClose={() => setComposing(false)}
+              />
+            ) : null}
+          </VStack>
         </Host>
       </View>
     </>

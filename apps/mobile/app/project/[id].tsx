@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, ActivityIndicator, Alert } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import {
   Host,
@@ -28,6 +28,7 @@ import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { TaskRow } from '@/components/native/TaskRow';
+import { TaskComposer } from '@/components/native/TaskComposer';
 import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
 import { useProject, useProjects } from '@/hooks/useProjects';
 import {
@@ -50,7 +51,7 @@ export default function ProjectScreen() {
   const { colorScheme } = useColorScheme();
   const scheme = colorScheme === 'dark' ? 'dark' : 'light';
 
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, quickCapture } = useLocalSearchParams<{ id: string; quickCapture?: string }>();
   // Inbox is a virtual project (no DB row): synthesize it and skip the fetch.
   const isInbox = id === INBOX_PROJECT_ID;
   const { data: fetchedProject, isLoading: fetchedProjectLoading } = useProject(isInbox ? '' : id);
@@ -85,8 +86,7 @@ export default function ProjectScreen() {
       rootTasks
         .filter((t) => t.status === 'completed')
         .sort(
-          (a, b) =>
-            new Date(b.completedAt ?? 0).getTime() - new Date(a.completedAt ?? 0).getTime()
+          (a, b) => new Date(b.completedAt ?? 0).getTime() - new Date(a.completedAt ?? 0).getTime()
         ),
     [rootTasks]
   );
@@ -95,6 +95,9 @@ export default function ProjectScreen() {
   // only invalidates on settle). Re-synced when the active set changes.
   const [localTasks, setLocalTasks] = React.useState(activeTasks);
   const [selectedTab, setSelectedTab] = React.useState<'active' | 'completed'>('active');
+  // Quick-capture deep link (home-screen "Add Task" quick action → Inbox) opens the
+  // inline composer immediately — derived from the route param at mount.
+  const [composing, setComposing] = React.useState(quickCapture === 'true');
 
   React.useEffect(() => {
     setLocalTasks(activeTasks);
@@ -132,23 +135,11 @@ export default function ProjectScreen() {
     [localTasks, reorderTasks]
   );
 
-  const handleCreateTask = React.useCallback(() => {
-    Alert.prompt(
-      'New Task',
-      undefined,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Add Task',
-          onPress: (title?: string) => {
-            if (title?.trim())
-              createTask.mutate({ title: title.trim(), projectId: isInbox ? null : id });
-          },
-        },
-      ],
-      'plain-text'
-    );
-  }, [createTask, id, isInbox]);
+  const handleCreateTask = React.useCallback(() => setComposing(true), []);
+  const handleSubmitTask = React.useCallback(
+    (title: string) => createTask.mutate({ title, projectId: isInbox ? null : id }),
+    [createTask, id, isInbox]
+  );
 
   const isLoading = projectLoading || tasksLoading;
 
@@ -156,7 +147,7 @@ export default function ProjectScreen() {
     return (
       <>
         <Stack.Screen options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: '' }} />
-        <View className="flex-1 items-center justify-center bg-background">
+        <View className="bg-background flex-1 items-center justify-center">
           <ActivityIndicator size="large" />
         </View>
       </>
@@ -167,7 +158,7 @@ export default function ProjectScreen() {
     return (
       <>
         <Stack.Screen options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: 'Not Found' }} />
-        <View className="flex-1 items-center justify-center bg-background">
+        <View className="bg-background flex-1 items-center justify-center">
           <Text className="text-muted-foreground">Project not found</Text>
         </View>
       </>
@@ -204,26 +195,28 @@ export default function ProjectScreen() {
           ),
         }}
       />
-      <View className="flex-1 bg-background">
+      <View className="bg-background flex-1">
         <Host style={{ flex: 1 }} colorScheme={scheme}>
-          {/* insetGrouped (like the landing) paints a solid background that fills the
-              whole Host, so dark mode covers the entire body — not just the rows.
-              Description + tabs live as the first, separator-less row. */}
-          <List modifiers={[listStyle('insetGrouped'), refreshable(onRefresh)]}>
-            <VStack spacing={8} alignment="leading" modifiers={[listRowSeparator('hidden')]}>
-              {project.description ? (
-                <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
-                  {project.description}
-                </UIText>
-              ) : null}
-              <HStack spacing={8}>
-                {tabButton('active', `Active (${activeTasks.length})`)}
-                {tabButton('completed', `Completed (${completedTasks.length})`)}
-                <Spacer />
-              </HStack>
-            </VStack>
+          {/* List + composer share one VStack so SwiftUI floats the composer above the
+              keyboard (same as the task sheet). insetGrouped (like the landing) paints a
+              solid background that fills the Host, so dark mode covers the entire body —
+              not just the rows. Description + tabs are the first, separator-less row. */}
+          <VStack spacing={0} modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
+            <List modifiers={[listStyle('insetGrouped'), refreshable(onRefresh)]}>
+              <VStack spacing={8} alignment="leading" modifiers={[listRowSeparator('hidden')]}>
+                {project.description ? (
+                  <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
+                    {project.description}
+                  </UIText>
+                ) : null}
+                <HStack spacing={8}>
+                  {tabButton('active', `Active (${activeTasks.length})`)}
+                  {tabButton('completed', `Completed (${completedTasks.length})`)}
+                  <Spacer />
+                </HStack>
+              </VStack>
 
-            {selectedTab === 'active' ? (
+              {selectedTab === 'active' ? (
                 <List.ForEach onMove={onMove}>
                   {localTasks.map((task) => (
                     <SwipeActions key={task.id}>
@@ -280,6 +273,14 @@ export default function ProjectScreen() {
                 ))
               )}
             </List>
+            {composing ? (
+              <TaskComposer
+                placeholder="Add task…"
+                onSubmit={handleSubmitTask}
+                onClose={() => setComposing(false)}
+              />
+            ) : null}
+          </VStack>
         </Host>
       </View>
     </>
