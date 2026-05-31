@@ -4,11 +4,11 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import {
   Host,
   ZStack,
-  VStack,
   HStack,
   Spacer,
   Button,
   List,
+  Section,
   SwipeActions,
   ProgressView,
   Text as UIText,
@@ -46,6 +46,11 @@ const MUTED_GRAY = '#8E8E93';
 const TODAY_AMBER = '#F59E0B';
 const PROGRESS_BLUE = '#3B82F6';
 const DONE_GREEN = '#22C55E';
+
+// Milestone names are long ("M1: Core Platform + Visitor Management"), so use a
+// standard (non-large) nav title — it truncates with an ellipsis instead of
+// overflowing the large-title area.
+const MILESTONE_HEADER = { ...LARGE_TITLE_SCREEN_OPTIONS, headerLargeTitle: false } as const;
 
 export default function MilestoneScreen() {
   const { colorScheme } = useColorScheme();
@@ -128,7 +133,7 @@ export default function MilestoneScreen() {
   if (isLoading) {
     return (
       <>
-        <Stack.Screen options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: '' }} />
+        <Stack.Screen options={{ ...MILESTONE_HEADER, title: '' }} />
         <View className="bg-background flex-1 items-center justify-center">
           <ActivityIndicator size="large" />
         </View>
@@ -139,7 +144,7 @@ export default function MilestoneScreen() {
   if (!milestone) {
     return (
       <>
-        <Stack.Screen options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: 'Not Found' }} />
+        <Stack.Screen options={{ ...MILESTONE_HEADER, title: 'Not Found' }} />
         <View className="bg-background flex-1 items-center justify-center">
           <Text className="text-muted-foreground">Milestone not found</Text>
         </View>
@@ -156,7 +161,7 @@ export default function MilestoneScreen() {
       label={label}
       onPress={() => setSelectedTab(tab)}
       modifiers={[
-        controlSize('small'),
+        controlSize('regular'),
         buttonStyle(selectedTab === tab ? 'glassProminent' : 'glass'),
         ...(project?.color ? [tint(project.color)] : []),
       ]}
@@ -167,7 +172,7 @@ export default function MilestoneScreen() {
     <>
       <Stack.Screen
         options={{
-          ...LARGE_TITLE_SCREEN_OPTIONS,
+          ...MILESTONE_HEADER,
           title: milestone.name,
           headerTintColor: project?.color ?? undefined,
           headerRight: () => (
@@ -189,8 +194,8 @@ export default function MilestoneScreen() {
                 refreshable(onRefresh),
                 scrollDismissesKeyboard('interactively'),
               ]}>
-              {/* Progress + tabs as the first, separator-less row. */}
-              <VStack spacing={10} alignment="leading" modifiers={[listRowSeparator('hidden')]}>
+              {/* Progress lives in its own card. */}
+              <Section>
                 <HStack spacing={8}>
                   <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 12 })]}>
                     {`${completed}/${total}`}
@@ -206,25 +211,63 @@ export default function MilestoneScreen() {
                     {`${percent}%`}
                   </UIText>
                 </HStack>
-                <HStack spacing={8}>
+              </Section>
+
+              {/* Tabs + the task list form the second card. */}
+              <Section>
+                <HStack spacing={8} modifiers={[listRowSeparator('hidden')]}>
                   {tabButton('active', `Active (${activeTasks.length})`)}
                   {tabButton('completed', `Completed (${completedTasks.length})`)}
                   <Spacer />
                 </HStack>
-              </VStack>
 
-              {selectedTab === 'active' ? (
-                activeTasks.length === 0 ? (
+                {selectedTab === 'active' ? (
+                  activeTasks.length === 0 ? (
+                    <UIText
+                      modifiers={[
+                        foregroundStyle(MUTED_GRAY),
+                        frame({ maxWidth: Infinity, alignment: 'center' }),
+                        padding({ vertical: 40 }),
+                      ]}>
+                      No active tasks
+                    </UIText>
+                  ) : (
+                    activeTasks.map((task) => (
+                      <SwipeActions key={task.id}>
+                        <TaskRow
+                          task={task}
+                          progress={getSubtaskProgress(allTasks, task.id)}
+                          onToggle={() => handleTaskToggle(task.id)}
+                          onOpen={() => handleTaskPress(task)}
+                        />
+                        <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
+                          <Button
+                            label="Delete"
+                            systemImage="trash"
+                            role="destructive"
+                            onPress={() => handleDeleteTask(task.id)}
+                          />
+                          <Button
+                            label="Today"
+                            systemImage="calendar"
+                            onPress={() => handleSetDueToday(task.id)}
+                            modifiers={[tint(TODAY_AMBER)]}
+                          />
+                        </SwipeActions.Actions>
+                      </SwipeActions>
+                    ))
+                  )
+                ) : completedTasks.length === 0 ? (
                   <UIText
                     modifiers={[
                       foregroundStyle(MUTED_GRAY),
                       frame({ maxWidth: Infinity, alignment: 'center' }),
                       padding({ vertical: 40 }),
                     ]}>
-                    No active tasks
+                    No completed tasks
                   </UIText>
                 ) : (
-                  activeTasks.map((task) => (
+                  completedTasks.map((task) => (
                     <SwipeActions key={task.id}>
                       <TaskRow
                         task={task}
@@ -232,52 +275,18 @@ export default function MilestoneScreen() {
                         onToggle={() => handleTaskToggle(task.id)}
                         onOpen={() => handleTaskPress(task)}
                       />
-                      <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
+                      <SwipeActions.Actions edge="trailing">
                         <Button
                           label="Delete"
                           systemImage="trash"
                           role="destructive"
                           onPress={() => handleDeleteTask(task.id)}
                         />
-                        <Button
-                          label="Today"
-                          systemImage="calendar"
-                          onPress={() => handleSetDueToday(task.id)}
-                          modifiers={[tint(TODAY_AMBER)]}
-                        />
                       </SwipeActions.Actions>
                     </SwipeActions>
                   ))
-                )
-              ) : completedTasks.length === 0 ? (
-                <UIText
-                  modifiers={[
-                    foregroundStyle(MUTED_GRAY),
-                    frame({ maxWidth: Infinity, alignment: 'center' }),
-                    padding({ vertical: 40 }),
-                  ]}>
-                  No completed tasks
-                </UIText>
-              ) : (
-                completedTasks.map((task) => (
-                  <SwipeActions key={task.id}>
-                    <TaskRow
-                      task={task}
-                      progress={getSubtaskProgress(allTasks, task.id)}
-                      onToggle={() => handleTaskToggle(task.id)}
-                      onOpen={() => handleTaskPress(task)}
-                    />
-                    <SwipeActions.Actions edge="trailing">
-                      <Button
-                        label="Delete"
-                        systemImage="trash"
-                        role="destructive"
-                        onPress={() => handleDeleteTask(task.id)}
-                      />
-                    </SwipeActions.Actions>
-                  </SwipeActions>
-                ))
-              )}
+                )}
+              </Section>
             </List>
 
             {composing ? (
