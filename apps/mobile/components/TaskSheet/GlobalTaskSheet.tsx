@@ -12,8 +12,8 @@ import {
   List,
   Picker,
   Slider,
-  Toggle,
   DatePicker,
+  Toggle,
 } from '@expo/ui/swift-ui';
 import {
   frame,
@@ -24,6 +24,9 @@ import {
   glassEffect,
   hidden,
   pickerStyle,
+  datePickerStyle,
+  labelsHidden,
+  lineLimit,
   tag,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
@@ -34,6 +37,12 @@ import { useMilestones } from '@/hooks/useMilestones';
 import { StatusPill } from '@/components/TaskSheet/StatusPill';
 import { INBOX_PROJECT_ID } from '@/utils/helpers';
 import type { Task, UpdateTask } from '@lucidity/shared';
+
+// Match the tinted, larger SF Symbols that Picker rows render automatically.
+const ICON_BLUE = '#0A84FF';
+const ICON_SIZE = 22;
+// Fixed leading-icon column width so every row's label lines up. Tune to taste.
+const ICON_COL = 30;
 
 const MILESTONE_NONE = '__none__';
 const REPEAT_NONE = '__never__';
@@ -61,7 +70,12 @@ const PriorityRow = React.memo(function PriorityRow({
   return (
     <VStack spacing={4}>
       <HStack spacing={8}>
-        <Image systemName="flag" size={14} />
+        <Image
+          systemName="exclamationmark.circle"
+          size={ICON_SIZE}
+          color={ICON_BLUE}
+          modifiers={[frame({ width: ICON_COL })]}
+        />
         <Text>Priority</Text>
         <Spacer />
         <Text>{String(live ?? priority)}</Text>
@@ -149,7 +163,7 @@ export function GlobalTaskSheet() {
   // A circular Liquid Glass icon button (back / close).
   const circleGlass = [
     buttonStyle('plain'),
-    frame({ width: 34, height: 34 }),
+    frame({ width: 40, height: 40 }),
     glassEffect({
       glass: { variant: 'regular', interactive: true },
       shape: 'circle',
@@ -163,8 +177,7 @@ export function GlobalTaskSheet() {
         onIsPresentedChange={(presented) => {
           if (!presented) closeSheet();
         }}
-        onDismiss={onDismissed}
-      >
+        onDismiss={onDismissed}>
         <Group
           modifiers={[
             frame({
@@ -172,19 +185,17 @@ export function GlobalTaskSheet() {
               maxHeight: Infinity,
               alignment: 'topLeading',
             }),
-            padding({ top: 16, leading: 16, trailing: 16 }),
+            padding({ top: 28, leading: 8, trailing: 8 }),
             presentationDetents(['medium', 'large']),
             presentationDragIndicator('visible'),
-          ]}
-        >
+          ]}>
           <VStack spacing={12}>
             {/* Top bar: back (hidden at root, reserves width) / status / close */}
-            <HStack spacing={8}>
+            <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
               <Button
                 onPress={goBack}
-                modifiers={canGoBack ? circleGlass : [...circleGlass, hidden(true)]}
-              >
-                <Image systemName="chevron.left" size={16} />
+                modifiers={canGoBack ? circleGlass : [...circleGlass, hidden(true)]}>
+                <Image systemName="chevron.left" size={18} />
               </Button>
               <Spacer />
               {task ? (
@@ -195,14 +206,12 @@ export function GlobalTaskSheet() {
               ) : null}
               <Spacer />
               <Button onPress={closeSheet} modifiers={circleGlass}>
-                <Image systemName="xmark" size={16} />
+                <Image systemName="xmark" size={18} />
               </Button>
             </HStack>
 
             {task ? (
-              <Text modifiers={[padding({ leading: 4, trailing: 4 })]}>
-                {task.title}
-              </Text>
+              <Text modifiers={[padding({ leading: 16, trailing: 16 })]}>{task.title}</Text>
             ) : null}
 
             {task ? (
@@ -212,14 +221,12 @@ export function GlobalTaskSheet() {
                   systemImage="folder"
                   selection={task.projectId ?? INBOX_PROJECT_ID}
                   onSelectionChange={(value) => {
-                    const projectId =
-                      value === INBOX_PROJECT_ID ? null : (value as string);
+                    const projectId = value === INBOX_PROJECT_ID ? null : (value as string);
                     if (projectId !== task.projectId) {
                       handleUpdateField({ projectId, milestoneId: null });
                     }
                   }}
-                  modifiers={[pickerStyle('menu')]}
-                >
+                  modifiers={[pickerStyle('menu'), lineLimit(1)]}>
                   <Text modifiers={[tag(INBOX_PROJECT_ID)]}>Inbox</Text>
                   {projects.map((p) => (
                     <Text key={p.id} modifiers={[tag(p.id)]}>
@@ -234,14 +241,12 @@ export function GlobalTaskSheet() {
                     systemImage="flag"
                     selection={task.milestoneId ?? MILESTONE_NONE}
                     onSelectionChange={(value) => {
-                      const milestoneId =
-                        value === MILESTONE_NONE ? null : (value as string);
+                      const milestoneId = value === MILESTONE_NONE ? null : (value as string);
                       if (milestoneId !== task.milestoneId) {
                         handleUpdateField({ milestoneId });
                       }
                     }}
-                    modifiers={[pickerStyle('menu')]}
-                  >
+                    modifiers={[pickerStyle('menu'), lineLimit(1)]}>
                     <Text modifiers={[tag(MILESTONE_NONE)]}>None</Text>
                     {milestones.map((m) => (
                       <Text key={m.id} modifiers={[tag(m.id)]}>
@@ -251,48 +256,52 @@ export function GlobalTaskSheet() {
                   </Picker>
                 ) : null}
 
-                <Toggle
-                  label="Due Date"
-                  systemImage="calendar"
-                  isOn={!!task.dueDate}
-                  onIsOnChange={(on) =>
-                    handleUpdateField({ dueDate: on ? new Date() : null })
-                  }
-                />
+                {/* Due date — single row: Add when empty, picker + clear when set */}
                 {task.dueDate ? (
-                  <DatePicker
-                    title="Due"
-                    selection={new Date(task.dueDate)}
-                    displayedComponents={['date']}
-                    onDateChange={(d) => handleUpdateField({ dueDate: d })}
-                  />
-                ) : null}
-
-                <Toggle
-                  label="Reminder"
-                  systemImage="bell"
-                  isOn={!!task.reminderAt}
-                  onIsOnChange={(on) =>
-                    handleUpdateField({
-                      reminderAt: on
-                        ? new Date(Date.now() + 60 * 60 * 1000)
-                        : null,
-                    })
-                  }
-                />
-                {task.reminderAt ? (
-                  <DatePicker
-                    title="Reminder"
-                    selection={new Date(task.reminderAt)}
-                    displayedComponents={['date', 'hourAndMinute']}
-                    onDateChange={(d) => handleUpdateField({ reminderAt: d })}
-                  />
-                ) : null}
+                  <HStack spacing={8}>
+                    <Image
+                      systemName="calendar"
+                      size={ICON_SIZE}
+                      color={ICON_BLUE}
+                      modifiers={[frame({ width: ICON_COL })]}
+                    />
+                    <Text>Due</Text>
+                    <Spacer />
+                    <DatePicker
+                      selection={new Date(task.dueDate)}
+                      displayedComponents={['date']}
+                      onDateChange={(d) => handleUpdateField({ dueDate: d })}
+                      modifiers={[datePickerStyle('compact'), labelsHidden()]}
+                    />
+                    <Image
+                      systemName="xmark.circle.fill"
+                      size={18}
+                      color="#9CA3AF"
+                      onPress={() => handleUpdateField({ dueDate: null })}
+                    />
+                  </HStack>
+                ) : (
+                  <HStack spacing={8}>
+                    <Image
+                      systemName="calendar"
+                      size={ICON_SIZE}
+                      color={ICON_BLUE}
+                      modifiers={[frame({ width: ICON_COL })]}
+                    />
+                    <Text>Due Date</Text>
+                    <Spacer />
+                    <Button
+                      label="Add"
+                      onPress={() => handleUpdateField({ dueDate: new Date() })}
+                      modifiers={[buttonStyle('borderless')]}
+                    />
+                  </HStack>
+                )}
 
                 {task.dueDate ? (
                   <Picker
                     label="Repeat"
-                    systemImage="arrow.triangle.2.circlepath"
+                    systemImage="repeat"
                     selection={task.recurringFrequency ?? REPEAT_NONE}
                     onSelectionChange={(value) => {
                       const rf =
@@ -303,8 +312,7 @@ export function GlobalTaskSheet() {
                         handleUpdateField({ recurringFrequency: rf });
                       }
                     }}
-                    modifiers={[pickerStyle('menu')]}
-                  >
+                    modifiers={[pickerStyle('menu'), lineLimit(1)]}>
                     <Text modifiers={[tag(REPEAT_NONE)]}>Never</Text>
                     {REPEAT_OPTIONS.map((r) => (
                       <Text key={r.value} modifiers={[tag(r.value)]}>
@@ -318,6 +326,36 @@ export function GlobalTaskSheet() {
                   priority={task.priority}
                   onCommit={(priority) => handleUpdateField({ priority })}
                 />
+
+                {/* Reminder — kept LAST because the revealed graphical calendar
+                    is tall; placing it at the end keeps the other rows compact. */}
+                <HStack spacing={8}>
+                  <Image
+                    systemName="bell"
+                    size={ICON_SIZE}
+                    color={ICON_BLUE}
+                    modifiers={[frame({ width: ICON_COL })]}
+                  />
+                  <Text>Reminder</Text>
+                  <Spacer />
+                  <Toggle
+                    isOn={!!task.reminderAt}
+                    onIsOnChange={(on) =>
+                      handleUpdateField({
+                        reminderAt: on ? new Date(Date.now() + 60 * 60 * 1000) : null,
+                      })
+                    }
+                    modifiers={[labelsHidden()]}
+                  />
+                </HStack>
+                {task.reminderAt ? (
+                  <DatePicker
+                    selection={new Date(task.reminderAt)}
+                    displayedComponents={['date', 'hourAndMinute']}
+                    onDateChange={(d) => handleUpdateField({ reminderAt: d })}
+                    modifiers={[datePickerStyle('graphical'), labelsHidden()]}
+                  />
+                ) : null}
               </List>
             ) : null}
           </VStack>

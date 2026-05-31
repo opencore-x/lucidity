@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Menu, HStack, Image, Text, Button } from '@expo/ui/swift-ui';
-import { glassEffect, padding } from '@expo/ui/swift-ui/modifiers';
+import { glassEffect, padding, foregroundStyle } from '@expo/ui/swift-ui/modifiers';
 import type { Task } from '@lucidity/shared';
 
 const STATUS_OPTIONS = [
@@ -45,13 +45,11 @@ export function StatusPill({ status, onStatusChange }: StatusPillProps) {
               glass: { variant: 'regular', interactive: true },
               shape: 'capsule',
             }),
-          ]}
-        >
-          <Image systemName="circle.fill" size={9} color={dotColor} />
-          <Text>{currentOption?.label ?? 'Pending'}</Text>
+          ]}>
+          <Image systemName="circle.fill" size={5} color={dotColor} />
+          <Text modifiers={[foregroundStyle(dotColor)]}>{currentOption?.label ?? 'Pending'}</Text>
         </HStack>
-      }
-    >
+      }>
       {STATUS_OPTIONS.map((s) => (
         <Button
           key={s.value}
