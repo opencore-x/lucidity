@@ -1,6 +1,11 @@
 // Prompt assembly (Lucid's "brain" — pure, stateless)
 export { buildBriefingPrompt } from './prompts/briefing.js';
 export type { BuildBriefingPromptInput, BriefingPrompt } from './prompts/briefing.js';
+export { buildMemoryReflectionPrompt } from './prompts/reflection.js';
+export type { BuildMemoryReflectionPromptInput, ReflectionPrompt } from './prompts/reflection.js';
+
+// Memory (durable facts) — pure helpers
+export { parseFacts, mergeFacts, renderMemoryFile } from './memory/merge.js';
 
 // Persona
 export { loadDefaultPersona } from './persona/index.js';
