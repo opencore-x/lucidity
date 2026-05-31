@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "bin": {
+    "lucid": "./dist/index.js",
     "lucidity-daemon": "./dist/index.js"
   },
   "main": "./dist/index.js",

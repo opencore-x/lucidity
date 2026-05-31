@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
-import { existsSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, rmSync, chmodSync } from 'node:fs';
 import { loadConfig, CONFIG_PATH, LOGS_DIR } from './config.js';
 import { ensureNotifierBundle } from './notifierBundle.js';
 
@@ -10,6 +10,8 @@ const LABEL = 'my.lucidity.daemon';
 const PLIST_PATH = join(homedir(), 'Library', 'LaunchAgents', `${LABEL}.plist`);
 const OUT_LOG = join(LOGS_DIR, 'daemon.out.log');
 const ERR_LOG = join(LOGS_DIR, 'daemon.err.log');
+const LOCAL_BIN = join(homedir(), '.local', 'bin');
+const LUCID_CMD = join(LOCAL_BIN, 'lucid');
 
 function requireDarwin(): void {
   if (process.platform !== 'darwin') {
@@ -125,6 +127,22 @@ function reload(domain: string): void {
   throw new Error(`launchctl bootstrap failed after retries: ${last.stderr.trim() || `status ${last.status}`}`);
 }
 
+/** Links a `lucid` wrapper into ~/.local/bin so the CLI is on PATH. Best-effort. */
+function linkCli(nodeBin: string, entry: string): void {
+  try {
+    mkdirSync(LOCAL_BIN, { recursive: true });
+    writeFileSync(LUCID_CMD, `#!/bin/sh\nexec "${nodeBin}" "${entry}" "$@"\n`, { mode: 0o755 });
+    chmodSync(LUCID_CMD, 0o755);
+    const onPath = (process.env['PATH'] ?? '').split(':').includes(LOCAL_BIN);
+    console.error(
+      `[install] linked \`lucid\` → ${LUCID_CMD}` +
+        (onPath ? '' : `\n  (add ${LOCAL_BIN} to your PATH to run \`lucid\` directly)`),
+    );
+  } catch (err) {
+    console.error(`[install] could not link \`lucid\`: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 export function installAgent(): void {
   requireDarwin();
   // Validate config now so we never install a daemon that crash-loops on boot.
@@ -147,6 +165,9 @@ export function installAgent(): void {
 
   // Replace any prior instance, then load (race-tolerant).
   reload(`gui/${uid()}`);
+
+  // Link the `lucid` CLI onto PATH.
+  linkCli(nodeBin, entry);
 
   console.error(`[install] LaunchAgent installed and started.
   label:  ${LABEL}
