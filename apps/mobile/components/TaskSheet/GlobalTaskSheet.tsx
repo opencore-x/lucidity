@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Alert } from 'react-native';
+import { Asset } from 'expo-asset';
 import {
   Host,
   BottomSheet,
@@ -11,6 +12,7 @@ import {
   Image,
   Spacer,
   List,
+  Section,
   Menu,
   Slider,
   DatePicker,
@@ -30,6 +32,9 @@ import {
   truncationMode,
   foregroundStyle,
   onTapGesture,
+  resizable,
+  clipShape,
+  listStyle,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { useSheetStore } from '@/stores/sheetStore';
@@ -44,9 +49,16 @@ import {
 import { useProjects } from '@/hooks/useProjects';
 import { useMilestones } from '@/hooks/useMilestones';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
+import { useComments, useCreateComment, useDeleteComment } from '@/hooks/useComments';
+import { useUser } from '@clerk/clerk-expo';
 import { StatusPill } from '@/components/TaskSheet/StatusPill';
-import { INBOX_PROJECT_ID, getSubtasks, getSubtaskProgress } from '@/utils/helpers';
-import type { Task, UpdateTask } from '@lucidity/shared';
+import {
+  INBOX_PROJECT_ID,
+  getSubtasks,
+  getSubtaskProgress,
+  formatRelativeTime,
+} from '@/utils/helpers';
+import type { Task, UpdateTask, Comment } from '@lucidity/shared';
 
 // Match the tinted, larger SF Symbols that Picker rows render automatically.
 const ICON_BLUE = '#0A84FF';
@@ -58,6 +70,26 @@ const MENU_VALUE_GRAY = '#8E8E93';
 // Subtask checkbox: green when complete, systemGray3 ring when not.
 const SUBTASK_DONE_GREEN = '#22C55E';
 const CHECKBOX_GRAY = '#C7C7CC';
+// Claude comment avatar tint (sparkles fallback while the logo loads).
+const CLAUDE_PURPLE = '#A855F7';
+
+// The native Image renders local images by file:// URI, so resolve the bundled
+// Claude logo to a cached file path once (downloadAsync caches + sets localUri).
+const claudeLogoAsset = Asset.fromModule(require('@/assets/images/claude-logo.png'));
+function useClaudeLogoUri(): string | null {
+  const [uri, setUri] = React.useState<string | null>(claudeLogoAsset.localUri ?? null);
+  React.useEffect(() => {
+    if (uri) return;
+    let active = true;
+    claudeLogoAsset.downloadAsync().then((a) => {
+      if (active) setUri(a.localUri ?? null);
+    });
+    return () => {
+      active = false;
+    };
+  }, [uri]);
+  return uri;
+}
 
 const MILESTONE_NONE = '__none__';
 const REPEAT_NONE = '__never__';
@@ -356,6 +388,121 @@ function NativeUndoBar() {
   );
 }
 
+/** One comment: author row (avatar + @name + relative time) + markdown body. */
+function CommentRow({
+  comment,
+  displayName,
+  claudeLogoUri,
+}: {
+  comment: Comment;
+  displayName: string;
+  claudeLogoUri: string | null;
+}) {
+  const isClaude = comment.source === 'claude';
+  return (
+    <VStack
+      spacing={4}
+      alignment="leading"
+      modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
+      <HStack spacing={6}>
+        {isClaude && claudeLogoUri ? (
+          <Image
+            uiImage={claudeLogoUri}
+            modifiers={[resizable(), frame({ width: 16, height: 16 }), clipShape('circle')]}
+          />
+        ) : (
+          <Image
+            systemName={isClaude ? 'sparkles' : 'person.crop.circle.fill'}
+            size={16}
+            color={isClaude ? CLAUDE_PURPLE : MENU_VALUE_GRAY}
+          />
+        )}
+        <Text>{`@${displayName}`}</Text>
+        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>
+          {formatRelativeTime(comment.createdAt)}
+        </Text>
+      </HStack>
+      {/* SwiftUI markdown is inline-only (bold/italic/links/inline-code); block
+          elements like headings/lists/code-blocks render as plain text. */}
+      <Text markdownEnabled modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
+        {comment.content}
+      </Text>
+    </VStack>
+  );
+}
+
+/**
+ * The task's comments as their OWN inset-grouped `Section` (a separate card from the
+ * subtasks/options below it): a count header row, a `List.ForEach` of comment rows
+ * (swipe-to-delete via `useDeleteComment`'s optimistic removal), and an "Add Comment"
+ * row that fires a native prompt into `useCreateComment`.
+ */
+function CommentsSection({ taskId }: { taskId: string }) {
+  const { user } = useUser();
+  const { data: comments } = useComments(taskId);
+  const createComment = useCreateComment();
+  const deleteComment = useDeleteComment();
+  const claudeLogoUri = useClaudeLogoUri();
+
+  const userName = user?.username || user?.fullName?.toLowerCase().replace(/\s+/g, '') || 'you';
+
+  const promptAdd = React.useCallback(() => {
+    Alert.prompt(
+      'New Comment',
+      undefined,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Add',
+          onPress: (content?: string) => {
+            const c = content?.trim();
+            if (c) createComment.mutate({ taskId, content: c });
+          },
+        },
+      ],
+      'plain-text'
+    );
+  }, [createComment, taskId]);
+
+  const list = comments ?? [];
+
+  return (
+    <Section>
+      <HStack spacing={6} modifiers={[padding({ leading: 4, top: 4 })]}>
+        <Image systemName="bubble.left" size={ICON_SIZE - 4} color={MENU_VALUE_GRAY} />
+        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>
+          {list.length > 0 ? `Comments (${list.length})` : 'Comments'}
+        </Text>
+      </HStack>
+
+      {list.length > 0 ? (
+        <List.ForEach
+          onDelete={(indices) => {
+            indices.forEach((i) => {
+              const c = list[i];
+              if (c) deleteComment.mutate({ taskId, commentId: c.id });
+            });
+          }}>
+          {list.map((c) => (
+            <CommentRow
+              key={c.id}
+              comment={c}
+              displayName={c.source === 'claude' ? 'claude' : userName}
+              claudeLogoUri={claudeLogoUri}
+            />
+          ))}
+        </List.ForEach>
+      ) : null}
+
+      <HStack spacing={12} modifiers={[onTapGesture(promptAdd)]}>
+        <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
+        <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Comment</Text>
+        <Spacer />
+      </HStack>
+    </Section>
+  );
+}
+
 /**
  * Single global native (@expo/ui) bottom sheet for task details. Mounted once in
  * the root layout (signed-in only) and driven by `sheetStore.isPresented`. Sources
@@ -476,7 +623,9 @@ export function GlobalTaskSheet() {
             ) : null}
 
             {task ? (
-              <List>
+              <List modifiers={[listStyle('insetGrouped')]}>
+                <CommentsSection taskId={task.id} />
+
                 <SubtaskSection
                   parent={task}
                   subtasks={subtasks}
