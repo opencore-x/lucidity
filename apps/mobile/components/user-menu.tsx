@@ -1,111 +1,115 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Text } from '@/components/ui/text';
-import { useEnvStore } from '@/stores/envStore';
-import { useAuth, useUser } from '@clerk/clerk-expo';
-import { useQueryClient } from '@tanstack/react-query';
-import type { TriggerRef } from '@rn-primitives/popover';
-import { useRouter } from 'expo-router';
-import { KeyRoundIcon, LogOutIcon, MoonStarIcon, ServerIcon, SunIcon } from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
 import * as React from 'react';
-import { View } from 'react-native';
+import { Host, Menu, Section, Button, Image, Text, ZStack } from '@expo/ui/swift-ui';
+import { frame, glassEffect, resizable, clipShape } from '@expo/ui/swift-ui/modifiers';
+import { Asset } from 'expo-asset';
+import { useAuth, useUser } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
+import { useColorScheme } from 'nativewind';
 
+const AVATAR_SIZE = 36;
+
+/**
+ * Download a remote image (the Clerk avatar URL) to a local cache file so the
+ * native @expo/ui Image can show it via `uiImage` — it can't load remote URLs.
+ * Returns null until ready / if there's no image, so the caller falls back to
+ * initials.
+ */
+function useDownloadedImageUri(remoteUrl: string | undefined): string | null {
+  const [uri, setUri] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!remoteUrl) {
+      setUri(null);
+      return;
+    }
+    let active = true;
+    Asset.fromURI(remoteUrl)
+      .downloadAsync()
+      .then((a) => {
+        if (active) setUri(a.localUri ?? null);
+      })
+      .catch(() => {
+        if (active) setUri(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [remoteUrl]);
+  return uri;
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
+
+/**
+ * The header account menu — a native @expo/ui `Menu` whose trigger is the user's
+ * avatar (the downloaded Clerk photo, or a glass circle of initials while it loads /
+ * if none). Replaces the old @rn-primitives popover, so it adapts to dark mode and
+ * sits as a native sibling to the header glass buttons.
+ */
 export function UserMenu() {
   const { user } = useUser();
   const { signOut } = useAuth();
   const router = useRouter();
   const { colorScheme, setColorScheme } = useColorScheme();
-  const env = useEnvStore((s) => s.env);
-  const setEnv = useEnvStore((s) => s.setEnv);
-  const queryClient = useQueryClient();
-  const popoverTriggerRef = React.useRef<TriggerRef>(null);
 
-  function onToggleEnv() {
-    setEnv(env === 'production' ? 'development' : 'production');
-    queryClient.clear(); // refetch from the newly selected backend
-  }
+  const dark = colorScheme === 'dark';
+  const email = user?.emailAddresses[0]?.emailAddress ?? '';
+  const displayName = user?.fullName || email || 'Account';
+  // A UIMenu section header is text-only (no avatar block), so fold the email onto
+  // the name line when there's a distinct name to show.
+  const headerTitle = email && email !== displayName ? `${displayName} · ${email}` : displayName;
+  const avatarUri = useDownloadedImageUri(user?.imageUrl);
 
-  async function onSignOut() {
-    popoverTriggerRef.current?.close();
-    await signOut();
-  }
+  const onToggleTheme = () => setColorScheme(dark ? 'light' : 'dark');
+  const onSettings = () => router.push('/settings');
+  const onSignOut = () => {
+    void signOut();
+  };
 
-  function onApiKeys() {
-    popoverTriggerRef.current?.close();
-    router.push('/settings');
-  }
-
-  function onToggleTheme() {
-    setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
-  }
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild ref={popoverTriggerRef}>
-        <Button variant="ghost" size="icon" className="size-9 rounded-full">
-          <UserAvatar className="size-9" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" side="bottom" sideOffset={130} className="w-64 p-0">
-        <View className="gap-2 p-3">
-          <View className="mb-1 flex-row items-center gap-3">
-            <UserAvatar className="size-10" />
-            <View className="flex-1">
-              <Text className="leading-5 font-medium">
-                {user?.fullName || user?.emailAddresses[0]?.emailAddress}
-              </Text>
-              {user?.fullName?.length ? (
-                <Text className="text-muted-foreground text-sm leading-4 font-normal">
-                  {user?.username || user?.emailAddresses[0]?.emailAddress}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-          <Button variant="outline" size="sm" className="justify-start" onPress={onToggleTheme}>
-            <Icon as={colorScheme === 'dark' ? MoonStarIcon : SunIcon} className="size-4" />
-            <Text>{colorScheme === 'dark' ? 'Dark' : 'Light'} Mode</Text>
-          </Button>
-          <Button variant="outline" size="sm" className="justify-start" onPress={onToggleEnv}>
-            <Icon as={ServerIcon} className="size-4" />
-            <Text>API: {env === 'production' ? 'Production' : 'Development'}</Text>
-          </Button>
-          <Button variant="outline" size="sm" className="justify-start" onPress={onApiKeys}>
-            <Icon as={KeyRoundIcon} className="size-4" />
-            <Text>API Keys</Text>
-          </Button>
-          <Button variant="outline" size="sm" className="justify-start" onPress={onSignOut}>
-            <Icon as={LogOutIcon} className="size-4" />
-            <Text>Sign Out</Text>
-          </Button>
-        </View>
-      </PopoverContent>
-    </Popover>
+  const avatarLabel = avatarUri ? (
+    <Image
+      uiImage={avatarUri}
+      modifiers={[
+        resizable(),
+        frame({ width: AVATAR_SIZE, height: AVATAR_SIZE }),
+        clipShape('circle'),
+      ]}
+    />
+  ) : (
+    <ZStack
+      modifiers={[
+        frame({ width: AVATAR_SIZE, height: AVATAR_SIZE }),
+        glassEffect({ glass: { variant: 'regular', interactive: true }, shape: 'circle' }),
+      ]}>
+      <Text>{getInitials(displayName)}</Text>
+    </ZStack>
   );
-}
-
-export function UserAvatar(props: Omit<React.ComponentProps<typeof Avatar>, 'alt'>) {
-  const { user } = useUser();
-
-  const { initials, imageSource, userName } = React.useMemo(() => {
-    const userName = user?.fullName || user?.emailAddresses[0]?.emailAddress || 'Unknown';
-    const initials = userName
-      .split(' ')
-      .map((name) => name[0])
-      .join('');
-
-    const imageSource = user?.imageUrl ? { uri: user.imageUrl } : undefined;
-    return { initials, imageSource, userName };
-  }, [user?.imageUrl, user?.fullName, user?.emailAddresses[0]?.emailAddress]);
 
   return (
-    <Avatar alt={`${userName}'s avatar`} {...props}>
-      <AvatarImage source={imageSource} />
-      <AvatarFallback>
-        <Text>{initials}</Text>
-      </AvatarFallback>
-    </Avatar>
+    <Host matchContents colorScheme={dark ? 'dark' : 'light'}>
+      <Menu label={avatarLabel}>
+        <Section title={headerTitle}>
+          <Button
+            label={dark ? 'Dark Mode' : 'Light Mode'}
+            systemImage={dark ? 'moon.fill' : 'sun.max.fill'}
+            onPress={onToggleTheme}
+          />
+          <Button label="Settings" systemImage="gearshape.fill" onPress={onSettings} />
+        </Section>
+        <Button
+          label="Sign Out"
+          systemImage="rectangle.portrait.and.arrow.right"
+          role="destructive"
+          onPress={onSignOut}
+        />
+      </Menu>
+    </Host>
   );
 }
