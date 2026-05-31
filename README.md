@@ -1,22 +1,18 @@
 # Lucidity
 
-> Your Lucidity is your personal assistant. Yours alone. The interesting part is what happens when two Lucidities meet.
+> Your personal assistant. The interesting part is what happens when two of them meet.
 
-[![License](https://img.shields.io/badge/license-AGPL--3.0%20%2F%20Commercial-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0%20%2F%20Commercial-blue)](LICENSE) · [lucidity.my](https://lucidity.my)
 
-**Status:** Active development, building in public. Some of what's described below works today; some is documented design that hasn't shipped yet. See [What works today](#what-works-today) for the honest split.
+**Status:** Active development, building in public. Some of what's described below works today; some is documented design that hasn't shipped yet. See [Shipped](#shipped) and [On the roadmap](#on-the-roadmap) for the honest split.
 
 ---
 
 ## What Lucidity is
 
-Lucidity is a personal assistant — yours alone, running on hardware you control, using the AI you already pay for.
+A personal assistant — named **Lucid** by default — that runs on your hardware and uses the AI you already pay for. Today she manages your life: tasks, projects, milestones, sub-tasks, recurring schedules, and comments, across mobile and web. Talk to her through Claude Desktop, Claude Code, Codex, or Cursor by plugging in the MCP server, or use the apps directly.
 
-Today, she manages your life: tasks, projects, milestones, sub-tasks, recurring schedules, comments, mobile + web + API. You can talk to her through your existing AI client (Claude Desktop, Claude Code, Codex, Cursor) by plugging in her MCP server. Or use the apps directly.
-
-That much is shipped.
-
-But the productivity app isn't why Lucidity exists.
+That much is shipped. But the productivity app isn't why Lucidity exists.
 
 ## The interesting part
 
@@ -33,6 +29,16 @@ This is what makes Lucidity different from a todo app, a chat app, or another AI
 
 It's not shipped yet. It's where Lucidity is going.
 
+## Tasks today, life-graph tomorrow
+
+Tasks are the entry point, not the destination. The next pillar is a **markdown notes vault you own** — real `.md` files on your device, the way Obsidian works, except the notes link to your tasks and projects and Lucid can read and write them.
+
+- **Files are the source of truth.** A note is a plain `.md` file in a folder; the database is only a derived, regenerable index. If the two ever disagree, the files win.
+- **Your notes never have to leave your device.** Most task apps are cloud-by-default; the vault is local-first by design.
+- **Agents are filesystem-native.** `claude --print "summarise my notes"` over the folder just works — the folder *is* the API.
+
+A note linking to a note linking to a task linking to a project *is* the life-graph. That's the direction. (Design stage — see the roadmap.)
+
 ## What Lucidity isn't
 
 - **Not another agent runtime.** OpenClaw exists. Lucidity integrates with it; she doesn't replace it.
@@ -41,26 +47,31 @@ It's not shipped yet. It's where Lucidity is going.
 
 ## A note on dogfooding
 
-Lucidity's own roadmap, milestones, and bug list live inside Lucidity. The author uses her daily. The project uses her daily. Nothing in this README is productivity advice from someone with a Notion template — it's the system running this project. (Yes, that's a chicken-and-egg problem for the public roadmap. We'll get there.)
+Lucidity's own roadmap, milestones, and bug list live inside Lucidity. The author uses her daily. The project uses her daily. Nothing in this README is productivity advice from someone with a Notion template — it's the system running this project.
 
-## What works today
+## Shipped
 
-| Area | Status |
-|---|---|
-| Task management (mobile + web + API) | ✅ Shipped |
-| Projects, milestones, comments, recurring tasks, sub-tasks | ✅ Shipped |
-| Inline task and project creation, swipe gestures, drag-to-reorder | ✅ Shipped |
-| Native bottom tabs (Today, Week, Search) | ✅ Shipped |
-| Optimistic updates, dark mode, keyboard handling | ✅ Shipped |
-| Clerk auth + API key auth | ✅ Shipped |
-| MCP server (`@lucidity/mcp-server`) for BYOAI | ✅ Shipped |
-| Web app with Kanban, theme toggle, settings | ✅ Shipped |
-| Daily briefing (pull via MCP) | 🚧 Designed |
-| Local always-on daemon (free self-host tier) | 🚧 Designed |
-| Server-side scheduled actions (paid tier) | 🚧 Designed |
-| Agent-mediated comms with trust gradients | 🚧 Designed |
-| Push notifications and reminders | 🚧 Designed |
-| Offline-first sync | 🚧 Designed |
+- Task management across mobile, web, and API
+- Projects, milestones, comments, recurring tasks, sub-tasks
+- Inline task and project creation, swipe gestures, drag-to-reorder
+- Native bottom tabs (Today, Week, Search)
+- Optimistic updates, dark mode, keyboard handling
+- Clerk auth + API key auth
+- MCP server (`@lucidity/mcp-server`) for BYOAI
+- Web app with Kanban, theme toggle, settings _(being superseded by a desktop app — see roadmap)_
+
+## On the roadmap
+
+- Markdown notes vault — files-as-truth `.md` files, wikilinks, and a notes ↔ tasks graph (the life-graph)
+- Desktop app (Tauri/Electron) — direct vault access; runs the daemon in-process and hosts the CLI; supersedes the web app
+- `lucidity` CLI over the vault
+- Daily briefing (pull via MCP)
+- Local always-on daemon (free self-host tier)
+- Server-side scheduled actions (paid tier)
+- Agent-mediated comms with trust gradients
+- Bring-your-own-sync (iCloud / Google Drive / Git), plus hosted vault sync (Pro)
+- Push notifications and reminders
+- Offline-first sync
 
 ## Architecture sketch
 
@@ -79,8 +90,40 @@ buildBriefingPrompt(userId) → { messages, tools, schema }
 
 - **Free / self-host**: MCP + local daemon on your always-on hardware (Mac mini, VPS, Docker host). Uses your existing Claude Pro/Max plan.
 - **Pro tier** (price TBD): Lucidity-hosted always-on agent for users without local always-on infra.
+- **Clients**: mobile, a desktop app, and a `lucidity` CLI. The desktop app — replacing the web app — has real filesystem access: it reads the vault directly, runs the daemon in-process, and hosts the CLI.
+
+## Connect your AI (BYOAI)
+
+The MCP server (`@lucidity/mcp-server`) exposes your tasks, projects, milestones, and today/week views to any MCP-capable client — Claude Desktop, Claude Code, Codex, Cursor. You bring the AI plan you already pay for; Lucidity brings the context.
+
+1. **Generate an API key** in the app (Settings → API keys) — it looks like `luc_…`.
+2. **Build the server** (not yet published to npm):
+   ```bash
+   pnpm install
+   pnpm --filter @lucidity/mcp-server build
+   ```
+3. **Register it with your client.** For Claude Desktop, add to `claude_desktop_config.json`:
+   ```json
+   {
+     "mcpServers": {
+       "lucidity": {
+         "command": "node",
+         "args": ["/absolute/path/to/lucidity/packages/mcp-server/dist/index.js"],
+         "env": {
+           "LUCIDITY_API_KEY": "luc_your_key_here"
+         }
+       }
+     }
+   }
+   ```
+4. **Restart the client.** Lucid's tools — `list_tasks`, `create_task`, `complete_task`, `get_today`, `get_week`, `search`, and more — are now available.
+
+`LUCIDITY_API_URL` defaults to `http://localhost:3000`; set it in `env` to point at your Lucidity API — the hosted `https://api.lucidity.my` or a self-hosted instance.
 
 ## Tech stack
+
+<details>
+<summary>Expand</summary>
 
 | Layer | Technology |
 |---|---|
@@ -94,6 +137,8 @@ buildBriefingPrompt(userId) → { messages, tools, schema }
 | Auth | Clerk + API keys |
 | MCP | Official MCP SDK |
 | Monorepo | Turborepo + pnpm workspaces |
+
+</details>
 
 ## Monorepo
 
@@ -124,6 +169,16 @@ pnpm check-types
 pnpm format
 ```
 
+The `shared` and `db` packages compile to `dist/` (`tsc`). The dev scripts build them automatically before starting (Turbo's `dev` task `dependsOn: ["^build"]`) and watch-recompile on changes, so a clean checkout needs no manual build step — `pnpm dev` / `pnpm dev:api` just work. Production builds the same way via `pnpm build`.
+
+### Agent skills
+
+The repo pins a set of [Expo agent skills](https://github.com/vercel-labs/skills) in `skills-lock.json` (committed). The actual skill content in `.agents/skills/` is regenerable cache and is gitignored — like `node_modules` vs a lockfile. `pnpm install` restores it automatically via a `postinstall` hook, or run it directly:
+
+```bash
+npx skills install   # restore .agents/skills/ from skills-lock.json
+```
+
 ### Database
 
 ```bash
@@ -149,7 +204,9 @@ Per-folder licensing, same pattern as Cal.com, Sentry, Plausible, and PostHog:
 
 Full details: [`LICENSE`](LICENSE) and per-folder `LICENSE` files.
 
-Commercial licensing inquiries: ankit@sejw.al
+## Contact
+
+Commercial licensing, partnerships, or just want to talk: ankit@sejw.al
 
 ## Contributing
 

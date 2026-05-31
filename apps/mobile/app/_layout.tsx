@@ -5,7 +5,7 @@ import { ApiProvider } from '@/providers/ApiProvider';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { tokenCache } from '@clerk/clerk-expo/token-cache';
 import Constants from 'expo-constants';
-import { ThemeProvider } from '@react-navigation/native';
+import { ThemeProvider } from 'expo-router/react-navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PortalHost } from '@rn-primitives/portal';
 import { Toast } from '@/components/Toast';
@@ -21,6 +21,7 @@ import * as React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { requestNotificationPermissions } from '@/lib/notifications';
 import { useQuickActions } from '@/hooks/useQuickActions';
+import { GlobalTaskSheet } from '@/components/TaskSheet/GlobalTaskSheet';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -53,7 +54,7 @@ export default function RootLayout() {
       >
         <QueryClientProvider client={queryClient}>
           <ApiProvider>
-            <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
+            <ThemeProvider value={NAV_THEME[colorScheme === 'dark' ? 'dark' : 'light']}>
               <BottomSheetModalProvider>
                 <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
                 <Routes />
@@ -87,24 +88,29 @@ function Routes() {
   }
 
   return (
-    <Stack>
-      {/* Screens only shown when the user is NOT signed in */}
-      <Stack.Protected guard={!isSignedIn}>
-        <Stack.Screen name="(auth)/sign-in" options={SIGN_IN_SCREEN_OPTIONS} />
-        <Stack.Screen name="(auth)/sign-up" options={SIGN_UP_SCREEN_OPTIONS} />
-        <Stack.Screen name="(auth)/reset-password" options={DEFAULT_AUTH_SCREEN_OPTIONS} />
-        <Stack.Screen name="(auth)/forgot-password" options={DEFAULT_AUTH_SCREEN_OPTIONS} />
-      </Stack.Protected>
+    <>
+      <Stack>
+        {/* Screens only shown when the user is NOT signed in */}
+        <Stack.Protected guard={!isSignedIn}>
+          <Stack.Screen name="(auth)/sign-in" options={SIGN_IN_SCREEN_OPTIONS} />
+          <Stack.Screen name="(auth)/sign-up" options={SIGN_UP_SCREEN_OPTIONS} />
+          <Stack.Screen name="(auth)/reset-password" options={DEFAULT_AUTH_SCREEN_OPTIONS} />
+          <Stack.Screen name="(auth)/forgot-password" options={DEFAULT_AUTH_SCREEN_OPTIONS} />
+        </Stack.Protected>
 
-      {/* Screens only shown when the user IS signed in */}
-      <Stack.Protected guard={isSignedIn}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="project/[id]" options={{ ...LARGE_TITLE_SCREEN_OPTIONS, headerBackTitle: 'Back' }} />
-        <Stack.Screen name="settings" options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: 'Settings', headerBackTitle: 'Back' }} />
-      </Stack.Protected>
+        {/* Screens only shown when the user IS signed in */}
+        <Stack.Protected guard={isSignedIn}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="project/[id]" options={{ ...LARGE_TITLE_SCREEN_OPTIONS, headerBackTitle: 'Back' }} />
+          <Stack.Screen name="settings" options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: 'Settings', headerBackTitle: 'Back' }} />
+        </Stack.Protected>
 
-      {/* Screens outside the guards are accessible to everyone (e.g. not found) */}
-    </Stack>
+        {/* Screens outside the guards are accessible to everyone (e.g. not found) */}
+      </Stack>
+
+      {/* Single global native task sheet (replaces per-screen mounts) */}
+      {isSignedIn && <GlobalTaskSheet />}
+    </>
   );
 }
 

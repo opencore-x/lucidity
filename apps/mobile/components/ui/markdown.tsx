@@ -11,7 +11,7 @@ interface MarkdownTextProps {
 
 function MarkdownText({ children, muted }: MarkdownTextProps) {
   const { colorScheme } = useColorScheme();
-  const theme = THEME[colorScheme ?? 'light'];
+  const theme = THEME[colorScheme === 'dark' ? 'dark' : 'light'];
 
   const textColor = muted ? theme.mutedForeground : theme.foreground;
 

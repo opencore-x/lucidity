@@ -1,16 +1,20 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { useEnvStore } from '@/stores/envStore';
 
+// Resolved per-request (not cached at module load) so the in-app environment toggle
+// takes effect immediately. Falls back to the build-time config if the store is empty.
 const getApiUrl = () => {
-  const baseUrl = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000';
+  const baseUrl =
+    useEnvStore.getState().apiUrl() ||
+    Constants.expoConfig?.extra?.apiUrl ||
+    'http://localhost:3000';
   // Android emulator uses 10.0.2.2 to access host machine's localhost
   if (Platform.OS === 'android' && baseUrl.includes('localhost')) {
     return baseUrl.replace('localhost', '10.0.2.2');
   }
   return baseUrl;
 };
-
-const API_URL = getApiUrl();
 
 export type TokenGetter = () => Promise<string | null>;
 
@@ -20,13 +24,10 @@ export function setTokenGetter(getter: TokenGetter) {
   tokenGetter = getter;
 }
 
-export async function apiClient<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+export async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = tokenGetter ? await tokenGetter() : null;
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const response = await fetch(`${getApiUrl()}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

@@ -81,7 +81,7 @@ Neon PostgreSQL → Drizzle ORM (@lucidity/db) → Hono API (@lucidity/api)
 - Zod schemas define the shape of each entity (Task, Project, User, Milestone, Comment) plus Create/Update variants.
 - TypeScript types are inferred from Zod schemas (`z.infer<typeof Schema>`).
 - Both API and mobile import from this package for consistent validation and types.
-- Both `@lucidity/shared` and `@lucidity/db` export source `.ts` files directly (no build step needed for dev). Changes are picked up on API server restart.
+- Both `@lucidity/shared` and `@lucidity/db` compile to `dist/` via `tsc` (their `package.json` `exports` point at `dist/`). The Turbo `dev` task has `dependsOn: ["^build"]`, so `pnpm dev` / `pnpm dev:api` build these packages before starting the API — a clean checkout needs no manual build. `pnpm dev` also runs `tsc --watch` in each package, so edits recompile and are picked up on API server restart. Production (Render) runs `pnpm build`, which compiles all packages before `node dist/index.js`. Dev and prod use the same compiled output.
 
 ## Key Patterns
 

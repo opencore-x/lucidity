@@ -3,10 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Text } from '@/components/ui/text';
+import { useEnvStore } from '@/stores/envStore';
 import { useAuth, useUser } from '@clerk/clerk-expo';
+import { useQueryClient } from '@tanstack/react-query';
 import type { TriggerRef } from '@rn-primitives/popover';
 import { useRouter } from 'expo-router';
-import { KeyRoundIcon, LogOutIcon, MoonStarIcon, SunIcon } from 'lucide-react-native';
+import { KeyRoundIcon, LogOutIcon, MoonStarIcon, ServerIcon, SunIcon } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
 import { View } from 'react-native';
@@ -16,7 +18,15 @@ export function UserMenu() {
   const { signOut } = useAuth();
   const router = useRouter();
   const { colorScheme, setColorScheme } = useColorScheme();
+  const env = useEnvStore((s) => s.env);
+  const setEnv = useEnvStore((s) => s.setEnv);
+  const queryClient = useQueryClient();
   const popoverTriggerRef = React.useRef<TriggerRef>(null);
+
+  function onToggleEnv() {
+    setEnv(env === 'production' ? 'development' : 'production');
+    queryClient.clear(); // refetch from the newly selected backend
+  }
 
   async function onSignOut() {
     popoverTriggerRef.current?.close();
@@ -44,11 +54,11 @@ export function UserMenu() {
           <View className="mb-1 flex-row items-center gap-3">
             <UserAvatar className="size-10" />
             <View className="flex-1">
-              <Text className="font-medium leading-5">
+              <Text className="leading-5 font-medium">
                 {user?.fullName || user?.emailAddresses[0]?.emailAddress}
               </Text>
               {user?.fullName?.length ? (
-                <Text className="text-sm font-normal leading-4 text-muted-foreground">
+                <Text className="text-muted-foreground text-sm leading-4 font-normal">
                   {user?.username || user?.emailAddresses[0]?.emailAddress}
                 </Text>
               ) : null}
@@ -57,6 +67,10 @@ export function UserMenu() {
           <Button variant="outline" size="sm" className="justify-start" onPress={onToggleTheme}>
             <Icon as={colorScheme === 'dark' ? MoonStarIcon : SunIcon} className="size-4" />
             <Text>{colorScheme === 'dark' ? 'Dark' : 'Light'} Mode</Text>
+          </Button>
+          <Button variant="outline" size="sm" className="justify-start" onPress={onToggleEnv}>
+            <Icon as={ServerIcon} className="size-4" />
+            <Text>API: {env === 'production' ? 'Production' : 'Development'}</Text>
           </Button>
           <Button variant="outline" size="sm" className="justify-start" onPress={onApiKeys}>
             <Icon as={KeyRoundIcon} className="size-4" />

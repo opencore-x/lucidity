@@ -2,7 +2,6 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { MilestoneGroup } from '@/components/MilestoneGroup';
-import { TaskSheet } from '@/components/TaskSheet';
 import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable, Alert, ActionSheetIOS } from 'react-native';
@@ -142,15 +141,6 @@ export default function MilestonesScreen() {
     );
   }, [projects, selectedProjectId, promptMilestoneName]);
 
-  const { currentTask } = useSheetStore();
-  const sheetTask = currentTask();
-
-  React.useEffect(() => {
-    if (sheetTask && !tasks.find((t) => t.id === sheetTask.id)) {
-      useSheetStore.getState().closeSheet();
-    }
-  }, [sheetTask, tasks]);
-
   const headerRight = React.useCallback(
     () => (
       <View className="flex-row items-center gap-4">
@@ -263,8 +253,6 @@ export default function MilestonesScreen() {
         <View className="h-32" />
       </ScrollView>
       </ScrollProvider>
-
-      <TaskSheet tasks={tasks} projects={projects} />
     </>
   );
 }

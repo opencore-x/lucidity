@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import { Pressable } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, useAnimatedStyle, withDelay, withTiming } from 'react-native-reanimated';
 import { Text } from '@/components/ui/text';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -97,47 +98,57 @@ export function TaskItem({ task, onPress, onToggle, subtaskProgress, isLast }: T
   const dueInfo = getDueInfo(task.dueDate);
   const reminderColor = !isCompleted ? getReminderColor(task.reminderAt) : null;
 
+  // NOTE: `Pressable` is imported from react-native-gesture-handler, NOT
+  // react-native. On the new architecture (RN 0.85 / Fabric) RN's Pressable
+  // touch-responder does not fire when nested inside a GestureDetector (the
+  // drag Pan in DraggableTask captures the pointer). RNGH's Pressable takes
+  // part in native gesture arbitration, so it coordinates with the long-press
+  // drag Pan and the Swipeable. className stays on inner Views (NativeWind does
+  // not interop the RNGH Pressable).
   return (
-    <Pressable
-      onPress={onPress}
-      className={cn(
-        'flex-row items-center bg-card px-4 py-2.5 active:bg-muted',
-        !isLast && 'border-b border-border'
-      )}>
-      {/* Checkbox */}
-      <Pressable onPress={onToggle} className="mr-3" hitSlop={8}>
-        <Checkbox checked={isCompleted} onCheckedChange={onToggle} />
-      </Pressable>
+    <Pressable onPress={onPress}>
+      <View
+        className={cn(
+          'flex-row items-center bg-card px-4 py-2.5',
+          !isLast && 'border-b border-border'
+        )}>
+        {/* Checkbox */}
+        <Pressable onPress={onToggle} hitSlop={8}>
+          <View className="mr-3">
+            <Checkbox checked={isCompleted} onCheckedChange={onToggle} />
+          </View>
+        </Pressable>
 
-      {/* Title + task number */}
-      <Text
-        className={cn('flex-1 text-base font-medium', isCompleted && 'text-muted-foreground')}
-        numberOfLines={2}>
-        {task.title}
-        {task.taskNumber != null && (
-          <Text className="text-xs text-muted-foreground opacity-60"> #{task.taskNumber}</Text>
-        )}
-      </Text>
-
-      {/* Recurring indicator */}
-      {task.recurringFrequency && (
-        <RefreshCw size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
-      )}
-
-      {/* Subtask progress */}
-      {subtaskProgress && (
-        <Text className="text-sm text-muted-foreground" style={{ marginRight: 8 }}>
-          {subtaskProgress.completed} of {subtaskProgress.total}
+        {/* Title + task number */}
+        <Text
+          className={cn('flex-1 text-base font-medium', isCompleted && 'text-muted-foreground')}
+          numberOfLines={2}>
+          {task.title}
+          {task.taskNumber != null && (
+            <Text className="text-xs text-muted-foreground opacity-60"> #{task.taskNumber}</Text>
+          )}
         </Text>
-      )}
 
-      {/* Reminder bell indicator */}
-      {reminderColor && (
-        <Bell size={14} color={reminderColor} style={{ marginRight: 6 }} />
-      )}
+        {/* Recurring indicator */}
+        {task.recurringFrequency && (
+          <RefreshCw size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
+        )}
 
-      {/* Due date label — visible for 3s then fades out */}
-      {dueInfo && !(isCompleted && dueInfo.status === 'overdue') && <DueDateLabel dueInfo={dueInfo} />}
+        {/* Subtask progress */}
+        {subtaskProgress && (
+          <Text className="text-sm text-muted-foreground" style={{ marginRight: 8 }}>
+            {subtaskProgress.completed} of {subtaskProgress.total}
+          </Text>
+        )}
+
+        {/* Reminder bell indicator */}
+        {reminderColor && (
+          <Bell size={14} color={reminderColor} style={{ marginRight: 6 }} />
+        )}
+
+        {/* Due date label — visible for 3s then fades out */}
+        {dueInfo && !(isCompleted && dueInfo.status === 'overdue') && <DueDateLabel dueInfo={dueInfo} />}
+      </View>
     </Pressable>
   );
 }
