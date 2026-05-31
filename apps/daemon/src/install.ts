@@ -11,7 +11,8 @@ const PLIST_PATH = join(homedir(), 'Library', 'LaunchAgents', `${LABEL}.plist`);
 const OUT_LOG = join(LOGS_DIR, 'daemon.out.log');
 const ERR_LOG = join(LOGS_DIR, 'daemon.err.log');
 const LOCAL_BIN = join(homedir(), '.local', 'bin');
-const LUCID_CMD = join(LOCAL_BIN, 'lucid');
+const LUCIDITY_CMD = join(LOCAL_BIN, 'lucidity');
+const LEGACY_CMD = join(LOCAL_BIN, 'lucid'); // pre-rename wrapper; removed on install
 
 function requireDarwin(): void {
   if (process.platform !== 'darwin') {
@@ -127,19 +128,20 @@ function reload(domain: string): void {
   throw new Error(`launchctl bootstrap failed after retries: ${last.stderr.trim() || `status ${last.status}`}`);
 }
 
-/** Links a `lucid` wrapper into ~/.local/bin so the CLI is on PATH. Best-effort. */
+/** Links a `lucidity` wrapper into ~/.local/bin so the CLI is on PATH. Best-effort. */
 function linkCli(nodeBin: string, entry: string): void {
   try {
     mkdirSync(LOCAL_BIN, { recursive: true });
-    writeFileSync(LUCID_CMD, `#!/bin/sh\nexec "${nodeBin}" "${entry}" "$@"\n`, { mode: 0o755 });
-    chmodSync(LUCID_CMD, 0o755);
+    writeFileSync(LUCIDITY_CMD, `#!/bin/sh\nexec "${nodeBin}" "${entry}" "$@"\n`, { mode: 0o755 });
+    chmodSync(LUCIDITY_CMD, 0o755);
+    rmSync(LEGACY_CMD, { force: true });
     const onPath = (process.env['PATH'] ?? '').split(':').includes(LOCAL_BIN);
     console.error(
-      `[install] linked \`lucid\` → ${LUCID_CMD}` +
-        (onPath ? '' : `\n  (add ${LOCAL_BIN} to your PATH to run \`lucid\` directly)`),
+      `[install] linked \`lucidity\` → ${LUCIDITY_CMD}` +
+        (onPath ? '' : `\n  (add ${LOCAL_BIN} to your PATH to run \`lucidity\` directly)`),
     );
   } catch (err) {
-    console.error(`[install] could not link \`lucid\`: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`[install] could not link \`lucidity\`: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
