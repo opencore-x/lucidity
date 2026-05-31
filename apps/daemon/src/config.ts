@@ -27,6 +27,8 @@ export interface DaemonConfig {
   vaultPath: string;
   /** Whether Lucid updates MEMORY.md after each briefing (a 2nd model call). Default: true. */
   reflect: boolean;
+  /** Loopback port for the interactive chat server. Default: 4849. */
+  chatPort: number;
 }
 
 const EXAMPLE = `{
@@ -123,7 +125,11 @@ export function loadConfig(): DaemonConfig {
 
   const reflect = obj['reflect'] === undefined ? true : obj['reflect'] === true;
 
-  return { apiKey, apiUrl, briefingTime, model, timezone, oauthToken, delivery, vaultPath, reflect };
+  const portRaw = obj['chatPort'];
+  const chatPort =
+    typeof portRaw === 'number' && Number.isInteger(portRaw) && portRaw > 0 && portRaw < 65536 ? portRaw : 4849;
+
+  return { apiKey, apiUrl, briefingTime, model, timezone, oauthToken, delivery, vaultPath, reflect, chatPort };
 }
 
 function expandHome(p: string): string {

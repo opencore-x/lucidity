@@ -7,6 +7,9 @@ import { appendRun } from './runlog.js';
 import { runBriefing } from './jobs/briefing.js';
 import { createDeliverer, isDeliveryChannel, type Deliverer } from './delivery/index.js';
 import { installAgent, uninstallAgent, agentStatus } from './install.js';
+import { createChatServer } from './chat/server.js';
+import { ensureChatToken } from './chat/token.js';
+import { runChatCli } from './chat/client.js';
 
 const KNOWN_JOBS = ['briefing'] as const;
 type JobName = (typeof KNOWN_JOBS)[number];
@@ -90,27 +93,33 @@ async function main(): Promise<void> {
 
   // Service-management commands (manage the launchd agent; handled before config
   // so `status`/`uninstall` work even without a valid config).
-  if (args.command !== undefined) {
-    switch (args.command) {
-      case 'install':
-        installAgent();
-        return;
-      case 'uninstall':
-        uninstallAgent();
-        return;
-      case 'status':
-        agentStatus();
-        return;
-      default:
-        console.error(
-          `Unknown command "${args.command}". Known: install, uninstall, status. ` +
-            `(Use --run-now <job> to run a job once.)`,
-        );
-        process.exit(1);
-    }
+  switch (args.command) {
+    case 'install':
+      installAgent();
+      return;
+    case 'uninstall':
+      uninstallAgent();
+      return;
+    case 'status':
+      agentStatus();
+      return;
   }
 
   const config = loadConfig();
+
+  // Interactive chat: a thin CLI client of the running daemon's chat server.
+  if (args.command === 'chat') {
+    await runChatCli(config);
+    return;
+  }
+  if (args.command !== undefined) {
+    console.error(
+      `Unknown command "${args.command}". Known: install, uninstall, status, chat. ` +
+        `(Use --run-now <job> to run a job once.)`,
+    );
+    process.exit(1);
+  }
+
   const executor = new ClaudeCodeExecutor({
     defaultModel: config.model,
     oauthToken: config.oauthToken,
@@ -145,16 +154,21 @@ async function main(): Promise<void> {
     { timezone: config.timezone },
   );
 
+  // Interactive chat server (lite local gateway): loopback + token auth.
+  const chatServer = createChatServer({ config, executor, token: ensureChatToken(), queue });
+  chatServer.listen(config.chatPort, '127.0.0.1');
+
   const tz = config.timezone ? ` ${config.timezone}` : '';
   const next = job.nextRun();
   console.error(
     `[daemon] Lucid daemon started. Briefing at ${config.briefingTime}${tz} → ${deliverer.name}. ` +
-      `Next run: ${next ? next.toISOString() : 'unknown'}.`,
+      `Next run: ${next ? next.toISOString() : 'unknown'}. Chat on 127.0.0.1:${config.chatPort}.`,
   );
 
   const shutdown = () => {
     console.error('[daemon] shutting down.');
     scheduler.stop();
+    chatServer.close();
     process.exit(0);
   };
   process.on('SIGINT', shutdown);
