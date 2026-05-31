@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Alert } from 'react-native';
 import {
   Host,
   BottomSheet,
@@ -32,7 +33,14 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { useSheetStore } from '@/stores/sheetStore';
-import { useTasks, useUpdateTask, useToggleTask, useReorderTasks } from '@/hooks/useTasks';
+import { useToastStore } from '@/stores/toastStore';
+import {
+  useTasks,
+  useUpdateTask,
+  useToggleTask,
+  useReorderTasks,
+  useCreateTask,
+} from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useMilestones } from '@/hooks/useMilestones';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
@@ -222,16 +230,19 @@ function SubtaskRow({
  * child of the parent `List` for its native reorder/delete gestures to bind.
  */
 const SubtaskSection = React.memo(function SubtaskSection({
+  parent,
   subtasks,
   allTasks,
   onOpen,
 }: {
+  parent: Task;
   subtasks: Task[];
   allTasks: Task[];
   onOpen: (task: Task) => void;
 }) {
   const reorderTasks = useReorderTasks();
   const toggleTask = useToggleTask();
+  const createTask = useCreateTask();
   const { deleteTask } = useUndoableDeleteTask();
 
   const [order, setOrder] = React.useState(subtasks);
@@ -239,48 +250,111 @@ const SubtaskSection = React.memo(function SubtaskSection({
     setOrder(subtasks);
   }, [subtasks]);
 
-  if (order.length === 0) return null;
+  const promptAdd = React.useCallback(() => {
+    Alert.prompt(
+      'New Subtask',
+      undefined,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Add',
+          onPress: (title?: string) => {
+            const t = title?.trim();
+            if (t) {
+              createTask.mutate({
+                title: t,
+                projectId: parent.projectId,
+                parentTaskId: parent.id,
+                status: 'pending',
+                priority: 500,
+              });
+            }
+          },
+        },
+      ],
+      'plain-text'
+    );
+  }, [createTask, parent.id, parent.projectId]);
 
   const completedCount = order.filter((t) => t.status === 'completed').length;
 
   return (
     <>
-      <HStack modifiers={[padding({ leading: 4, top: 4 })]}>
-        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>Subtasks</Text>
+      {order.length > 0 ? (
+        <>
+          <HStack modifiers={[padding({ leading: 4, top: 4 })]}>
+            <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>Subtasks</Text>
+            <Spacer />
+            <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>
+              {`${completedCount}/${order.length}`}
+            </Text>
+          </HStack>
+          <List.ForEach
+            onMove={(from, to) => {
+              const next = [...order];
+              const src = from[0];
+              const [moved] = next.splice(src, 1);
+              // Mirror SwiftUI's Array.move(fromOffsets:toOffset:) index semantics.
+              next.splice(src < to ? to - 1 : to, 0, moved);
+              setOrder(next);
+              reorderTasks.mutate(next.map((t) => t.id));
+            }}
+            onDelete={(indices) => {
+              indices.forEach((i) => {
+                const t = order[i];
+                if (t) deleteTask(t.id);
+              });
+            }}>
+            {order.map((st) => (
+              <SubtaskRow
+                key={st.id}
+                task={st}
+                progress={getSubtaskProgress(allTasks, st.id)}
+                onToggle={() => toggleTask.mutate(st.id)}
+                onOpen={() => onOpen(st)}
+              />
+            ))}
+          </List.ForEach>
+        </>
+      ) : null}
+
+      <HStack spacing={12} modifiers={[onTapGesture(promptAdd)]}>
+        <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
+        <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Subtask</Text>
         <Spacer />
-        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>
-          {`${completedCount}/${order.length}`}
-        </Text>
       </HStack>
-      <List.ForEach
-        onMove={(from, to) => {
-          const next = [...order];
-          const src = from[0];
-          const [moved] = next.splice(src, 1);
-          // Mirror SwiftUI's Array.move(fromOffsets:toOffset:) index semantics.
-          next.splice(src < to ? to - 1 : to, 0, moved);
-          setOrder(next);
-          reorderTasks.mutate(next.map((t) => t.id));
-        }}
-        onDelete={(indices) => {
-          indices.forEach((i) => {
-            const t = order[i];
-            if (t) deleteTask(t.id);
-          });
-        }}>
-        {order.map((st) => (
-          <SubtaskRow
-            key={st.id}
-            task={st}
-            progress={getSubtaskProgress(allTasks, st.id)}
-            onToggle={() => toggleTask.mutate(st.id)}
-            onOpen={() => onOpen(st)}
-          />
-        ))}
-      </List.ForEach>
     </>
   );
 });
+
+/**
+ * Native undo bar for in-sheet deletes. The app's RN `<Toast>` renders at the React
+ * root, which sits BEHIND the UIKit-presented native sheet — so it's invisible while
+ * the sheet is open. This bar subscribes to the same `toastStore` (reusing its timer +
+ * undo restore) but paints inside the SwiftUI sheet, so it shows above it.
+ */
+function NativeUndoBar() {
+  const visible = useToastStore((s) => s.visible);
+  const message = useToastStore((s) => s.message);
+  const handleUndo = useToastStore((s) => s.handleUndo);
+
+  if (!visible) return null;
+
+  return (
+    <HStack
+      spacing={12}
+      modifiers={[
+        frame({ maxWidth: Infinity }),
+        padding({ horizontal: 16, vertical: 12 }),
+        glassEffect({ glass: { variant: 'regular' }, shape: 'capsule' }),
+        padding({ leading: 8, trailing: 8, bottom: 8 }),
+      ]}>
+      <Text>{message}</Text>
+      <Spacer />
+      <Button label="Undo" onPress={handleUndo} modifiers={[buttonStyle('borderless')]} />
+    </HStack>
+  );
+}
 
 /**
  * Single global native (@expo/ui) bottom sheet for task details. Mounted once in
@@ -403,7 +477,12 @@ export function GlobalTaskSheet() {
 
             {task ? (
               <List>
-                <SubtaskSection subtasks={subtasks} allTasks={allTasks} onOpen={drillDown} />
+                <SubtaskSection
+                  parent={task}
+                  subtasks={subtasks}
+                  allTasks={allTasks}
+                  onOpen={drillDown}
+                />
 
                 <MenuRow
                   icon="folder"
@@ -552,6 +631,8 @@ export function GlobalTaskSheet() {
                 ) : null}
               </List>
             ) : null}
+
+            <NativeUndoBar />
           </VStack>
         </Group>
       </BottomSheet>
