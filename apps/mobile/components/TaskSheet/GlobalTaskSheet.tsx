@@ -54,7 +54,7 @@ import {
 import { useProjects } from '@/hooks/useProjects';
 import { useMilestones } from '@/hooks/useMilestones';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
-import { useComments, useCreateComment, useDeleteComment } from '@/hooks/useComments';
+import { useComments, useCreateComment, useUndoableDeleteComment } from '@/hooks/useComments';
 import { useUser } from '@clerk/clerk-expo';
 import { StatusPill } from '@/components/TaskSheet/StatusPill';
 import {
@@ -77,6 +77,8 @@ const SUBTASK_DONE_GREEN = '#22C55E';
 const CHECKBOX_GRAY = '#C7C7CC';
 // Claude comment avatar tint (sparkles fallback while the logo loads).
 const CLAUDE_PURPLE = '#A855F7';
+// iOS system red for the destructive delete action.
+const DESTRUCTIVE_RED = '#FF3B30';
 
 // The native Image renders local images by file:// URI, so resolve the bundled
 // Claude logo to a cached file path once (downloadAsync caches + sets localUri).
@@ -435,7 +437,7 @@ function CommentRow({
 function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void }) {
   const { user } = useUser();
   const { data: comments } = useComments(taskId);
-  const deleteComment = useDeleteComment();
+  const { deleteComment } = useUndoableDeleteComment();
   const claudeLogoUri = useClaudeLogoUri();
 
   const userName = user?.username || user?.fullName?.toLowerCase().replace(/\s+/g, '') || 'you';
@@ -469,7 +471,7 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
               onDelete={(indices) => {
                 indices.forEach((i) => {
                   const c = list[i];
-                  if (c) deleteComment.mutate({ taskId, commentId: c.id });
+                  if (c) deleteComment(taskId, c.id);
                 });
               }}>
               {list.map((c) => (
@@ -853,6 +855,13 @@ export function GlobalTaskSheet() {
     [task, allTasks, handleUpdateField]
   );
 
+  // Delete the open task (undoable). Removing it from the cache trips the auto-close
+  // effect, so the sheet dismisses and the undo toast shows at the app root.
+  const { deleteTask } = useUndoableDeleteTask();
+  const handleDeleteTask = React.useCallback(() => {
+    if (task) deleteTask(task.id);
+  }, [task, deleteTask]);
+
   // A circular Liquid Glass icon button (back / close).
   const circleGlass = [
     buttonStyle('plain'),
@@ -1119,6 +1128,16 @@ export function GlobalTaskSheet() {
                       modifiers={[datePickerStyle('graphical'), labelsHidden()]}
                     />
                   ) : null}
+
+                  {/* Destructive delete — its own card at the end (keeps the options
+                      card's corners intact), centered red text, no icon. */}
+                  <Section>
+                    <HStack modifiers={[onTapGesture(handleDeleteTask)]}>
+                      <Spacer />
+                      <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED)]}>Delete Task</Text>
+                      <Spacer />
+                    </HStack>
+                  </Section>
                 </List>
               ) : null}
 
