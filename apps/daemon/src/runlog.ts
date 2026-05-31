@@ -17,6 +17,8 @@ export interface RunRecord {
   delivered?: string;
   /** Present when the briefing succeeded but delivery failed. */
   deliveryError?: string;
+  /** New durable facts learned (written to MEMORY.md) this run. */
+  factsLearned?: number;
   /** Present when `status === "error"`. */
   error?: string;
 }

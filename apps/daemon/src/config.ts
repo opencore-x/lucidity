@@ -23,6 +23,10 @@ export interface DaemonConfig {
   oauthToken?: string;
   /** User-facing delivery channel. Default: `macos` on darwin, else `stdout`. */
   delivery: DeliveryChannel;
+  /** Vault dir for Lucid's memory files. Default: `~/.lucidity/vault`. `~` expands. */
+  vaultPath: string;
+  /** Whether Lucid updates MEMORY.md after each briefing (a 2nd model call). Default: true. */
+  reflect: boolean;
 }
 
 const EXAMPLE = `{
@@ -31,7 +35,9 @@ const EXAMPLE = `{
   "briefingTime": "08:00",
   "model": "sonnet",              // optional; "haiku" to stay frugal
   "timezone": "Asia/Kolkata",     // optional; IANA name
-  "delivery": "macos"             // optional; "macos" | "stdout"
+  "delivery": "macos",            // optional; "macos" | "stdout"
+  "vaultPath": "~/.lucidity/vault", // optional; Lucid's memory files
+  "reflect": true                 // optional; update MEMORY.md after briefings
 }`;
 
 function fail(message: string): never {
@@ -112,5 +118,14 @@ export function loadConfig(): DaemonConfig {
     fail(`${CONFIG_PATH}: "delivery" must be one of: ${DELIVERY_CHANNELS.join(', ')}.`);
   }
 
-  return { apiKey, apiUrl, briefingTime, model, timezone, oauthToken, delivery };
+  const vaultRaw = typeof obj['vaultPath'] === 'string' && obj['vaultPath'] ? obj['vaultPath'] : undefined;
+  const vaultPath = vaultRaw ? expandHome(vaultRaw) : join(CONFIG_DIR, 'vault');
+
+  const reflect = obj['reflect'] === undefined ? true : obj['reflect'] === true;
+
+  return { apiKey, apiUrl, briefingTime, model, timezone, oauthToken, delivery, vaultPath, reflect };
+}
+
+function expandHome(p: string): string {
+  return p === '~' || p.startsWith('~/') ? join(homedir(), p.slice(1)) : p;
 }

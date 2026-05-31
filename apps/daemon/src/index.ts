@@ -50,20 +50,12 @@ function executeBriefing(
   return queue.run('briefing', async () => {
     const startedAt = new Date();
     try {
-      const result = await runBriefing(config, executor);
+      // The job reads the vault, briefs, delivers, reflects, and logs the session.
+      const result = await runBriefing(config, executor, deliverer);
       const finishedAt = new Date();
       // Always write the full briefing to stdout — the transcript (under
       // launchd this is the log file; for --run-now it's your terminal).
       process.stdout.write(`\n${result.text}\n\n`);
-      // Then push to the user-facing channel. A delivery failure is a warning,
-      // not a run failure — the briefing was produced.
-      let deliveryError: string | undefined;
-      try {
-        await deliverer.deliver({ title: 'Lucid', body: result.text });
-      } catch (err) {
-        deliveryError = err instanceof Error ? err.message : String(err);
-        console.error(`[briefing] delivery via ${deliverer.name} failed: ${deliveryError}`);
-      }
       appendRun({
         job: 'briefing',
         status: 'success',
@@ -72,8 +64,9 @@ function executeBriefing(
         durationMs: finishedAt.getTime() - startedAt.getTime(),
         costUsd: result.costUsd,
         sessionId: result.sessionId,
-        delivered: deliverer.name,
-        deliveryError,
+        delivered: result.delivered,
+        deliveryError: result.deliveryError,
+        factsLearned: result.factsLearned,
       });
     } catch (err) {
       const finishedAt = new Date();
