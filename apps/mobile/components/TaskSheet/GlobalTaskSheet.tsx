@@ -10,7 +10,7 @@ import {
   Image,
   Spacer,
   List,
-  Picker,
+  Menu,
   Slider,
   DatePicker,
   Toggle,
@@ -23,11 +23,11 @@ import {
   buttonStyle,
   glassEffect,
   hidden,
-  pickerStyle,
   datePickerStyle,
   labelsHidden,
   lineLimit,
-  tag,
+  truncationMode,
+  foregroundStyle,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { useSheetStore } from '@/stores/sheetStore';
@@ -43,6 +43,8 @@ const ICON_BLUE = '#0A84FF';
 const ICON_SIZE = 22;
 // Fixed leading-icon column width so every row's label lines up. Tune to taste.
 const ICON_COL = 30;
+// Secondary gray for the trailing selected-value text + chevron (systemGray, reads in both modes).
+const MENU_VALUE_GRAY = '#8E8E93';
 
 const MILESTONE_NONE = '__none__';
 const REPEAT_NONE = '__never__';
@@ -52,6 +54,76 @@ const REPEAT_OPTIONS = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'yearly', label: 'Yearly' },
 ] as const;
+
+type MenuOption = { value: string; label: string };
+
+/**
+ * A menu-backed option row (Project / Milestone / Repeat). Built on `Menu` (not the
+ * native `Picker`) because a menu-style Picker auto-renders its selected value as
+ * trailing detail text that wraps vertically in a List row — `lineLimit(1)` on the
+ * Picker doesn't reach that internal label. Here the value `Text` is ours, so
+ * `frame(maxWidth: Infinity, alignment: 'trailing')` + `lineLimit(1)` +
+ * `truncationMode('tail')` makes a long name truncate with an ellipsis instead.
+ */
+function MenuRow({
+  icon,
+  label,
+  value,
+  options,
+  selection,
+  onSelect,
+}: {
+  icon: React.ComponentProps<typeof Image>['systemName'];
+  label: string;
+  value: string;
+  options: readonly MenuOption[];
+  selection: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <HStack spacing={8}>
+      <Image
+        systemName={icon}
+        size={ICON_SIZE}
+        color={ICON_BLUE}
+        modifiers={[frame({ width: ICON_COL })]}
+      />
+      <Text>{label}</Text>
+      <Menu
+        label={
+          <HStack
+            spacing={4}
+            modifiers={[frame({ maxWidth: Infinity, alignment: 'trailing' })]}>
+            <Text
+              modifiers={[
+                foregroundStyle(MENU_VALUE_GRAY),
+                lineLimit(1),
+                truncationMode('tail'),
+                frame({ maxWidth: Infinity, alignment: 'trailing' }),
+              ]}>
+              {value}
+            </Text>
+            <Image
+              systemName="chevron.up.chevron.down"
+              size={12}
+              color={MENU_VALUE_GRAY}
+            />
+          </HStack>
+        }>
+        {options.map((o) => (
+          <Button
+            key={o.value}
+            label={o.label}
+            systemImage={o.value === selection ? 'checkmark' : undefined}
+            onPress={() => {
+              if (o.value !== selection) onSelect(o.value);
+            }}
+          />
+        ))}
+      </Menu>
+    </HStack>
+  );
+}
 
 /**
  * Priority slider row. Keeps the live drag value in LOCAL state so dragging only
@@ -216,44 +288,48 @@ export function GlobalTaskSheet() {
 
             {task ? (
               <List>
-                <Picker
+                <MenuRow
+                  icon="folder"
                   label="Project"
-                  systemImage="folder"
+                  value={
+                    task.projectId
+                      ? (allProjects.find((p) => p.id === task.projectId)?.name ?? 'Inbox')
+                      : 'Inbox'
+                  }
                   selection={task.projectId ?? INBOX_PROJECT_ID}
-                  onSelectionChange={(value) => {
-                    const projectId = value === INBOX_PROJECT_ID ? null : (value as string);
+                  options={[
+                    { value: INBOX_PROJECT_ID, label: 'Inbox' },
+                    ...projects.map((p) => ({ value: p.id, label: p.name })),
+                  ]}
+                  onSelect={(value) => {
+                    const projectId = value === INBOX_PROJECT_ID ? null : value;
                     if (projectId !== task.projectId) {
                       handleUpdateField({ projectId, milestoneId: null });
                     }
                   }}
-                  modifiers={[pickerStyle('menu'), lineLimit(1)]}>
-                  <Text modifiers={[tag(INBOX_PROJECT_ID)]}>Inbox</Text>
-                  {projects.map((p) => (
-                    <Text key={p.id} modifiers={[tag(p.id)]}>
-                      {p.name}
-                    </Text>
-                  ))}
-                </Picker>
+                />
 
                 {task.projectId ? (
-                  <Picker
+                  <MenuRow
+                    icon="flag"
                     label="Milestone"
-                    systemImage="flag"
+                    value={
+                      task.milestoneId
+                        ? (milestones.find((m) => m.id === task.milestoneId)?.name ?? 'None')
+                        : 'None'
+                    }
                     selection={task.milestoneId ?? MILESTONE_NONE}
-                    onSelectionChange={(value) => {
-                      const milestoneId = value === MILESTONE_NONE ? null : (value as string);
+                    options={[
+                      { value: MILESTONE_NONE, label: 'None' },
+                      ...milestones.map((m) => ({ value: m.id, label: m.name })),
+                    ]}
+                    onSelect={(value) => {
+                      const milestoneId = value === MILESTONE_NONE ? null : value;
                       if (milestoneId !== task.milestoneId) {
                         handleUpdateField({ milestoneId });
                       }
                     }}
-                    modifiers={[pickerStyle('menu'), lineLimit(1)]}>
-                    <Text modifiers={[tag(MILESTONE_NONE)]}>None</Text>
-                    {milestones.map((m) => (
-                      <Text key={m.id} modifiers={[tag(m.id)]}>
-                        {m.name}
-                      </Text>
-                    ))}
-                  </Picker>
+                  />
                 ) : null}
 
                 {/* Due date — single row: Add when empty, picker + clear when set */}
@@ -299,11 +375,19 @@ export function GlobalTaskSheet() {
                 )}
 
                 {task.dueDate ? (
-                  <Picker
+                  <MenuRow
+                    icon="repeat"
                     label="Repeat"
-                    systemImage="repeat"
+                    value={
+                      REPEAT_OPTIONS.find((r) => r.value === task.recurringFrequency)?.label ??
+                      'Never'
+                    }
                     selection={task.recurringFrequency ?? REPEAT_NONE}
-                    onSelectionChange={(value) => {
+                    options={[
+                      { value: REPEAT_NONE, label: 'Never' },
+                      ...REPEAT_OPTIONS.map((r) => ({ value: r.value, label: r.label })),
+                    ]}
+                    onSelect={(value) => {
                       const rf =
                         value === REPEAT_NONE
                           ? null
@@ -312,14 +396,7 @@ export function GlobalTaskSheet() {
                         handleUpdateField({ recurringFrequency: rf });
                       }
                     }}
-                    modifiers={[pickerStyle('menu'), lineLimit(1)]}>
-                    <Text modifiers={[tag(REPEAT_NONE)]}>Never</Text>
-                    {REPEAT_OPTIONS.map((r) => (
-                      <Text key={r.value} modifiers={[tag(r.value)]}>
-                        {r.label}
-                      </Text>
-                    ))}
-                  </Picker>
+                  />
                 ) : null}
 
                 <PriorityRow
