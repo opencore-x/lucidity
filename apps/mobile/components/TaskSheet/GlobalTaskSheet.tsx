@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Alert } from 'react-native';
 import { Asset } from 'expo-asset';
 import {
   Host,
@@ -268,51 +267,24 @@ function SubtaskRow({
  * child of the parent `List` for its native reorder/delete gestures to bind.
  */
 const SubtaskSection = React.memo(function SubtaskSection({
-  parent,
   subtasks,
   allTasks,
   onOpen,
+  onAdd,
 }: {
-  parent: Task;
   subtasks: Task[];
   allTasks: Task[];
   onOpen: (task: Task) => void;
+  onAdd: () => void;
 }) {
   const reorderTasks = useReorderTasks();
   const toggleTask = useToggleTask();
-  const createTask = useCreateTask();
   const { deleteTask } = useUndoableDeleteTask();
 
   const [order, setOrder] = React.useState(subtasks);
   React.useEffect(() => {
     setOrder(subtasks);
   }, [subtasks]);
-
-  const promptAdd = React.useCallback(() => {
-    Alert.prompt(
-      'New Subtask',
-      undefined,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Add',
-          onPress: (title?: string) => {
-            const t = title?.trim();
-            if (t) {
-              createTask.mutate({
-                title: t,
-                projectId: parent.projectId,
-                parentTaskId: parent.id,
-                status: 'pending',
-                priority: 500,
-              });
-            }
-          },
-        },
-      ],
-      'plain-text'
-    );
-  }, [createTask, parent.id, parent.projectId]);
 
   const completedCount = order.filter((t) => t.status === 'completed').length;
 
@@ -356,7 +328,7 @@ const SubtaskSection = React.memo(function SubtaskSection({
         </>
       ) : null}
 
-      <HStack spacing={12} modifiers={[onTapGesture(promptAdd)]}>
+      <HStack spacing={12} modifiers={[onTapGesture(onAdd)]}>
         <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
         <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Subtask</Text>
         <Spacer />
@@ -441,34 +413,15 @@ function CommentRow({
  * The task's comments as their OWN inset-grouped `Section` (a separate card from the
  * subtasks/options below it): a count header row, a `List.ForEach` of comment rows
  * (swipe-to-delete via `useDeleteComment`'s optimistic removal), and an "Add Comment"
- * row that fires a native prompt into `useCreateComment`.
+ * row that opens the shared floating composer.
  */
-function CommentsSection({ taskId }: { taskId: string }) {
+function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void }) {
   const { user } = useUser();
   const { data: comments } = useComments(taskId);
-  const createComment = useCreateComment();
   const deleteComment = useDeleteComment();
   const claudeLogoUri = useClaudeLogoUri();
 
   const userName = user?.username || user?.fullName?.toLowerCase().replace(/\s+/g, '') || 'you';
-
-  const promptAdd = React.useCallback(() => {
-    Alert.prompt(
-      'New Comment',
-      undefined,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Add',
-          onPress: (content?: string) => {
-            const c = content?.trim();
-            if (c) createComment.mutate({ taskId, content: c });
-          },
-        },
-      ],
-      'plain-text'
-    );
-  }, [createComment, taskId]);
 
   const list = comments ?? [];
   const [expanded, setExpanded] = React.useState(true);
@@ -513,7 +466,7 @@ function CommentsSection({ taskId }: { taskId: string }) {
             </List.ForEach>
           ) : null}
 
-          <HStack spacing={12} modifiers={[onTapGesture(promptAdd)]}>
+          <HStack spacing={12} modifiers={[onTapGesture(onAdd)]}>
             <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
             <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Comment</Text>
             <Spacer />
@@ -584,6 +537,81 @@ function EditableField({
 }
 
 /**
+ * Shared floating composer for adding a subtask or comment. Pinned at the bottom of
+ * the sheet so SwiftUI's keyboard avoidance floats it just above the keyboard. Only
+ * mounted while `mode` is set (appears on "Add Subtask"/"Add Comment"). Multiline:
+ * Enter inserts a newline; submit is ONLY the ▲ button. After sending — or on blur
+ * (abandon) — it calls `onClose`, dismissing the bar + keyboard.
+ */
+function Composer({
+  mode,
+  task,
+  onClose,
+}: {
+  mode: 'subtask' | 'comment';
+  task: Task;
+  onClose: () => void;
+}) {
+  const createTask = useCreateTask();
+  const createComment = useCreateComment();
+  const textState = useNativeState('');
+  const valueRef = React.useRef('');
+
+  const submit = () => {
+    const v = valueRef.current.trim();
+    if (v) {
+      if (mode === 'subtask') {
+        createTask.mutate({
+          title: v,
+          projectId: task.projectId,
+          parentTaskId: task.id,
+          status: 'pending',
+          priority: 500,
+        });
+      } else {
+        createComment.mutate({ taskId: task.id, content: v });
+      }
+    }
+    onClose();
+  };
+
+  return (
+    <HStack
+      spacing={8}
+      alignment="bottom"
+      modifiers={[
+        frame({ maxWidth: Infinity }),
+        padding({ horizontal: 16, vertical: 12 }),
+        // Rounded rectangle (not capsule) so multi-line text doesn't bleed past the
+        // rounded ends; cornerRadius keeps it soft for a single line too.
+        glassEffect({
+          glass: { variant: 'regular' },
+          shape: 'roundedRectangle',
+          cornerRadius: 22,
+        }),
+        padding({ leading: 8, trailing: 8, bottom: 6 }),
+      ]}>
+      <TextField
+        text={textState}
+        autoFocus
+        placeholder={mode === 'subtask' ? 'Add subtask…' : 'Add comment…'}
+        axis="vertical"
+        onTextChange={(t) => {
+          valueRef.current = t;
+        }}
+        onFocusChange={(focused) => {
+          if (!focused) onClose();
+        }}
+        modifiers={[textFieldStyle('plain'), frame({ maxWidth: Infinity })]}
+      />
+      <Button onPress={submit} modifiers={[buttonStyle('plain')]}>
+        <Image systemName="arrow.up.circle.fill" size={28} color={ICON_BLUE} />
+      </Button>
+    </HStack>
+  );
+}
+
+/**
  * Single global native (@expo/ui) bottom sheet for task details. Mounted once in
  * the root layout (signed-in only) and driven by `sheetStore.isPresented`. Sources
  * its own data from hooks. Phases done: 3.1 shell, 3.2 top bar + status pill,
@@ -641,6 +669,12 @@ export function GlobalTaskSheet() {
     setIsEditingText(true);
   }, []);
   const handleFieldBlur = React.useCallback(() => setIsEditingText(false), []);
+
+  // The shared floating composer for adding subtasks/comments (null = hidden).
+  const [composeMode, setComposeMode] = React.useState<'subtask' | 'comment' | null>(null);
+  const addSubtask = React.useCallback(() => setComposeMode('subtask'), []);
+  const addComment = React.useCallback(() => setComposeMode('comment'), []);
+  const closeComposer = React.useCallback(() => setComposeMode(null), []);
 
   // Optimistic field update; sync the server response back into the task stack
   // so the open sheet stays fresh (matches the old per-screen TaskSheet flow).
@@ -750,13 +784,13 @@ export function GlobalTaskSheet() {
                   modifiers={[textFieldStyle('plain')]}
                 />
 
-                <CommentsSection taskId={task.id} />
+                <CommentsSection taskId={task.id} onAdd={addComment} />
 
                 <SubtaskSection
-                  parent={task}
                   subtasks={subtasks}
                   allTasks={allTasks}
                   onOpen={drillDown}
+                  onAdd={addSubtask}
                 />
 
                 <MenuRow
@@ -908,6 +942,10 @@ export function GlobalTaskSheet() {
             ) : null}
 
             <NativeUndoBar />
+
+            {task && composeMode ? (
+              <Composer key={composeMode} mode={composeMode} task={task} onClose={closeComposer} />
+            ) : null}
           </VStack>
         </Group>
       </BottomSheet>
