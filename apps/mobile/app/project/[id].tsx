@@ -13,9 +13,7 @@ import {
   Text as UIText,
 } from '@expo/ui/swift-ui';
 import {
-  buttonStyle,
   tint,
-  controlSize,
   padding,
   listStyle,
   listRowSeparator,
@@ -31,6 +29,7 @@ import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { TaskRow } from '@/components/native/TaskRow';
 import { TaskComposer } from '@/components/native/TaskComposer';
+import { SegmentTab } from '@/components/native/SegmentTab';
 import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
 import { useProject, useProjects } from '@/hooks/useProjects';
 import {
@@ -167,18 +166,6 @@ export default function ProjectScreen() {
     );
   }
 
-  const tabButton = (tab: 'active' | 'completed', label: string) => (
-    <Button
-      label={label}
-      onPress={() => setSelectedTab(tab)}
-      modifiers={[
-        controlSize('small'),
-        buttonStyle(selectedTab === tab ? 'glassProminent' : 'glass'),
-        ...(project.color ? [tint(project.color)] : []),
-      ]}
-    />
-  );
-
   return (
     <>
       <Stack.Screen
@@ -220,8 +207,20 @@ export default function ProjectScreen() {
                   </UIText>
                 ) : null}
                 <HStack spacing={8}>
-                  {tabButton('active', `Active (${activeTasks.length})`)}
-                  {tabButton('completed', `Completed (${completedTasks.length})`)}
+                  <SegmentTab
+                    label="Active"
+                    count={activeTasks.length}
+                    selected={selectedTab === 'active'}
+                    onPress={() => setSelectedTab('active')}
+                    tintColor={project.color}
+                  />
+                  <SegmentTab
+                    label="Completed"
+                    count={completedTasks.length}
+                    selected={selectedTab === 'completed'}
+                    onPress={() => setSelectedTab('completed')}
+                    tintColor={project.color}
+                  />
                   <Spacer />
                 </HStack>
               </VStack>

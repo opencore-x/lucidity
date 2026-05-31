@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import {
   Host,
   ZStack,
+  VStack,
   HStack,
   Spacer,
   Button,
@@ -14,9 +15,7 @@ import {
   Text as UIText,
 } from '@expo/ui/swift-ui';
 import {
-  buttonStyle,
   tint,
-  controlSize,
   padding,
   listStyle,
   listRowSeparator,
@@ -33,6 +32,7 @@ import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { TaskRow } from '@/components/native/TaskRow';
 import { TaskComposer } from '@/components/native/TaskComposer';
+import { SegmentTab } from '@/components/native/SegmentTab';
 import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
 import { useProjects } from '@/hooks/useProjects';
 import { useAllMilestones, useMilestoneProgress } from '@/hooks/useMilestones';
@@ -47,9 +47,9 @@ const TODAY_AMBER = '#F59E0B';
 const PROGRESS_BLUE = '#3B82F6';
 const DONE_GREEN = '#22C55E';
 
-// Milestone names are long ("M1: Core Platform + Visitor Management"), so use a
-// standard (non-large) nav title — it truncates with an ellipsis instead of
-// overflowing the large-title area.
+// Milestone names are long ("M1: Core Platform + Visitor Management") and don't fit
+// the nav bar OR the large-title area without truncating. So the nav title is the
+// short project name, and the milestone name lives as a wrapping title in the content.
 const MILESTONE_HEADER = { ...LARGE_TITLE_SCREEN_OPTIONS, headerLargeTitle: false } as const;
 
 export default function MilestoneScreen() {
@@ -155,25 +155,16 @@ export default function MilestoneScreen() {
   const percent = progress?.percent ?? 0;
   const completed = progress?.completed ?? 0;
   const total = progress?.total ?? 0;
-
-  const tabButton = (tab: 'active' | 'completed', label: string) => (
-    <Button
-      label={label}
-      onPress={() => setSelectedTab(tab)}
-      modifiers={[
-        controlSize('regular'),
-        buttonStyle(selectedTab === tab ? 'glassProminent' : 'glass'),
-        ...(project?.color ? [tint(project.color)] : []),
-      ]}
-    />
-  );
+  const due = milestone.dueDate
+    ? new Date(milestone.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : null;
 
   return (
     <>
       <Stack.Screen
         options={{
           ...MILESTONE_HEADER,
-          title: milestone.name,
+          title: project?.name ?? 'Milestone',
           headerTintColor: project?.color ?? undefined,
           headerRight: () => (
             <View className="flex-row items-center gap-2">
@@ -194,30 +185,38 @@ export default function MilestoneScreen() {
                 refreshable(onRefresh),
                 scrollDismissesKeyboard('interactively'),
               ]}>
-              {/* Progress lives in its own card. */}
+              {/* Milestone name as a wrapping title card — long names don't fit the
+                  nav bar (which shows the short project name). */}
               <Section>
-                <HStack spacing={8}>
-                  <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 12 })]}>
-                    {`${completed}/${total}`}
+                <VStack spacing={4} alignment="leading">
+                  <UIText modifiers={[font({ size: 22, weight: 'semibold' })]}>
+                    {milestone.name}
                   </UIText>
-                  <ProgressView
-                    value={percent / 100}
-                    modifiers={[
-                      tint(percent >= 100 ? DONE_GREEN : PROGRESS_BLUE),
-                      frame({ maxWidth: Infinity }),
-                    ]}
-                  />
-                  <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 12 })]}>
-                    {`${percent}%`}
-                  </UIText>
-                </HStack>
+                  {due ? (
+                    <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
+                      {`Due ${due}`}
+                    </UIText>
+                  ) : null}
+                </VStack>
               </Section>
 
-              {/* Tabs + the task list form the second card. */}
+              {/* Tabs + the task list. */}
               <Section>
                 <HStack spacing={8} modifiers={[listRowSeparator('hidden')]}>
-                  {tabButton('active', `Active (${activeTasks.length})`)}
-                  {tabButton('completed', `Completed (${completedTasks.length})`)}
+                  <SegmentTab
+                    label="Active"
+                    count={activeTasks.length}
+                    selected={selectedTab === 'active'}
+                    onPress={() => setSelectedTab('active')}
+                    tintColor={project?.color}
+                  />
+                  <SegmentTab
+                    label="Completed"
+                    count={completedTasks.length}
+                    selected={selectedTab === 'completed'}
+                    onPress={() => setSelectedTab('completed')}
+                    tintColor={project?.color}
+                  />
                   <Spacer />
                 </HStack>
 
@@ -286,6 +285,25 @@ export default function MilestoneScreen() {
                     </SwipeActions>
                   ))
                 )}
+              </Section>
+
+              {/* Progress summary, pushed to the bottom. */}
+              <Section>
+                <HStack spacing={8}>
+                  <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 12 })]}>
+                    {`${completed}/${total}`}
+                  </UIText>
+                  <ProgressView
+                    value={percent / 100}
+                    modifiers={[
+                      tint(percent >= 100 ? DONE_GREEN : PROGRESS_BLUE),
+                      frame({ maxWidth: Infinity }),
+                    ]}
+                  />
+                  <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 12 })]}>
+                    {`${percent}%`}
+                  </UIText>
+                </HStack>
               </Section>
             </List>
 
