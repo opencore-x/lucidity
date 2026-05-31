@@ -1,12 +1,12 @@
 import { spawn } from 'node:child_process';
 import type { Deliverer, DeliveryMessage } from './types.js';
 
-function escapeForAppleScript(value: string): string {
+export function escapeForAppleScript(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 /** Notifications are single-paragraph and truncated; collapse whitespace. */
-function toBlurb(body: string): string {
+export function toBlurb(body: string): string {
   return body.replace(/\s+/g, ' ').trim();
 }
 

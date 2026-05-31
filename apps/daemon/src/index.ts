@@ -6,11 +6,13 @@ import { Scheduler } from './scheduler.js';
 import { appendRun } from './runlog.js';
 import { runBriefing } from './jobs/briefing.js';
 import { createDeliverer, isDeliveryChannel, type Deliverer } from './delivery/index.js';
+import { installAgent, uninstallAgent, agentStatus } from './install.js';
 
 const KNOWN_JOBS = ['briefing'] as const;
 type JobName = (typeof KNOWN_JOBS)[number];
 
 interface CliArgs {
+  command?: string;
   runNow?: string;
   deliver?: string;
 }
@@ -27,6 +29,8 @@ function parseArgs(argv: string[]): CliArgs {
       args.deliver = argv[++i];
     } else if (arg?.startsWith('--deliver=')) {
       args.deliver = arg.slice('--deliver='.length);
+    } else if (arg && !arg.startsWith('-') && args.command === undefined) {
+      args.command = arg;
     }
   }
   return args;
@@ -90,6 +94,29 @@ function executeBriefing(
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
+
+  // Service-management commands (manage the launchd agent; handled before config
+  // so `status`/`uninstall` work even without a valid config).
+  if (args.command !== undefined) {
+    switch (args.command) {
+      case 'install':
+        installAgent();
+        return;
+      case 'uninstall':
+        uninstallAgent();
+        return;
+      case 'status':
+        agentStatus();
+        return;
+      default:
+        console.error(
+          `Unknown command "${args.command}". Known: install, uninstall, status. ` +
+            `(Use --run-now <job> to run a job once.)`,
+        );
+        process.exit(1);
+    }
+  }
+
   const config = loadConfig();
   const executor = new ClaudeCodeExecutor({
     defaultModel: config.model,
