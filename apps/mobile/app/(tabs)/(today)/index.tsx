@@ -1,168 +1,53 @@
+import * as React from 'react';
+import { View, ActivityIndicator, Alert } from 'react-native';
+import { Stack } from 'expo-router';
+import {
+  Host,
+  Button,
+  List,
+  Section,
+  SwipeActions,
+  Text as UIText,
+} from '@expo/ui/swift-ui';
+import {
+  tint,
+  listStyle,
+  refreshable,
+  frame,
+  foregroundStyle,
+  font,
+  padding,
+} from '@expo/ui/swift-ui/modifiers';
+import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
-import { TaskItem } from '@/components/TaskItem';
-import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator, Text as RNText, Dimensions, Alert } from 'react-native';
-import { Stack } from 'expo-router';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { TaskRow } from '@/components/native/TaskRow';
 import { useTasks, useCreateTask, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtaskProgress } from '@/utils/helpers';
-import { CalendarX2, Check, Trash2 } from '@/lib/icons';
-import { FONTS } from '@/lib/fonts';
 import type { Task } from '@lucidity/shared';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-
-function ClearLeftAction({ confirmed }: { confirmed: boolean }) {
-  return (
-    <View
-      style={{ backgroundColor: '#6366F1', width: SCREEN_WIDTH }}
-      className="flex-row items-center pl-4 gap-1.5 h-full"
-    >
-      {confirmed ? (
-        <>
-          <Check size={18} color="#FFFFFF" />
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
-            Removed
-          </RNText>
-        </>
-      ) : (
-        <>
-          <CalendarX2 size={18} color="#FFFFFF" />
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
-            Remove from Today
-          </RNText>
-        </>
-      )}
-    </View>
-  );
-}
-
-function DeleteRightAction({ confirmed }: { confirmed: boolean }) {
-  return (
-    <View
-      style={{ backgroundColor: '#EF4444', width: SCREEN_WIDTH }}
-      className="flex-row items-center justify-end pr-4 gap-1.5 h-full"
-    >
-      {confirmed ? (
-        <>
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
-            Deleted
-          </RNText>
-          <Check size={18} color="#FFFFFF" />
-        </>
-      ) : (
-        <>
-          <RNText style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '600', fontFamily: FONTS.semibold }}>
-            Delete
-          </RNText>
-          <Trash2 size={18} color="#FFFFFF" />
-        </>
-      )}
-    </View>
-  );
-}
-
-function SwipeableTodayTask({
-  task,
-  tasks,
-  isLast,
-  onPress,
-  onToggle,
-  onClearDueDate,
-  onDeleteTask,
-}: {
-  task: Task;
-  tasks: Task[];
-  isLast: boolean;
-  onPress: () => void;
-  onToggle: () => void;
-  onClearDueDate: (taskId: string) => void;
-  onDeleteTask: (taskId: string) => void;
-}) {
-  const swipeableRef = React.useRef<React.ComponentRef<typeof ReanimatedSwipeable>>(null);
-  const [leftConfirmed, setLeftConfirmed] = React.useState(false);
-  const [rightConfirmed, setRightConfirmed] = React.useState(false);
-
-  const renderLeftActions = React.useCallback(
-    () => <ClearLeftAction confirmed={leftConfirmed} />,
-    [leftConfirmed]
-  );
-
-  const renderRightActions = React.useCallback(
-    () => <DeleteRightAction confirmed={rightConfirmed} />,
-    [rightConfirmed]
-  );
-
-  const handleSwipeOpen = React.useCallback(
-    (direction: 'left' | 'right') => {
-      if (direction === 'right') {
-        onClearDueDate(task.id);
-        setLeftConfirmed(true);
-        setTimeout(() => {
-          swipeableRef.current?.close();
-          setLeftConfirmed(false);
-        }, 1200);
-      } else if (direction === 'left') {
-        onDeleteTask(task.id);
-        setRightConfirmed(true);
-        setTimeout(() => {
-          swipeableRef.current?.close();
-          setRightConfirmed(false);
-        }, 1200);
-      }
-    },
-    [task.id, onClearDueDate, onDeleteTask]
-  );
-
-  return (
-    <ReanimatedSwipeable
-      ref={swipeableRef}
-      renderLeftActions={renderLeftActions}
-      renderRightActions={renderRightActions}
-      onSwipeableOpen={handleSwipeOpen}
-      overshootRight={false}
-      friction={1}
-      leftThreshold={SCREEN_WIDTH * 0.4}
-      rightThreshold={SCREEN_WIDTH * 0.4}
-    >
-      <TaskItem
-        task={task}
-        subtaskProgress={getSubtaskProgress(tasks, task.id)}
-        onPress={onPress}
-        onToggle={onToggle}
-        isLast={isLast}
-      />
-    </ReanimatedSwipeable>
-  );
-}
+const MUTED_GRAY = '#8E8E93';
+const OVERDUE_RED = '#EF4444';
+// Indigo "Remove from Today" swipe — matches the old left-action background.
+const REMOVE_INDIGO = '#6366F1';
 
 export default function TodayScreen() {
+  const { colorScheme } = useColorScheme();
+  const scheme = colorScheme === 'dark' ? 'dark' : 'light';
+
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
-  const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
+  const { isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const createTask = useCreateTask();
   const toggleTask = useToggleTask();
   const updateTask = useUpdateTask();
   const { deleteTask } = useUndoableDeleteTask();
   const { openSheet } = useSheetStore();
 
-  const projects = React.useMemo(
-    () => allProjects.filter((p) => !p.isArchived),
-    [allProjects]
-  );
-
   const isLoading = tasksLoading || projectsLoading;
-  const [refreshing, setRefreshing] = React.useState(false);
-
-  const onRefresh = React.useCallback(async () => {
-    setRefreshing(true);
-    await Promise.all([refetchTasks(), refetchProjects()]);
-    setRefreshing(false);
-  }, [refetchTasks, refetchProjects]);
 
   const todayTasks = React.useMemo(() => {
     const now = new Date();
@@ -174,8 +59,7 @@ export default function TodayScreen() {
       if (task.parentTaskId) return false;
       if (task.status === 'completed') return false;
       if (!task.dueDate) return false;
-      const dueDate = new Date(task.dueDate);
-      return dueDate < todayEnd;
+      return new Date(task.dueDate) < todayEnd;
     });
   }, [tasks]);
 
@@ -185,61 +69,47 @@ export default function TodayScreen() {
 
     const overdue: Task[] = [];
     const today: Task[] = [];
-
     todayTasks.forEach((task) => {
-      const dueDate = new Date(task.dueDate!);
-      if (dueDate < todayStart) {
-        overdue.push(task);
-      } else {
-        today.push(task);
-      }
+      if (new Date(task.dueDate!) < todayStart) overdue.push(task);
+      else today.push(task);
     });
-
     return { overdueTasks: overdue, dueTodayTasks: today };
   }, [todayTasks]);
 
-  const handleTaskPress = React.useCallback(
-    (task: Task) => {
-      openSheet(task);
-    },
-    [openSheet]
-  );
+  const onRefresh = React.useCallback(async () => {
+    await Promise.all([refetchTasks(), refetchProjects()]);
+  }, [refetchTasks, refetchProjects]);
 
+  const handleTaskPress = React.useCallback((task: Task) => openSheet(task), [openSheet]);
   const handleTaskToggle = React.useCallback(
-    (taskId: string) => {
-      toggleTask.mutate(taskId);
-    },
+    (taskId: string) => toggleTask.mutate(taskId),
     [toggleTask]
   );
-
   const handleClearDueDate = React.useCallback(
-    (taskId: string) => {
-      updateTask.mutate({ id: taskId, data: { dueDate: null } });
-    },
+    (taskId: string) => updateTask.mutate({ id: taskId, data: { dueDate: null } }),
     [updateTask]
   );
-
-  const handleDeleteTask = React.useCallback(
-    (taskId: string) => {
-      deleteTask(taskId);
-    },
-    [deleteTask]
-  );
+  const handleDeleteTask = React.useCallback((taskId: string) => deleteTask(taskId), [deleteTask]);
 
   const handleCreateTask = React.useCallback(() => {
-    Alert.prompt('New Task', 'This task will be due today.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Add Task',
-        onPress: (title?: string) => {
-          if (title?.trim()) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            createTask.mutate({ title: title.trim(), dueDate: today });
-          }
+    Alert.prompt(
+      'New Task',
+      'This task will be due today.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Add Task',
+          onPress: (title?: string) => {
+            if (title?.trim()) {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              createTask.mutate({ title: title.trim(), dueDate: today });
+            }
+          },
         },
-      },
-    ], 'plain-text');
+      ],
+      'plain-text'
+    );
   }, [createTask]);
 
   const headerRight = React.useCallback(
@@ -250,6 +120,36 @@ export default function TodayScreen() {
       </View>
     ),
     [handleCreateTask]
+  );
+
+  const renderRow = React.useCallback(
+    (task: Task) => (
+      <SwipeActions key={task.id}>
+        <TaskRow
+          task={task}
+          progress={getSubtaskProgress(tasks, task.id)}
+          onToggle={() => handleTaskToggle(task.id)}
+          onOpen={() => handleTaskPress(task)}
+        />
+        <SwipeActions.Actions edge="leading">
+          <Button
+            label="Remove"
+            systemImage="calendar.badge.minus"
+            onPress={() => handleClearDueDate(task.id)}
+            modifiers={[tint(REMOVE_INDIGO)]}
+          />
+        </SwipeActions.Actions>
+        <SwipeActions.Actions edge="trailing">
+          <Button
+            label="Delete"
+            systemImage="trash"
+            role="destructive"
+            onPress={() => handleDeleteTask(task.id)}
+          />
+        </SwipeActions.Actions>
+      </SwipeActions>
+    ),
+    [tasks, handleTaskToggle, handleTaskPress, handleClearDueDate, handleDeleteTask]
   );
 
   if (isLoading) {
@@ -266,73 +166,50 @@ export default function TodayScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Today', headerRight }} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      >
-        <View className="h-3" />
-        {todayTasks.length === 0 ? (
-          <View className="items-center justify-center px-8 pt-32">
-            <Text className="text-6xl mb-4">🎉</Text>
-            <Text className="text-xl font-semibold text-center mb-2">All caught up!</Text>
-            <Text className="text-muted-foreground text-center">
-              No tasks due today. Enjoy your day or add new tasks from the Projects tab.
-            </Text>
-          </View>
-        ) : (
-          <>
-            {overdueTasks.length > 0 && (
-              <View className="mb-4">
-                <View className="px-4 py-2">
-                  <Text className="text-sm font-semibold text-destructive">
-                    Overdue ({overdueTasks.length})
-                  </Text>
-                </View>
-                {overdueTasks.map((task, index) => (
-                  <SwipeableTodayTask
-                    key={task.id}
-                    task={task}
-                    tasks={tasks}
-                    isLast={index === overdueTasks.length - 1}
-                    onPress={() => handleTaskPress(task)}
-                    onToggle={() => handleTaskToggle(task.id)}
-                    onClearDueDate={handleClearDueDate}
-                    onDeleteTask={handleDeleteTask}
-                  />
-                ))}
-              </View>
-            )}
+      <View className="flex-1 bg-background">
+        <Host style={{ flex: 1 }} colorScheme={scheme}>
+          {/* insetGrouped paints a solid background that fills the whole Host, so dark
+              mode covers the entire body (matches the project screen). */}
+          <List modifiers={[listStyle('insetGrouped'), refreshable(onRefresh)]}>
+            {todayTasks.length === 0 ? (
+              <UIText
+                modifiers={[
+                  foregroundStyle(MUTED_GRAY),
+                  frame({ maxWidth: Infinity, alignment: 'center' }),
+                  padding({ vertical: 56 }),
+                ]}>
+                🎉  All caught up — nothing due today.
+              </UIText>
+            ) : (
+              <>
+                {overdueTasks.length > 0 ? (
+                  <Section
+                    header={
+                      <UIText
+                        modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle(OVERDUE_RED)]}>
+                        {`Overdue (${overdueTasks.length})`}
+                      </UIText>
+                    }>
+                    {overdueTasks.map(renderRow)}
+                  </Section>
+                ) : null}
 
-            {dueTodayTasks.length > 0 && (
-              <View className="mb-4">
-                <View className="px-4 py-2">
-                  <Text className="text-sm font-semibold text-foreground">
-                    Due Today ({dueTodayTasks.length})
-                  </Text>
-                </View>
-                {dueTodayTasks.map((task, index) => (
-                  <SwipeableTodayTask
-                    key={task.id}
-                    task={task}
-                    tasks={tasks}
-                    isLast={index === dueTodayTasks.length - 1}
-                    onPress={() => handleTaskPress(task)}
-                    onToggle={() => handleTaskToggle(task.id)}
-                    onClearDueDate={handleClearDueDate}
-                    onDeleteTask={handleDeleteTask}
-                  />
-                ))}
-              </View>
+                {dueTodayTasks.length > 0 ? (
+                  <Section
+                    header={
+                      <UIText
+                        modifiers={[font({ size: 13, weight: 'semibold' }), foregroundStyle(MUTED_GRAY)]}>
+                        {`Due Today (${dueTodayTasks.length})`}
+                      </UIText>
+                    }>
+                    {dueTodayTasks.map(renderRow)}
+                  </Section>
+                ) : null}
+              </>
             )}
-          </>
-        )}
-
-        <View className="h-32" />
-      </ScrollView>
+          </List>
+        </Host>
+      </View>
     </>
   );
 }
