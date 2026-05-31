@@ -5,6 +5,12 @@ export { buildMemoryReflectionPrompt } from './prompts/reflection.js';
 export type { BuildMemoryReflectionPromptInput, ReflectionPrompt } from './prompts/reflection.js';
 export { buildChatSystemPrompt } from './prompts/chat.js';
 export type { BuildChatSystemPromptInput } from './prompts/chat.js';
+export { buildWeeklyReviewPrompt } from './prompts/weeklyReview.js';
+export type {
+  BuildWeeklyReviewPromptInput,
+  WeeklyReviewPrompt,
+  WeeklyReviewStats,
+} from './prompts/weeklyReview.js';
 
 // Memory (durable facts) — pure helpers
 export { parseFacts, mergeFacts, renderMemoryFile } from './memory/merge.js';
