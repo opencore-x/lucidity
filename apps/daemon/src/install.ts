@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 import { existsSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { loadConfig, CONFIG_PATH, LOGS_DIR } from './config.js';
+import { ensureNotifierBundle } from './notifierBundle.js';
 
 const LABEL = 'my.lucidity.daemon';
 const PLIST_PATH = join(homedir(), 'Library', 'LaunchAgents', `${LABEL}.plist`);
@@ -128,6 +129,9 @@ export function installAgent(): void {
   requireDarwin();
   // Validate config now so we never install a daemon that crash-loops on boot.
   loadConfig();
+
+  // Generate + register the Lucidity.app notifier bundle (logo + name on notifications).
+  ensureNotifierBundle();
 
   const nodeBin = process.execPath;
   const entry = daemonEntry();

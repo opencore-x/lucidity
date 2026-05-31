@@ -63,7 +63,7 @@ export async function runBriefing(
   // 2. Deliver
   let deliveryError: string | undefined;
   try {
-    await deliverer.deliver({ title: 'Lucid', body: text });
+    await deliverer.deliver({ title: 'Lucidity', body: text });
   } catch (err) {
     deliveryError = err instanceof Error ? err.message : String(err);
     console.error(`[briefing] delivery via ${deliverer.name} failed: ${deliveryError}`);

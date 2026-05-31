@@ -1,7 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { existsSync } from 'node:fs';
 import type { Deliverer, DeliveryMessage } from './types.js';
+import { ensureNotifierBundle } from '../notifierBundle.js';
 
 export function escapeForAppleScript(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -10,16 +9,6 @@ export function escapeForAppleScript(value: string): string {
 /** Notifications are single-paragraph and truncated; collapse whitespace. */
 export function toBlurb(body: string): string {
   return body.replace(/\s+/g, ' ').trim();
-}
-
-/** Bundled Lucidity logo (copied into dist/assets at build). undefined if absent (e.g. dev). */
-function resolveIconPath(): string | undefined {
-  try {
-    const p = fileURLToPath(new URL('../assets/lucid-icon.png', import.meta.url));
-    return existsSync(p) ? p : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function hasTerminalNotifier(): boolean {
@@ -32,9 +21,10 @@ function hasTerminalNotifier(): boolean {
 
 /**
  * Delivers via the native macOS Notification Center. Prefers `terminal-notifier`
- * (so the notification carries the Lucidity logo), falling back to `osascript`
- * (which always shows the script runner's icon — no way to brand it). Requires
- * macOS. The full briefing still goes to stdout/the run log.
+ * attributed to the generated `Lucidity.app` bundle (`-sender`), so the banner
+ * carries the Lucidity name + logo. Falls back to bare terminal-notifier, then
+ * `osascript` (whose icon/name can't be branded). Requires macOS. The full
+ * briefing still goes to stdout / the run log.
  */
 export class MacNotificationDeliverer implements Deliverer {
   readonly name = 'macos';
@@ -45,15 +35,18 @@ export class MacNotificationDeliverer implements Deliverer {
       throw new Error('macOS notifications require darwin; set "delivery" to another channel.');
     }
     const body = toBlurb(message.body);
+
     if (hasTerminalNotifier()) {
-      const icon = resolveIconPath();
-      const args = ['-title', message.title, '-message', body];
-      if (icon) args.push('-appIcon', icon, '-contentImage', icon);
+      const sender = ensureNotifierBundle(); // bundle provides the icon + "Lucidity" name
+      const args = ['-message', body];
+      if (sender) args.unshift('-sender', sender);
+      else args.unshift('-title', message.title); // no branded bundle → at least label it
       await this.spawnOk('terminal-notifier', args);
       return;
     }
+
     if (!this.hintShown) {
-      console.error('[delivery] tip: `brew install terminal-notifier` to show the Lucidity logo in notifications.');
+      console.error('[delivery] tip: `brew install terminal-notifier` for the Lucidity icon/name in notifications.');
       this.hintShown = true;
     }
     const script = `display notification "${escapeForAppleScript(body)}" with title "${escapeForAppleScript(message.title)}"`;
