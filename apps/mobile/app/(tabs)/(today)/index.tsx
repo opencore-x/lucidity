@@ -3,7 +3,7 @@ import { View, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
 import {
   Host,
-  VStack,
+  ZStack,
   Button,
   List,
   Section,
@@ -18,6 +18,7 @@ import {
   foregroundStyle,
   font,
   padding,
+  scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
@@ -160,11 +161,19 @@ export default function TodayScreen() {
       <Stack.Screen options={{ title: 'Today', headerRight }} />
       <View className="bg-background flex-1">
         <Host style={{ flex: 1 }} colorScheme={scheme}>
-          {/* List + composer share one VStack so SwiftUI floats the composer above the
-              keyboard (same as the task sheet). insetGrouped paints a solid background
-              that fills the whole Host, so dark mode covers the entire body. */}
-          <VStack spacing={0} modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
-            <List modifiers={[listStyle('insetGrouped'), refreshable(onRefresh)]}>
+          {/* ZStack (not VStack) so the List fills the whole Host — its dark insetGrouped
+              background sits BEHIND the translucent glass composer (a VStack sibling would
+              expose the bare Host background → opaque/white behind the glass). SwiftUI
+              keyboard avoidance still floats the bottom-aligned composer above the keyboard. */}
+          <ZStack
+            alignment="bottom"
+            modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
+            <List
+              modifiers={[
+                listStyle('insetGrouped'),
+                refreshable(onRefresh),
+                scrollDismissesKeyboard('interactively'),
+              ]}>
               {todayTasks.length === 0 ? (
                 <UIText
                   modifiers={[
@@ -215,7 +224,7 @@ export default function TodayScreen() {
                 onClose={() => setComposing(false)}
               />
             ) : null}
-          </VStack>
+          </ZStack>
         </Host>
       </View>
     </>

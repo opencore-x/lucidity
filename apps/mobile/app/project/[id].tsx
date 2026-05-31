@@ -3,6 +3,7 @@ import { View, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import {
   Host,
+  ZStack,
   VStack,
   HStack,
   Spacer,
@@ -22,6 +23,7 @@ import {
   frame,
   foregroundStyle,
   font,
+  scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { Text } from '@/components/ui/text';
@@ -197,12 +199,20 @@ export default function ProjectScreen() {
       />
       <View className="bg-background flex-1">
         <Host style={{ flex: 1 }} colorScheme={scheme}>
-          {/* List + composer share one VStack so SwiftUI floats the composer above the
-              keyboard (same as the task sheet). insetGrouped (like the landing) paints a
-              solid background that fills the Host, so dark mode covers the entire body —
-              not just the rows. Description + tabs are the first, separator-less row. */}
-          <VStack spacing={0} modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
-            <List modifiers={[listStyle('insetGrouped'), refreshable(onRefresh)]}>
+          {/* ZStack (not VStack) so the List fills the whole Host — its dark insetGrouped
+              background sits BEHIND the translucent glass composer (a VStack sibling would
+              expose the bare Host background → opaque/white behind the glass). SwiftUI
+              keyboard avoidance still floats the bottom-aligned composer above the keyboard.
+              Description + tabs are the first, separator-less row. */}
+          <ZStack
+            alignment="bottom"
+            modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
+            <List
+              modifiers={[
+                listStyle('insetGrouped'),
+                refreshable(onRefresh),
+                scrollDismissesKeyboard('interactively'),
+              ]}>
               <VStack spacing={8} alignment="leading" modifiers={[listRowSeparator('hidden')]}>
                 {project.description ? (
                   <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
@@ -280,7 +290,7 @@ export default function ProjectScreen() {
                 onClose={() => setComposing(false)}
               />
             ) : null}
-          </VStack>
+          </ZStack>
         </Host>
       </View>
     </>

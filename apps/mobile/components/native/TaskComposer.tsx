@@ -43,7 +43,7 @@ export function TaskComposer({
   return (
     <HStack
       spacing={8}
-      alignment="bottom"
+      alignment="center"
       modifiers={[
         frame({ maxWidth: Infinity }),
         padding({ horizontal: 16, vertical: 12 }),
