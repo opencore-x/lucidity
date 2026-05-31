@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
-import type { AgentExecutor, ExecutorRunInput, ExecutorResult } from './types.js';
+import { createInterface } from 'node:readline';
+import type { AgentExecutor, ExecutorRunInput, ExecutorResult, ExecutorStreamEvent } from './types.js';
 
 /**
  * Env vars that, if present, make `claude -p` bill that path instead of the
@@ -32,6 +33,17 @@ export interface ClaudeCodeExecutorOptions {
 
 /** Shape of `claude --print --output-format json` stdout. */
 interface ClaudeJsonResult {
+  result?: string;
+  session_id?: string;
+  total_cost_usd?: number;
+  is_error?: boolean;
+  subtype?: string;
+}
+
+/** One line of `--output-format stream-json` output. */
+interface StreamLine {
+  type?: string;
+  event?: { type?: string; delta?: { text?: string } };
   result?: string;
   session_id?: string;
   total_cost_usd?: number;
@@ -143,6 +155,89 @@ export class ClaudeCodeExecutor implements AgentExecutor {
         });
       });
     });
+  }
+
+  async *runStream(input: ExecutorRunInput): AsyncIterable<ExecutorStreamEvent> {
+    const args = this.buildStreamArgs(input);
+    const env = this.buildEnv();
+    const timeoutMs = input.timeoutMs ?? this.defaultTimeoutMs;
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+    const onAbort = () => controller.abort();
+    if (input.signal) {
+      if (input.signal.aborted) controller.abort();
+      else input.signal.addEventListener('abort', onAbort, { once: true });
+    }
+
+    const child = spawn(this.command, args, { env, stdio: ['ignore', 'pipe', 'pipe'], signal: controller.signal });
+    let stderr = '';
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+    let spawnError: NodeJS.ErrnoException | null = null;
+    child.on('error', (err: NodeJS.ErrnoException) => {
+      spawnError = err;
+    });
+
+    try {
+      if (!child.stdout) throw new Error('Claude Code produced no stdout stream.');
+      const rl = createInterface({ input: child.stdout, crlfDelay: Infinity });
+      for await (const line of rl) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        let evt: StreamLine;
+        try {
+          evt = JSON.parse(trimmed) as StreamLine;
+        } catch {
+          continue;
+        }
+        if (evt.type === 'stream_event' && evt.event?.type === 'content_block_delta') {
+          const text = evt.event.delta?.text;
+          if (typeof text === 'string' && text.length > 0) yield { type: 'delta', text };
+        } else if (evt.type === 'result') {
+          if (evt.is_error) {
+            throw new Error(`Claude Code reported an error: ${evt.result ?? evt.subtype ?? 'unknown'}`);
+          }
+          yield { type: 'done', text: (evt.result ?? '').trim(), sessionId: evt.session_id, costUsd: evt.total_cost_usd };
+        }
+      }
+    } finally {
+      clearTimeout(timer);
+      if (input.signal) input.signal.removeEventListener('abort', onAbort);
+      if (child.exitCode === null && !child.killed) child.kill('SIGTERM');
+    }
+
+    if (spawnError) {
+      const err: NodeJS.ErrnoException = spawnError;
+      throw err.code === 'ENOENT'
+        ? new Error(`Claude Code CLI not found (tried "${this.command}"). Install it and ensure it is on PATH.`)
+        : err;
+    }
+    if (controller.signal.aborted) {
+      throw new Error(timedOut ? `Claude Code stream timed out after ${timeoutMs}ms.` : 'Claude Code stream was aborted.');
+    }
+    if (stderr.trim()) {
+      // Non-fatal: surface engine warnings for debugging without failing the stream.
+    }
+  }
+
+  private buildStreamArgs(input: ExecutorRunInput): string[] {
+    const args = ['--print', '--output-format', 'stream-json', '--include-partial-messages', '--verbose'];
+    if (input.resume) {
+      // Resuming a session keeps its system prompt + model; just send the new message.
+      args.push('--resume', input.resume);
+    } else {
+      if (input.sessionId) args.push('--session-id', input.sessionId);
+      if (input.systemPrompt) args.push('--append-system-prompt', input.systemPrompt);
+      const model = input.model ?? this.defaultModel;
+      if (model) args.push('--model', model);
+    }
+    args.push(input.userPrompt);
+    return args;
   }
 
   private buildArgs(input: ExecutorRunInput): string[] {

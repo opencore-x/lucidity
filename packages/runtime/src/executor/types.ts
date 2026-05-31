@@ -21,7 +21,16 @@ export interface ExecutorRunInput {
   };
   /** Cooperative cancellation (e.g. daemon shutdown). */
   signal?: AbortSignal;
+  /** Assign a specific session id (interactive chat, turn 1). */
+  sessionId?: string;
+  /** Resume an existing chat session by id (subsequent turns); systemPrompt/model are already bound. */
+  resume?: string;
 }
+
+/** Streaming event from {@link AgentExecutor.runStream}. */
+export type ExecutorStreamEvent =
+  | { type: 'delta'; text: string }
+  | { type: 'done'; text: string; sessionId?: string; costUsd?: number };
 
 export interface ExecutorResult {
   /** The model's text response. */
@@ -42,4 +51,6 @@ export interface AgentExecutor {
   /** Stable id for logs, e.g. `"claude-code"`. */
   readonly name: string;
   run(input: ExecutorRunInput): Promise<ExecutorResult>;
+  /** Optional token-streaming variant for interactive chat. */
+  runStream?(input: ExecutorRunInput): AsyncIterable<ExecutorStreamEvent>;
 }

@@ -13,7 +13,7 @@ export { parseFacts, mergeFacts, renderMemoryFile } from './memory/merge.js';
 export { loadDefaultPersona } from './persona/index.js';
 
 // Executor seam
-export type { AgentExecutor, ExecutorRunInput, ExecutorResult } from './executor/types.js';
+export type { AgentExecutor, ExecutorRunInput, ExecutorResult, ExecutorStreamEvent } from './executor/types.js';
 export { ClaudeCodeExecutor } from './executor/claudeCode.js';
 export type { ClaudeCodeExecutorOptions } from './executor/claudeCode.js';
 
