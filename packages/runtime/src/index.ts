@@ -3,6 +3,8 @@ export { buildBriefingPrompt } from './prompts/briefing.js';
 export type { BuildBriefingPromptInput, BriefingPrompt } from './prompts/briefing.js';
 export { buildMemoryReflectionPrompt } from './prompts/reflection.js';
 export type { BuildMemoryReflectionPromptInput, ReflectionPrompt } from './prompts/reflection.js';
+export { buildChatSystemPrompt } from './prompts/chat.js';
+export type { BuildChatSystemPromptInput } from './prompts/chat.js';
 
 // Memory (durable facts) — pure helpers
 export { parseFacts, mergeFacts, renderMemoryFile } from './memory/merge.js';
