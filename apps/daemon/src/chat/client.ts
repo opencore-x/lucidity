@@ -23,10 +23,22 @@ export async function runChatCli(config: DaemonConfig): Promise<void> {
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   let sessionId: string | undefined;
+  let closed = false;
+  rl.on('close', () => {
+    closed = true;
+  });
+  rl.on('SIGINT', () => {
+    rl.close();
+    process.exit(0);
+  });
 
   process.stdout.write('Talk to Lucid. Press Ctrl-C to exit.\n\n');
 
   const ask = (): void => {
+    // stdin ended (Ctrl-D / piped EOF): exit cleanly instead of querying a closed rl.
+    if (closed) {
+      process.exit(0);
+    }
     rl.question('you › ', (line) => {
       const message = line.trim();
       if (!message) {
@@ -44,10 +56,6 @@ export async function runChatCli(config: DaemonConfig): Promise<void> {
     });
   };
 
-  rl.on('SIGINT', () => {
-    rl.close();
-    process.exit(0);
-  });
   ask();
 }
 
