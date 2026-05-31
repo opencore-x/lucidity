@@ -1,8 +1,7 @@
-import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
+import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { MilestoneGroup } from '@/components/MilestoneGroup';
-import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
 import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable, Alert, ActionSheetIOS } from 'react-native';
 import { Stack } from 'expo-router';
@@ -143,10 +142,8 @@ export default function MilestonesScreen() {
 
   const headerRight = React.useCallback(
     () => (
-      <View className="flex-row items-center gap-4">
-        <Pressable onPress={handleCreateMilestone} hitSlop={8} className="pl-2">
-          <Icon as={PlusIcon} className="size-6 text-foreground" />
-        </Pressable>
+      <View className="flex-row items-center gap-2">
+        <HeaderGlassButton systemImage="plus" onPress={handleCreateMilestone} />
         <UserMenu />
       </View>
     ),

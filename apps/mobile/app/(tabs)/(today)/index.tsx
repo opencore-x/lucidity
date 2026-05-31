@@ -1,10 +1,9 @@
-import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
+import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { TaskItem } from '@/components/TaskItem';
-import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator, Text as RNText, Dimensions, Alert, Pressable } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator, Text as RNText, Dimensions, Alert } from 'react-native';
 import { Stack } from 'expo-router';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useTasks, useCreateTask, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
@@ -245,10 +244,8 @@ export default function TodayScreen() {
 
   const headerRight = React.useCallback(
     () => (
-      <View className="flex-row items-center gap-4">
-        <Pressable onPress={handleCreateTask} hitSlop={8} className="pl-2">
-          <Icon as={PlusIcon} className="size-6 text-foreground" />
-        </Pressable>
+      <View className="flex-row items-center gap-2">
+        <HeaderGlassButton systemImage="plus" onPress={handleCreateTask} />
         <UserMenu />
       </View>
     ),

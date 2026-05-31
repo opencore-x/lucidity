@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable, Alert } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Host, HStack, Button } from '@expo/ui/swift-ui';
@@ -9,10 +9,9 @@ import {
   controlSize,
   padding,
 } from '@expo/ui/swift-ui/modifiers';
-import { PlusIcon, Pencil } from 'lucide-react-native';
-import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
+import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
 import { InlineTaskInput } from '@/components/InlineTaskInput';
 import {
@@ -199,15 +198,14 @@ export default function ProjectScreen() {
           title: project.name,
           headerTintColor: project.color ?? undefined,
           headerRight: () => (
-            <View className="flex-row items-center gap-4">
+            <View className="flex-row items-center gap-2">
               {!isInbox && project ? (
-                <Pressable onPress={() => openProjectSheet(project)} hitSlop={8}>
-                  <Icon as={Pencil} className="size-6 text-foreground" />
-                </Pressable>
+                <HeaderGlassButton
+                  systemImage="pencil"
+                  onPress={() => openProjectSheet(project)}
+                />
               ) : null}
-              <Pressable onPress={handleCreateTask} hitSlop={8} className="pl-2">
-                <Icon as={PlusIcon} className="size-6 text-foreground" />
-              </Pressable>
+              <HeaderGlassButton systemImage="plus" onPress={handleCreateTask} />
               <UserMenu />
             </View>
           ),
