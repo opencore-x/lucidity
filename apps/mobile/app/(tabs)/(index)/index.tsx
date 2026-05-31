@@ -1,93 +1,57 @@
 import { Icon } from '@/components/ui/icon';
 import { UserMenu } from '@/components/user-menu';
-import { ProjectGroup } from '@/components/ProjectGroup';
-import { ProjectSheet } from '@/components/ProjectSheet';
 import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
+import { View, ActivityIndicator, Alert, Pressable } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { Host, List, HStack, Text, Image, Spacer } from '@expo/ui/swift-ui';
 import {
-  View,
-  ScrollView,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
-  Pressable,
-} from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { ScrollProvider } from '@/contexts/ScrollContext';
-import { useTasks, useToggleTask, useUpdateTask, useReorderTasks } from '@/hooks/useTasks';
-import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
+  listStyle,
+  onTapGesture,
+  contentShape,
+  shapes,
+  foregroundStyle,
+} from '@expo/ui/swift-ui/modifiers';
+import { useColorScheme } from 'nativewind';
+import { useTasks } from '@/hooks/useTasks';
 import { useProjects, useCreateProject } from '@/hooks/useProjects';
-import { useSheetStore } from '@/stores/sheetStore';
-import { groupTasksByProject, INBOX_PROJECT_ID } from '@/utils/helpers';
-import type { Task } from '@lucidity/shared';
+import { groupTasksByProject } from '@/utils/helpers';
 
+// Secondary gray for the trailing count + the Inbox/no-color dot (systemGray).
+const MUTED_GRAY = '#8E8E93';
+
+/**
+ * Projects landing — PHASE 0 SPIKE.
+ *
+ * Replaces the old accordion (ProjectGroup) stack with a native @expo/ui `List`
+ * of tappable project rows (color dot + name + completed/total). Tapping a row
+ * opens the project detail screen. This spike exists to verify the one real
+ * unknown: a full-screen native List living under the RN large-title nav header
+ * (transparent header, dark/light, scroll behaviour). Delete/refresh/Inbox-view
+ * land in later phases.
+ */
 export default function ProjectsScreen() {
-  const scrollViewRef = React.useRef<ScrollView>(null);
-  const { quickCapture } = useLocalSearchParams<{ quickCapture?: string }>();
+  const router = useRouter();
+  const { colorScheme } = useColorScheme();
+  const scheme = colorScheme === 'dark' ? 'dark' : 'light';
 
-  const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
-  const {
-    data: allProjects = [],
-    isLoading: projectsLoading,
-    refetch: refetchProjects,
-  } = useProjects();
-  const toggleTask = useToggleTask();
-  const updateTask = useUpdateTask();
-  const reorderTasks = useReorderTasks();
-  const { deleteTask } = useUndoableDeleteTask();
+  const { data: tasks = [], isLoading: tasksLoading } = useTasks();
+  const { data: allProjects = [], isLoading: projectsLoading } = useProjects();
   const createProject = useCreateProject();
-  const { openSheet } = useSheetStore();
 
-  const [triggerQuickCapture, setTriggerQuickCapture] = React.useState(false);
-
-  // Filter out archived projects
   const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
-
   const isLoading = tasksLoading || projectsLoading;
-  const [refreshing, setRefreshing] = React.useState(false);
 
-  const onRefresh = React.useCallback(async () => {
-    setRefreshing(true);
-    await Promise.all([refetchTasks(), refetchProjects()]);
-    setRefreshing(false);
-  }, [refetchTasks, refetchProjects]);
-
-  const handleTaskPress = React.useCallback(
-    (task: Task) => {
-      openSheet(task);
-    },
-    [openSheet]
-  );
-
-  const handleTaskToggle = React.useCallback(
-    (taskId: string) => {
-      toggleTask.mutate(taskId);
-    },
-    [toggleTask]
-  );
-
-  const handleReorderTasks = React.useCallback(
-    (taskIds: string[]) => {
-      reorderTasks.mutate(taskIds);
-    },
-    [reorderTasks]
-  );
-
-  const handleDeleteTask = React.useCallback(
-    (taskId: string) => {
-      deleteTask(taskId);
-    },
-    [deleteTask]
-  );
-
-  const handleSetDueToday = React.useCallback(
-    (taskId: string) => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      updateTask.mutate({ id: taskId, data: { dueDate: today } });
-    },
-    [updateTask]
-  );
+  // Inbox first, then projects (groupTasksByProject sorts + buckets root tasks).
+  // Count mirrors the old header: root tasks only (no subtasks).
+  const rows = React.useMemo(() => {
+    const grouped = groupTasksByProject(tasks, projects);
+    return Array.from(grouped.entries()).map(([project, projectTasks]) => ({
+      project,
+      total: projectTasks.length,
+      completed: projectTasks.filter((t) => t.status === 'completed').length,
+    }));
+  }, [tasks, projects]);
 
   const handleCreateProject = React.useCallback(() => {
     Alert.prompt(
@@ -98,26 +62,13 @@ export default function ProjectsScreen() {
         {
           text: 'Add Project',
           onPress: (name?: string) => {
-            if (name?.trim()) {
-              createProject.mutate({ name: name.trim(), isArchived: false });
-            }
+            if (name?.trim()) createProject.mutate({ name: name.trim(), isArchived: false });
           },
         },
       ],
       'plain-text'
     );
   }, [createProject]);
-
-  const groupedTasks = React.useMemo(() => groupTasksByProject(tasks, projects), [tasks, projects]);
-
-  // Handle quick capture from quick action
-  React.useEffect(() => {
-    if (quickCapture === 'true' && !isLoading) {
-      setTriggerQuickCapture(true);
-      // Reset after triggering
-      setTimeout(() => setTriggerQuickCapture(false), 100);
-    }
-  }, [quickCapture, isLoading]);
 
   const headerRight = React.useCallback(
     () => (
@@ -145,35 +96,27 @@ export default function ProjectsScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Projects', headerRight }} />
-      <ScrollProvider scrollViewRef={scrollViewRef}>
-        <ScrollView
-          ref={scrollViewRef}
-          contentInsetAdjustmentBehavior="automatic"
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag">
-          <View className="h-3" />
-          {Array.from(groupedTasks.entries()).map(([project, projectTasks]) => (
-            <ProjectGroup
-              key={project.id}
-              project={project}
-              tasks={projectTasks}
-              allTasks={tasks}
-              triggerAddTask={project.id === INBOX_PROJECT_ID && triggerQuickCapture}
-              onTaskPress={handleTaskPress}
-              onTaskToggle={handleTaskToggle}
-              onReorderTasks={handleReorderTasks}
-              onDeleteTask={handleDeleteTask}
-              onSetDueToday={handleSetDueToday}
-            />
-          ))}
-          {/* Bottom padding for keyboard */}
-          <View className="h-80" />
-        </ScrollView>
-      </ScrollProvider>
-
-      {/* Sheets */}
-      <ProjectSheet />
+      <View className="flex-1 bg-background">
+        <Host style={{ flex: 1 }} colorScheme={scheme}>
+          <List modifiers={[listStyle('insetGrouped')]}>
+            {rows.map(({ project, total, completed }) => (
+              <HStack
+                key={project.id}
+                spacing={12}
+                modifiers={[
+                  contentShape(shapes.rectangle()),
+                  onTapGesture(() => router.push(`/project/${project.id}`)),
+                ]}>
+                {/* Gray dot for Inbox + any colorless project; project color otherwise. */}
+                <Image systemName="circle.fill" size={12} color={project.color ?? MUTED_GRAY} />
+                <Text>{project.name}</Text>
+                <Spacer />
+                <Text modifiers={[foregroundStyle(MUTED_GRAY)]}>{`${completed}/${total}`}</Text>
+              </HStack>
+            ))}
+          </List>
+        </Host>
+      </View>
     </>
   );
 }
