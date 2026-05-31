@@ -18,8 +18,11 @@ const isProdBuild = buildUrl === PROD_API_URL;
 interface EnvState {
   env: ApiEnv;
   devUrl: string;
+  /** Gates the developer-only Settings (API environment switch). */
+  developerMode: boolean;
   setEnv: (env: ApiEnv) => void;
   setDevUrl: (devUrl: string) => void;
+  setDeveloperMode: (developerMode: boolean) => void;
   /** The active base URL for the API client. */
   apiUrl: () => string;
 }
@@ -36,15 +39,23 @@ export const useEnvStore = create<EnvState>()(
     (set, get) => ({
       env: isProdBuild ? 'production' : 'development',
       devUrl: isProdBuild ? DEFAULT_DEV_URL : (buildUrl ?? DEFAULT_DEV_URL),
+      // Dev builds default to developer mode on (dogfooding); prod builds off until
+      // the user opts in. Persisted, so the choice sticks after first launch.
+      developerMode: !isProdBuild,
       setEnv: (env) => set({ env }),
       setDevUrl: (devUrl) => set({ devUrl }),
+      setDeveloperMode: (developerMode) => set({ developerMode }),
       apiUrl: () => (get().env === 'production' ? PROD_API_URL : get().devUrl),
     }),
     {
       name: 'lucidity-env',
       storage: createJSONStorage(() => secureStorage),
       // Persist only the user's choices (not the computed getter / actions).
-      partialize: (state) => ({ env: state.env, devUrl: state.devUrl }),
+      partialize: (state) => ({
+        env: state.env,
+        devUrl: state.devUrl,
+        developerMode: state.developerMode,
+      }),
     }
   )
 );

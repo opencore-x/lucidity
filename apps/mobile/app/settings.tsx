@@ -6,7 +6,9 @@ import {
   Section,
   Text,
   Button,
+  Image,
   Picker,
+  Toggle,
   ProgressView,
   VStack,
   HStack,
@@ -15,6 +17,7 @@ import {
 import {
   listStyle,
   scrollDismissesKeyboard,
+  frame,
   font,
   foregroundStyle,
   textSelection,
@@ -24,6 +27,7 @@ import {
   keyboardType,
   autocorrectionDisabled,
   textInputAutocapitalization,
+  labelsHidden,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import * as Clipboard from 'expo-clipboard';
@@ -47,6 +51,40 @@ const ENV_FOOTER =
   'Choose which backend the app talks to. Production is api.lucidity.my; Development points at a local server.';
 
 /**
+ * An icon + label action row with a single controlled icon/text gap. The native
+ * Button `systemImage` gap is inconsistent and can't tint the icon (the destructive
+ * role only reddens the text), so every action row builds its own label.
+ */
+function ActionRow({
+  systemImage,
+  label,
+  color,
+  onPress,
+}: {
+  systemImage: React.ComponentProps<typeof Image>['systemName'];
+  label: string;
+  color: string;
+  onPress: () => void;
+}) {
+  return (
+    <Button onPress={onPress}>
+      <HStack spacing={8}>
+        {/* Fixed-width, trailing-aligned icon column so the icon→text gap is the
+            same across rows regardless of each SF Symbol's glyph width. */}
+        <Image
+          systemName={systemImage}
+          size={16}
+          color={color}
+          modifiers={[frame({ width: 20, alignment: 'trailing' })]}
+        />
+        <Text modifiers={[foregroundStyle(color)]}>{label}</Text>
+        <Spacer />
+      </HStack>
+    </Button>
+  );
+}
+
+/**
  * Settings — native @expo/ui grouped `List` (the iOS Settings idiom): an API Key
  * section (generate / copy / revoke, with Keychain wiring for iOS Shortcuts) and an
  * API Environment section (segmented Development/Production picker + an editable dev
@@ -56,6 +94,8 @@ const ENV_FOOTER =
 export default function SettingsScreen() {
   const { colorScheme } = useColorScheme();
   const scheme = colorScheme === 'dark' ? 'dark' : 'light';
+  // iOS systemBlue (adaptive) for the non-destructive action rows.
+  const accent = scheme === 'dark' ? '#0A84FF' : '#007AFF';
 
   const { data: apiKeyData, isLoading } = useApiKey();
   const createApiKey = useCreateApiKey();
@@ -65,8 +105,10 @@ export default function SettingsScreen() {
 
   const env = useEnvStore((s) => s.env);
   const devUrl = useEnvStore((s) => s.devUrl);
+  const developerMode = useEnvStore((s) => s.developerMode);
   const setEnv = useEnvStore((s) => s.setEnv);
   const setDevUrl = useEnvStore((s) => s.setDevUrl);
+  const setDeveloperMode = useEnvStore((s) => s.setDeveloperMode);
   const queryClient = useQueryClient();
 
   // Check whether the existing API key is in the Keychain (for Shortcuts support).
@@ -165,7 +207,12 @@ export default function SettingsScreen() {
               <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED), font({ size: 13 })]}>
                 Copy this key now — you won&apos;t be able to see it again.
               </Text>
-              <Button label="Copy Key" systemImage="doc.on.doc" onPress={handleCopy} />
+              <ActionRow
+                systemImage="doc.on.doc"
+                label="Copy Key"
+                color={accent}
+                onPress={handleCopy}
+              />
               <Button label="Done" onPress={() => setNewlyCreatedKey(null)} />
             </>
           ) : apiKeyData?.exists ? (
@@ -188,54 +235,71 @@ export default function SettingsScreen() {
                   💡 Regenerate this key to enable iOS Shortcuts support
                 </Text>
               ) : null}
-              <Button
-                label={isInKeychain ? 'Regenerate' : 'Enable Shortcuts'}
+              <ActionRow
                 systemImage="key.fill"
+                label={isInKeychain ? 'Regenerate' : 'Enable Shortcuts'}
+                color={accent}
                 onPress={handleGenerate}
               />
-              <Button label="Revoke" systemImage="trash" role="destructive" onPress={handleRevoke} />
+              <ActionRow
+                systemImage="trash"
+                label="Revoke"
+                color={DESTRUCTIVE_RED}
+                onPress={handleRevoke}
+              />
             </>
           ) : (
             <>
               <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
                 No API key yet. Generate one to connect MCP clients.
               </Text>
-              <Button
-                label={createApiKey.isPending ? 'Generating…' : 'Generate API Key'}
+              <ActionRow
                 systemImage="key.fill"
+                label={createApiKey.isPending ? 'Generating…' : 'Generate API Key'}
+                color={accent}
                 onPress={handleGenerate}
               />
             </>
           )}
         </Section>
 
-        <Section title="API Environment" footer={<Text>{ENV_FOOTER}</Text>}>
-          <Picker
-            selection={env}
-            onSelectionChange={(v) => switchEnv(v as 'production' | 'development')}
-            modifiers={[pickerStyle('segmented')]}>
-            <Text modifiers={[tag('development')]}>Development</Text>
-            <Text modifiers={[tag('production')]}>Production</Text>
-          </Picker>
-
-          {env === 'development' ? (
-            <EditableField
-              value={devUrl}
-              onCommit={commitDevUrl}
-              placeholder="http://192.168.1.7:3000"
-              modifiers={[
-                textFieldStyle('roundedBorder'),
-                keyboardType('url'),
-                autocorrectionDisabled(true),
-                textInputAutocapitalization('never'),
-              ]}
-            />
-          ) : (
-            <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
-              Currently using https://api.lucidity.my
-            </Text>
-          )}
+        <Section footer={<Text>Show developer options, like switching which backend the app talks to.</Text>}>
+          <HStack>
+            <Text>Developer Mode</Text>
+            <Spacer />
+            <Toggle isOn={developerMode} onIsOnChange={setDeveloperMode} modifiers={[labelsHidden()]} />
+          </HStack>
         </Section>
+
+        {developerMode ? (
+          <Section title="API Environment" footer={<Text>{ENV_FOOTER}</Text>}>
+            <Picker
+              selection={env}
+              onSelectionChange={(v) => switchEnv(v as 'production' | 'development')}
+              modifiers={[pickerStyle('segmented')]}>
+              <Text modifiers={[tag('development')]}>Development</Text>
+              <Text modifiers={[tag('production')]}>Production</Text>
+            </Picker>
+
+            {env === 'development' ? (
+              <EditableField
+                value={devUrl}
+                onCommit={commitDevUrl}
+                placeholder="http://192.168.1.7:3000"
+                modifiers={[
+                  textFieldStyle('roundedBorder'),
+                  keyboardType('url'),
+                  autocorrectionDisabled(true),
+                  textInputAutocapitalization('never'),
+                ]}
+              />
+            ) : (
+              <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
+                Currently using https://api.lucidity.my
+              </Text>
+            )}
+          </Section>
+        ) : null}
       </List>
     </Host>
   );

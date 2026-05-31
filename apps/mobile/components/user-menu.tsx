@@ -2,9 +2,7 @@ import * as React from 'react';
 import { Host, Menu, Section, Button, Image, Text, ZStack } from '@expo/ui/swift-ui';
 import { frame, glassEffect, resizable, clipShape } from '@expo/ui/swift-ui/modifiers';
 import { Asset } from 'expo-asset';
-import { useEnvStore } from '@/stores/envStore';
 import { useAuth, useUser } from '@clerk/clerk-expo';
-import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 
@@ -60,9 +58,6 @@ export function UserMenu() {
   const { signOut } = useAuth();
   const router = useRouter();
   const { colorScheme, setColorScheme } = useColorScheme();
-  const env = useEnvStore((s) => s.env);
-  const setEnv = useEnvStore((s) => s.setEnv);
-  const queryClient = useQueryClient();
 
   const dark = colorScheme === 'dark';
   const email = user?.emailAddresses[0]?.emailAddress ?? '';
@@ -73,11 +68,7 @@ export function UserMenu() {
   const avatarUri = useDownloadedImageUri(user?.imageUrl);
 
   const onToggleTheme = () => setColorScheme(dark ? 'light' : 'dark');
-  const onToggleEnv = () => {
-    setEnv(env === 'production' ? 'development' : 'production');
-    queryClient.clear(); // refetch from the newly selected backend
-  };
-  const onApiKeys = () => router.push('/settings');
+  const onSettings = () => router.push('/settings');
   const onSignOut = () => {
     void signOut();
   };
@@ -110,12 +101,7 @@ export function UserMenu() {
             systemImage={dark ? 'moon.fill' : 'sun.max.fill'}
             onPress={onToggleTheme}
           />
-          <Button
-            label={`API: ${env === 'production' ? 'Production' : 'Development'}`}
-            systemImage="server.rack"
-            onPress={onToggleEnv}
-          />
-          <Button label="API Keys" systemImage="key.fill" onPress={onApiKeys} />
+          <Button label="Settings" systemImage="gearshape.fill" onPress={onSettings} />
         </Section>
         <Button
           label="Sign Out"
