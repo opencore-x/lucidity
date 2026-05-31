@@ -1,37 +1,86 @@
-import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Text } from '@/components/ui/text';
+import * as React from 'react';
+import { Alert } from 'react-native';
+import {
+  Host,
+  List,
+  Section,
+  Text,
+  Button,
+  Picker,
+  ProgressView,
+  VStack,
+  HStack,
+  Spacer,
+} from '@expo/ui/swift-ui';
+import {
+  listStyle,
+  scrollDismissesKeyboard,
+  font,
+  foregroundStyle,
+  textSelection,
+  tag,
+  pickerStyle,
+  textFieldStyle,
+  keyboardType,
+  autocorrectionDisabled,
+  textInputAutocapitalization,
+} from '@expo/ui/swift-ui/modifiers';
+import { useColorScheme } from 'nativewind';
+import * as Clipboard from 'expo-clipboard';
 import { useApiKey, useCreateApiKey, useRevokeApiKey } from '@/hooks/useApiKey';
 import { useEnvStore } from '@/stores/envStore';
 import { useQueryClient } from '@tanstack/react-query';
-import { KeyRoundIcon, CopyIcon, TrashIcon, Loader2Icon, ServerIcon } from 'lucide-react-native';
-import * as Clipboard from 'expo-clipboard';
-import * as React from 'react';
-import { View, ScrollView, Alert } from 'react-native';
+import { EditableField } from '@/components/native/EditableField';
 import {
   saveApiKeyToKeychain,
   removeApiKeyFromKeychain,
   getApiKeyFromKeychain,
 } from '@/lib/keychain';
 
+const MUTED_GRAY = '#8E8E93';
+const DESTRUCTIVE_RED = '#FF3B30';
+const AMBER = '#F59E0B';
+
+const API_KEY_FOOTER =
+  'Connect AI assistants (Claude Desktop, Cursor) and enable ultra-fast task capture from your iPhone Lock Screen via iOS Shortcuts.';
+const ENV_FOOTER =
+  'Choose which backend the app talks to. Production is api.lucidity.my; Development points at a local server.';
+
+/**
+ * Settings — native @expo/ui grouped `List` (the iOS Settings idiom): an API Key
+ * section (generate / copy / revoke, with Keychain wiring for iOS Shortcuts) and an
+ * API Environment section (segmented Development/Production picker + an editable dev
+ * URL). Replaces the old @rn-primitives Card/Button/Input layout. All handlers and
+ * the env/cache behaviour are unchanged.
+ */
 export default function SettingsScreen() {
+  const { colorScheme } = useColorScheme();
+  const scheme = colorScheme === 'dark' ? 'dark' : 'light';
+
   const { data: apiKeyData, isLoading } = useApiKey();
   const createApiKey = useCreateApiKey();
   const revokeApiKey = useRevokeApiKey();
   const [newlyCreatedKey, setNewlyCreatedKey] = React.useState<string | null>(null);
-  const [isInKeychain, setIsInKeychain] = React.useState<boolean>(false);
+  const [isInKeychain, setIsInKeychain] = React.useState(false);
 
-  // API environment toggle (Development ↔ Production).
   const env = useEnvStore((s) => s.env);
   const devUrl = useEnvStore((s) => s.devUrl);
   const setEnv = useEnvStore((s) => s.setEnv);
   const setDevUrl = useEnvStore((s) => s.setDevUrl);
   const queryClient = useQueryClient();
-  const [devUrlDraft, setDevUrlDraft] = React.useState(devUrl);
 
-  React.useEffect(() => setDevUrlDraft(devUrl), [devUrl]);
+  // Check whether the existing API key is in the Keychain (for Shortcuts support).
+  React.useEffect(() => {
+    if (apiKeyData?.exists && !newlyCreatedKey) {
+      getApiKeyFromKeychain()
+        .then((key) => setIsInKeychain(!!key))
+        .catch((error) => {
+          // Keychain access may fail if the App Group isn't provisioned yet.
+          console.log('Keychain check skipped:', error.message);
+          setIsInKeychain(false);
+        });
+    }
+  }, [apiKeyData, newlyCreatedKey]);
 
   function switchEnv(next: 'production' | 'development') {
     if (next === env) return;
@@ -39,28 +88,12 @@ export default function SettingsScreen() {
     queryClient.clear(); // drop cached data so it refetches from the new backend
   }
 
-  function commitDevUrl() {
-    const trimmed = devUrlDraft.trim();
-    if (trimmed && trimmed !== devUrl) {
-      setDevUrl(trimmed);
-      if (env === 'development') queryClient.clear();
-    } else {
-      setDevUrlDraft(devUrl);
+  function commitDevUrl(value: string) {
+    if (value && value !== devUrl) {
+      setDevUrl(value);
+      queryClient.clear();
     }
   }
-
-  // Check if existing API key is in Keychain (for Shortcuts support)
-  React.useEffect(() => {
-    if (apiKeyData?.exists && !newlyCreatedKey) {
-      getApiKeyFromKeychain()
-        .then((key) => setIsInKeychain(!!key))
-        .catch((error) => {
-          // Keychain access may fail if App Group isn't provisioned yet
-          console.log('Keychain check skipped:', error.message);
-          setIsInKeychain(false);
-        });
-    }
-  }, [apiKeyData, newlyCreatedKey]);
 
   function handleGenerate() {
     if (apiKeyData?.exists) {
@@ -69,11 +102,7 @@ export default function SettingsScreen() {
         'This will revoke your existing key. Any MCP clients using it will stop working.',
         [
           { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Replace',
-            style: 'destructive',
-            onPress: () => doGenerate(),
-          },
+          { text: 'Replace', style: 'destructive', onPress: () => doGenerate() },
         ]
       );
     } else {
@@ -85,8 +114,7 @@ export default function SettingsScreen() {
     createApiKey.mutate(undefined, {
       onSuccess: async (data) => {
         setNewlyCreatedKey(data.key);
-        // Save to Keychain for iOS Shortcuts access
-        const saved = await saveApiKeyToKeychain(data.key);
+        const saved = await saveApiKeyToKeychain(data.key); // for iOS Shortcuts access
         if (!saved) {
           console.warn('API key created but not saved to Keychain');
         }
@@ -111,7 +139,6 @@ export default function SettingsScreen() {
           revokeApiKey.mutate(undefined, {
             onSuccess: async () => {
               setNewlyCreatedKey(null);
-              // Remove from Keychain
               await removeApiKeyFromKeychain();
             },
           });
@@ -121,155 +148,95 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 p-4" contentInsetAdjustmentBehavior="automatic">
-      <Card>
-        <CardHeader>
-          <View className="flex-row items-center gap-2">
-            <Icon as={KeyRoundIcon} className="text-foreground size-5" />
-            <CardTitle>API Key</CardTitle>
-          </View>
-          <CardDescription>
-            Connect AI assistants (Claude Desktop, Cursor) and enable ultra-fast task capture from
-            your iPhone Lock Screen via iOS Shortcuts.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent>
+    <Host style={{ flex: 1 }} colorScheme={scheme}>
+      <List modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
+        <Section title="API Key" footer={<Text>{API_KEY_FOOTER}</Text>}>
           {isLoading ? (
-            <View className="items-center py-4">
-              <Icon as={Loader2Icon} className="text-muted-foreground size-5 animate-spin" />
-            </View>
+            <HStack>
+              <Spacer />
+              <ProgressView />
+              <Spacer />
+            </HStack>
           ) : newlyCreatedKey ? (
-            <View className="gap-3">
-              <View className="border-border bg-muted/50 rounded-lg border p-3">
-                <Text className="font-mono text-sm" selectable>
-                  {newlyCreatedKey}
-                </Text>
-              </View>
-              <Text className="text-destructive text-sm">
-                Copy this key now — you won't be able to see it again.
+            <>
+              <Text modifiers={[font({ design: 'monospaced', size: 13 }), textSelection(true)]}>
+                {newlyCreatedKey}
               </Text>
-              <View className="flex-row gap-2">
-                <Button variant="default" size="sm" className="flex-1" onPress={handleCopy}>
-                  <Icon as={CopyIcon} className="size-4" />
-                  <Text>Copy Key</Text>
-                </Button>
-                <Button variant="outline" size="sm" onPress={() => setNewlyCreatedKey(null)}>
-                  <Text>Done</Text>
-                </Button>
-              </View>
-            </View>
+              <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED), font({ size: 13 })]}>
+                Copy this key now — you won&apos;t be able to see it again.
+              </Text>
+              <Button label="Copy Key" systemImage="doc.on.doc" onPress={handleCopy} />
+              <Button label="Done" onPress={() => setNewlyCreatedKey(null)} />
+            </>
           ) : apiKeyData?.exists ? (
-            <View className="gap-3">
-              <View className="flex-row items-center justify-between">
-                <View>
-                  <Text className="font-mono text-sm">{apiKeyData.prefix}••••••••</Text>
-                  <Text className="text-muted-foreground mt-1 text-xs">
-                    Created{' '}
-                    {apiKeyData.createdAt
-                      ? new Date(apiKeyData.createdAt).toLocaleDateString()
-                      : 'unknown'}
+            <>
+              <VStack alignment="leading" spacing={2}>
+                <Text modifiers={[font({ design: 'monospaced', size: 13 }), textSelection(true)]}>
+                  {`${apiKeyData.prefix}••••••••`}
+                </Text>
+                <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 12 })]}>
+                  {`Created ${apiKeyData.createdAt ? new Date(apiKeyData.createdAt).toLocaleDateString() : 'unknown'}`}
+                </Text>
+                {apiKeyData.lastUsedAt ? (
+                  <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 12 })]}>
+                    {`Last used ${new Date(apiKeyData.lastUsedAt).toLocaleDateString()}`}
                   </Text>
-                  {apiKeyData.lastUsedAt && (
-                    <Text className="text-muted-foreground text-xs">
-                      Last used {new Date(apiKeyData.lastUsedAt).toLocaleDateString()}
-                    </Text>
-                  )}
-                </View>
-              </View>
-              {!isInKeychain && (
-                <View className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3">
-                  <Text className="text-xs text-amber-600 dark:text-amber-400">
-                    💡 Regenerate this key to enable iOS Shortcuts support
-                  </Text>
-                </View>
-              )}
-              <View className="flex-row gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onPress={handleGenerate}>
-                  <Icon as={KeyRoundIcon} className="size-4" />
-                  <Text>{isInKeychain ? 'Regenerate' : 'Enable Shortcuts'}</Text>
-                </Button>
-                <Button variant="destructive" size="sm" onPress={handleRevoke}>
-                  <Icon as={TrashIcon} className="size-4" />
-                  <Text>Revoke</Text>
-                </Button>
-              </View>
-            </View>
+                ) : null}
+              </VStack>
+              {!isInKeychain ? (
+                <Text modifiers={[foregroundStyle(AMBER), font({ size: 12 })]}>
+                  💡 Regenerate this key to enable iOS Shortcuts support
+                </Text>
+              ) : null}
+              <Button
+                label={isInKeychain ? 'Regenerate' : 'Enable Shortcuts'}
+                systemImage="key.fill"
+                onPress={handleGenerate}
+              />
+              <Button label="Revoke" systemImage="trash" role="destructive" onPress={handleRevoke} />
+            </>
           ) : (
-            <View className="gap-3">
-              <Text className="text-muted-foreground text-sm">
+            <>
+              <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
                 No API key yet. Generate one to connect MCP clients.
               </Text>
               <Button
-                variant="default"
-                size="sm"
+                label={createApiKey.isPending ? 'Generating…' : 'Generate API Key'}
+                systemImage="key.fill"
                 onPress={handleGenerate}
-                disabled={createApiKey.isPending}>
-                <Icon as={KeyRoundIcon} className="size-4" />
-                <Text>{createApiKey.isPending ? 'Generating...' : 'Generate API Key'}</Text>
-              </Button>
-            </View>
+              />
+            </>
           )}
-        </CardContent>
-      </Card>
+        </Section>
 
-      <Card className="mt-4">
-        <CardHeader>
-          <View className="flex-row items-center gap-2">
-            <Icon as={ServerIcon} className="text-foreground size-5" />
-            <CardTitle>API Environment</CardTitle>
-          </View>
-          <CardDescription>
-            Choose which backend the app talks to. Production is api.lucidity.my; Development points
-            at a local server.
-          </CardDescription>
-        </CardHeader>
+        <Section title="API Environment" footer={<Text>{ENV_FOOTER}</Text>}>
+          <Picker
+            selection={env}
+            onSelectionChange={(v) => switchEnv(v as 'production' | 'development')}
+            modifiers={[pickerStyle('segmented')]}>
+            <Text modifiers={[tag('development')]}>Development</Text>
+            <Text modifiers={[tag('production')]}>Production</Text>
+          </Picker>
 
-        <CardContent>
-          <View className="gap-3">
-            <View className="flex-row gap-2">
-              <Button
-                variant={env === 'development' ? 'default' : 'outline'}
-                size="sm"
-                className="flex-1"
-                onPress={() => switchEnv('development')}>
-                <Text>Development</Text>
-              </Button>
-              <Button
-                variant={env === 'production' ? 'default' : 'outline'}
-                size="sm"
-                className="flex-1"
-                onPress={() => switchEnv('production')}>
-                <Text>Production</Text>
-              </Button>
-            </View>
-
-            {env === 'development' ? (
-              <View className="gap-1">
-                <Text className="text-muted-foreground text-xs">
-                  Development URL — use your computer's LAN IP (localhost won't reach it from a
-                  physical device).
-                </Text>
-                <Input
-                  value={devUrlDraft}
-                  onChangeText={setDevUrlDraft}
-                  onBlur={commitDevUrl}
-                  placeholder="http://192.168.1.7:3000"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="url"
-                  returnKeyType="done"
-                  onSubmitEditing={commitDevUrl}
-                />
-              </View>
-            ) : (
-              <Text className="text-muted-foreground text-xs">
-                Currently using https://api.lucidity.my
-              </Text>
-            )}
-          </View>
-        </CardContent>
-      </Card>
-    </ScrollView>
+          {env === 'development' ? (
+            <EditableField
+              value={devUrl}
+              onCommit={commitDevUrl}
+              placeholder="http://192.168.1.7:3000"
+              modifiers={[
+                textFieldStyle('roundedBorder'),
+                keyboardType('url'),
+                autocorrectionDisabled(true),
+                textInputAutocapitalization('never'),
+              ]}
+            />
+          ) : (
+            <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
+              Currently using https://api.lucidity.my
+            </Text>
+          )}
+        </Section>
+      </List>
+    </Host>
   );
 }
