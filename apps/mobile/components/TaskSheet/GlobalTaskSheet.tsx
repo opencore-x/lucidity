@@ -16,8 +16,6 @@ import {
   Slider,
   DatePicker,
   Toggle,
-  TextField,
-  useNativeState,
 } from '@expo/ui/swift-ui';
 import {
   frame,
@@ -57,6 +55,7 @@ import { useComments, useCreateComment, useUndoableDeleteComment } from '@/hooks
 import { useUser } from '@clerk/clerk-expo';
 import { StatusPill } from '@/components/TaskSheet/StatusPill';
 import { EditableField } from '@/components/native/EditableField';
+import { TaskComposer } from '@/components/native/TaskComposer';
 import {
   INBOX_PROJECT_ID,
   getSubtasks,
@@ -497,11 +496,9 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
 }
 
 /**
- * Shared floating composer for adding a subtask or comment. Pinned at the bottom of
- * the sheet so SwiftUI's keyboard avoidance floats it just above the keyboard. Only
- * mounted while `mode` is set (appears on "Add Subtask"/"Add Comment"). Multiline:
- * Enter inserts a newline; submit is ONLY the ▲ button. After sending — or on blur
- * (abandon) — it calls `onClose`, dismissing the bar + keyboard.
+ * Adapts the shared {@link TaskComposer} to the sheet's "Add Subtask"/"Add Comment"
+ * actions — maps the entered text to the right mutation. Only mounted while `mode`
+ * is set.
  */
 function Composer({
   mode,
@@ -514,63 +511,27 @@ function Composer({
 }) {
   const createTask = useCreateTask();
   const createComment = useCreateComment();
-  const textState = useNativeState('');
-  const valueRef = React.useRef('');
 
-  const submit = () => {
-    const v = valueRef.current.trim();
-    if (v) {
-      if (mode === 'subtask') {
-        createTask.mutate({
-          title: v,
-          projectId: task.projectId,
-          parentTaskId: task.id,
-          status: 'pending',
-          priority: 500,
-        });
-      } else {
-        createComment.mutate({ taskId: task.id, content: v });
-      }
+  const handleSubmit = (v: string) => {
+    if (mode === 'subtask') {
+      createTask.mutate({
+        title: v,
+        projectId: task.projectId,
+        parentTaskId: task.id,
+        status: 'pending',
+        priority: 500,
+      });
+    } else {
+      createComment.mutate({ taskId: task.id, content: v });
     }
-    onClose();
   };
 
   return (
-    <HStack
-      spacing={8}
-      alignment="bottom"
-      modifiers={[
-        frame({ maxWidth: Infinity }),
-        padding({ horizontal: 16, vertical: 12 }),
-        // Rounded rectangle (not capsule) so multi-line text doesn't bleed past the
-        // rounded ends; cornerRadius keeps it soft for a single line too.
-        glassEffect({
-          glass: { variant: 'regular' },
-          shape: 'roundedRectangle',
-          cornerRadius: 22,
-        }),
-        padding({ leading: 8, trailing: 8, bottom: 6 }),
-      ]}>
-      <Button onPress={onClose} modifiers={[buttonStyle('plain')]}>
-        <Image systemName="xmark.circle.fill" size={26} color={MENU_VALUE_GRAY} />
-      </Button>
-      <TextField
-        text={textState}
-        autoFocus
-        placeholder={mode === 'subtask' ? 'Add subtask…' : 'Add comment…'}
-        axis="vertical"
-        onTextChange={(t) => {
-          valueRef.current = t;
-        }}
-        onFocusChange={(focused) => {
-          if (!focused) onClose();
-        }}
-        modifiers={[textFieldStyle('plain'), frame({ maxWidth: Infinity })]}
-      />
-      <Button onPress={submit} modifiers={[buttonStyle('plain')]}>
-        <Image systemName="arrow.up.circle.fill" size={28} color={ICON_BLUE} />
-      </Button>
-    </HStack>
+    <TaskComposer
+      placeholder={mode === 'subtask' ? 'Add subtask…' : 'Add comment…'}
+      onSubmit={handleSubmit}
+      onClose={onClose}
+    />
   );
 }
 

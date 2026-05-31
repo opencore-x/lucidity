@@ -1,9 +1,20 @@
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
+import { TaskComposer } from '@/components/native/TaskComposer';
 import * as React from 'react';
 import { View, ActivityIndicator, Alert } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Host, List, HStack, Text, Image, Spacer, SwipeActions, Button } from '@expo/ui/swift-ui';
+import {
+  Host,
+  ZStack,
+  List,
+  HStack,
+  Text,
+  Image,
+  Spacer,
+  SwipeActions,
+  Button,
+} from '@expo/ui/swift-ui';
 import {
   listStyle,
   onTapGesture,
@@ -12,6 +23,8 @@ import {
   foregroundStyle,
   refreshable,
   tint,
+  frame,
+  scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { useTasks } from '@/hooks/useTasks';
@@ -72,6 +85,7 @@ export default function ProjectsScreen() {
   const createProject = useCreateProject();
   const deleteProject = useDeleteProject();
   const openProjectSheet = useProjectSheetStore((s) => s.openSheet);
+  const [composing, setComposing] = React.useState(false);
 
   const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
   const isLoading = tasksLoading || projectsLoading;
@@ -91,22 +105,11 @@ export default function ProjectsScreen() {
     await Promise.all([refetchTasks(), refetchProjects()]);
   }, [refetchTasks, refetchProjects]);
 
-  const handleCreateProject = React.useCallback(() => {
-    Alert.prompt(
-      'New Project',
-      undefined,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Add Project',
-          onPress: (name?: string) => {
-            if (name?.trim()) createProject.mutate({ name: name.trim(), isArchived: false });
-          },
-        },
-      ],
-      'plain-text'
-    );
-  }, [createProject]);
+  const handleCreateProject = React.useCallback(() => setComposing(true), []);
+  const handleSubmitProject = React.useCallback(
+    (name: string) => createProject.mutate({ name, isArchived: false }),
+    [createProject]
+  );
 
   // Swipe-to-delete a project — confirm first (cascades to all its tasks). A custom
   // swipe Button doesn't auto-remove the row, so the optimistic removal in
@@ -143,7 +146,7 @@ export default function ProjectsScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Projects', headerRight }} />
-        <View className="flex-1 items-center justify-center bg-background">
+        <View className="bg-background flex-1 items-center justify-center">
           <ActivityIndicator size="large" />
         </View>
       </>
@@ -153,41 +156,59 @@ export default function ProjectsScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Projects', headerRight }} />
-      <View className="flex-1 bg-background">
+      <View className="bg-background flex-1">
         <Host style={{ flex: 1 }} colorScheme={scheme}>
-          <List modifiers={[listStyle('insetGrouped'), refreshable(onRefresh)]}>
-            {rows.map((r) => {
-              const isInbox = r.project.id === INBOX_PROJECT_ID;
-              const open = () => router.push(`/project/${r.project.id}`);
+          {/* ZStack so the List fills the Host behind the translucent glass composer —
+              same pattern as the project / Today screens. */}
+          <ZStack
+            alignment="bottom"
+            modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
+            <List
+              modifiers={[
+                listStyle('insetGrouped'),
+                refreshable(onRefresh),
+                scrollDismissesKeyboard('interactively'),
+              ]}>
+              {rows.map((r) => {
+                const isInbox = r.project.id === INBOX_PROJECT_ID;
+                const open = () => router.push(`/project/${r.project.id}`);
 
-              // Inbox can't be edited or deleted — render it without swipe actions.
-              if (isInbox) {
-                return <ProjectRow key={r.project.id} row={r} onPress={open} />;
-              }
+                // Inbox can't be edited or deleted — render it without swipe actions.
+                if (isInbox) {
+                  return <ProjectRow key={r.project.id} row={r} onPress={open} />;
+                }
 
-              return (
-                <SwipeActions key={r.project.id}>
-                  <ProjectRow row={r} onPress={open} />
-                  {/* Both actions on the trailing edge: Delete at the edge, Edit
+                return (
+                  <SwipeActions key={r.project.id}>
+                    <ProjectRow row={r} onPress={open} />
+                    {/* Both actions on the trailing edge: Delete at the edge, Edit
                       (yellow) just before it. */}
-                  <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
-                    <Button
-                      label="Delete"
-                      systemImage="trash"
-                      role="destructive"
-                      onPress={() => handleDeleteProject(r)}
-                    />
-                    <Button
-                      label="Edit"
-                      systemImage="pencil"
-                      onPress={() => openProjectSheet(r.project)}
-                      modifiers={[tint(EDIT_YELLOW)]}
-                    />
-                  </SwipeActions.Actions>
-                </SwipeActions>
-              );
-            })}
-          </List>
+                    <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
+                      <Button
+                        label="Delete"
+                        systemImage="trash"
+                        role="destructive"
+                        onPress={() => handleDeleteProject(r)}
+                      />
+                      <Button
+                        label="Edit"
+                        systemImage="pencil"
+                        onPress={() => openProjectSheet(r.project)}
+                        modifiers={[tint(EDIT_YELLOW)]}
+                      />
+                    </SwipeActions.Actions>
+                  </SwipeActions>
+                );
+              })}
+            </List>
+            {composing ? (
+              <TaskComposer
+                placeholder="Add project…"
+                onSubmit={handleSubmitProject}
+                onClose={() => setComposing(false)}
+              />
+            ) : null}
+          </ZStack>
         </Host>
       </View>
     </>
