@@ -1,40 +1,64 @@
-import { Text } from '@/components/ui/text';
+import * as React from 'react';
+import { View, ActivityIndicator, Alert, ActionSheetIOS } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import {
+  Host,
+  ZStack,
+  List,
+  ScrollView,
+  HStack,
+  Button,
+  SwipeActions,
+  Text as UIText,
+} from '@expo/ui/swift-ui';
+import {
+  listStyle,
+  refreshable,
+  frame,
+  foregroundStyle,
+  listRowSeparator,
+  buttonStyle,
+  controlSize,
+  padding,
+  scrollDismissesKeyboard,
+} from '@expo/ui/swift-ui/modifiers';
+import { useColorScheme } from 'nativewind';
+import { useQueryClient } from '@tanstack/react-query';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
-import { MilestoneGroup } from '@/components/MilestoneGroup';
-import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable, Alert, ActionSheetIOS } from 'react-native';
-import { Stack } from 'expo-router';
-import { ScrollProvider } from '@/contexts/ScrollContext';
-import { useTasks, useToggleTask } from '@/hooks/useTasks';
-import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
+import { MilestoneRow } from '@/components/native/MilestoneRow';
+import { TaskComposer } from '@/components/native/TaskComposer';
 import { useProjects } from '@/hooks/useProjects';
 import { useAllMilestones, useCreateMilestone } from '@/hooks/useMilestones';
 import { useUndoableDeleteMilestone } from '@/hooks/useUndoableDeleteMilestone';
-import { useSheetStore } from '@/stores/sheetStore';
-import { useQueryClient } from '@tanstack/react-query';
-import type { Task } from '@lucidity/shared';
+
+const MUTED_GRAY = '#8E8E93';
 
 export default function MilestonesScreen() {
-  const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
-  const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
-  const { data: milestones = [], isLoading: milestonesLoading, refetch: refetchMilestones } = useAllMilestones();
+  const router = useRouter();
+  const { colorScheme } = useColorScheme();
+  const scheme = colorScheme === 'dark' ? 'dark' : 'light';
+
+  const {
+    data: allProjects = [],
+    isLoading: projectsLoading,
+    refetch: refetchProjects,
+  } = useProjects();
+  const {
+    data: milestones = [],
+    isLoading: milestonesLoading,
+    refetch: refetchMilestones,
+  } = useAllMilestones();
   const createMilestone = useCreateMilestone();
   const { deleteMilestone } = useUndoableDeleteMilestone();
-  const toggleTask = useToggleTask();
-  const { deleteTask } = useUndoableDeleteTask();
-  const { openSheet } = useSheetStore();
   const queryClient = useQueryClient();
 
-  const projects = React.useMemo(
-    () => allProjects.filter((p) => !p.isArchived),
-    [allProjects]
-  );
+  const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
+  const isLoading = projectsLoading || milestonesLoading;
 
-  const scrollViewRef = React.useRef<ScrollView>(null);
-  const isLoading = tasksLoading || projectsLoading || milestonesLoading;
-  const [refreshing, setRefreshing] = React.useState(false);
   const [selectedProjectId, setSelectedProjectId] = React.useState<string | null>(null);
+  // The composer for naming a new milestone; pendingProjectId is the project it lands in.
+  const [pendingProjectId, setPendingProjectId] = React.useState<string | null>(null);
 
   const projectsWithMilestones = React.useMemo(() => {
     const projectIds = new Set(milestones.map((m) => m.projectId));
@@ -43,102 +67,45 @@ export default function MilestonesScreen() {
 
   const filteredMilestones = React.useMemo(
     () =>
-      selectedProjectId
-        ? milestones.filter((m) => m.projectId === selectedProjectId)
-        : milestones,
+      selectedProjectId ? milestones.filter((m) => m.projectId === selectedProjectId) : milestones,
     [milestones, selectedProjectId]
   );
 
   const onRefresh = React.useCallback(async () => {
-    setRefreshing(true);
     queryClient.invalidateQueries({ queryKey: ['milestoneProgress'] });
-    await Promise.all([refetchTasks(), refetchProjects(), refetchMilestones()]);
-    setRefreshing(false);
-  }, [refetchTasks, refetchProjects, refetchMilestones, queryClient]);
+    await Promise.all([refetchProjects(), refetchMilestones()]);
+  }, [refetchProjects, refetchMilestones, queryClient]);
 
-  const tasksByMilestone = React.useMemo(() => {
-    const map = new Map<string, Task[]>();
-    for (const milestone of filteredMilestones) {
-      map.set(milestone.id, []);
-    }
-    for (const task of tasks) {
-      if (task.milestoneId && map.has(task.milestoneId)) {
-        map.get(task.milestoneId)!.push(task);
-      }
-    }
-    return map;
-  }, [tasks, filteredMilestones]);
-
-  const handleTaskPress = React.useCallback(
-    (task: Task) => {
-      openSheet(task);
-    },
-    [openSheet]
-  );
-
-  const handleTaskToggle = React.useCallback(
-    (taskId: string) => {
-      toggleTask.mutate(taskId);
-    },
-    [toggleTask]
-  );
-
-  const handleDeleteTask = React.useCallback(
-    (taskId: string) => {
-      deleteTask(taskId);
-    },
-    [deleteTask]
-  );
-
-  const handleDeleteMilestone = React.useCallback(
-    (milestoneId: string) => {
-      deleteMilestone(milestoneId);
-    },
-    [deleteMilestone]
-  );
-
-  const promptMilestoneName = React.useCallback(
-    (projectId: string, projectName: string) => {
-      Alert.prompt(
-        'New Milestone',
-        `In project: ${projectName}`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Add Milestone',
-            onPress: (name?: string) => {
-              if (name?.trim()) {
-                createMilestone.mutate({ projectId, name: name.trim() });
-              }
-            },
-          },
-        ],
-        'plain-text'
-      );
-    },
-    [createMilestone]
-  );
-
+  // + → choose the target project (skip the picker when a filter is active or there's
+  // only one), then open the composer to name the milestone.
   const handleCreateMilestone = React.useCallback(() => {
     if (projects.length === 0) {
       Alert.alert('No Projects', 'Create a project first to add milestones.');
       return;
     }
     if (selectedProjectId) {
-      const project = projects.find((p) => p.id === selectedProjectId);
-      promptMilestoneName(selectedProjectId, project?.name ?? 'Unknown');
+      setPendingProjectId(selectedProjectId);
+      return;
+    }
+    if (projects.length === 1) {
+      setPendingProjectId(projects[0].id);
       return;
     }
     const options = [...projects.map((p) => p.name), 'Cancel'];
     ActionSheetIOS.showActionSheetWithOptions(
       { options, cancelButtonIndex: options.length - 1, title: 'Select a project' },
       (index) => {
-        if (index < projects.length) {
-          promptMilestoneName(projects[index].id, projects[index].name);
-        }
+        if (index < projects.length) setPendingProjectId(projects[index].id);
       }
     );
-  }, [projects, selectedProjectId, promptMilestoneName]);
+  }, [projects, selectedProjectId]);
+
+  const handleSubmitMilestone = React.useCallback(
+    (name: string) => {
+      if (pendingProjectId) createMilestone.mutate({ projectId: pendingProjectId, name });
+    },
+    [createMilestone, pendingProjectId]
+  );
 
   const headerRight = React.useCallback(
     () => (
@@ -150,11 +117,23 @@ export default function MilestonesScreen() {
     [handleCreateMilestone]
   );
 
+  const filterButton = (id: string | null, label: string) => (
+    <Button
+      key={id ?? 'all'}
+      label={label}
+      onPress={() => setSelectedProjectId(id)}
+      modifiers={[
+        controlSize('small'),
+        buttonStyle(selectedProjectId === id ? 'glassProminent' : 'glass'),
+      ]}
+    />
+  );
+
   if (isLoading) {
     return (
       <>
         <Stack.Screen options={{ title: 'Milestones', headerRight }} />
-        <View className="flex-1 items-center justify-center bg-background">
+        <View className="bg-background flex-1 items-center justify-center">
           <ActivityIndicator size="large" />
         </View>
       </>
@@ -164,92 +143,66 @@ export default function MilestonesScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Milestones', headerRight }} />
-      <ScrollProvider scrollViewRef={scrollViewRef}>
-      <ScrollView
-        ref={scrollViewRef}
-        contentInsetAdjustmentBehavior="automatic"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      >
-        <View className="h-3" />
-        {/* Project filter tabs */}
-        {projectsWithMilestones.length > 1 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ flexGrow: 0 }}
-            contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center', paddingBottom: 12 }}
-          >
-            <Pressable
-              onPress={() => setSelectedProjectId(null)}
-              className={`px-3 py-1.5 rounded-full border ${
-                selectedProjectId === null
-                  ? 'bg-foreground border-foreground'
-                  : 'border-border'
-              }`}
-            >
-              <Text
-                className={`text-sm font-medium ${
-                  selectedProjectId === null ? 'text-background' : 'text-foreground'
-                }`}
-              >
-                All
-              </Text>
-            </Pressable>
-            {projectsWithMilestones.map((project) => (
-              <Pressable
-                key={project.id}
-                onPress={() =>
-                  setSelectedProjectId(
-                    selectedProjectId === project.id ? null : project.id
-                  )
-                }
-                className={`px-3 py-1.5 rounded-full border ${
-                  selectedProjectId === project.id
-                    ? 'bg-foreground border-foreground'
-                    : 'border-border'
-                }`}
-              >
-                <Text
-                  className={`text-sm font-medium ${
-                    selectedProjectId === project.id
-                      ? 'text-background'
-                      : 'text-foreground'
-                  }`}
-                >
-                  {project.name}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        )}
+      <View className="bg-background flex-1">
+        <Host style={{ flex: 1 }} colorScheme={scheme}>
+          <ZStack
+            alignment="bottom"
+            modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
+            <List
+              modifiers={[
+                listStyle('insetGrouped'),
+                refreshable(onRefresh),
+                scrollDismissesKeyboard('interactively'),
+              ]}>
+              {projectsWithMilestones.length > 1 ? (
+                <ScrollView axes="horizontal" modifiers={[listRowSeparator('hidden')]}>
+                  <HStack spacing={8}>
+                    {filterButton(null, 'All')}
+                    {projectsWithMilestones.map((p) => filterButton(p.id, p.name))}
+                  </HStack>
+                </ScrollView>
+              ) : null}
 
-        {filteredMilestones.length === 0 ? (
-          <View className="items-center justify-center py-20">
-            <Text className="text-muted-foreground">No milestones yet</Text>
-          </View>
-        ) : (
-          filteredMilestones.map((milestone) => (
-            <MilestoneGroup
-              key={milestone.id}
-              milestone={milestone}
-              project={projects.find((p) => p.id === milestone.projectId)}
-              tasks={tasksByMilestone.get(milestone.id) ?? []}
-              allTasks={tasks}
-              onTaskPress={handleTaskPress}
-              onTaskToggle={handleTaskToggle}
-              onDeleteTask={handleDeleteTask}
-              onDeleteMilestone={handleDeleteMilestone}
-            />
-          ))
-        )}
+              {filteredMilestones.length === 0 ? (
+                <UIText
+                  modifiers={[
+                    foregroundStyle(MUTED_GRAY),
+                    frame({ maxWidth: Infinity, alignment: 'center' }),
+                    padding({ vertical: 48 }),
+                  ]}>
+                  No milestones yet
+                </UIText>
+              ) : (
+                filteredMilestones.map((milestone) => (
+                  <SwipeActions key={milestone.id}>
+                    <MilestoneRow
+                      milestone={milestone}
+                      projectName={projects.find((p) => p.id === milestone.projectId)?.name}
+                      onOpen={() => router.push(`/milestone/${milestone.id}`)}
+                    />
+                    <SwipeActions.Actions edge="trailing">
+                      <Button
+                        label="Delete"
+                        systemImage="trash"
+                        role="destructive"
+                        onPress={() => deleteMilestone(milestone.id)}
+                      />
+                    </SwipeActions.Actions>
+                  </SwipeActions>
+                ))
+              )}
+            </List>
 
-        <View className="h-32" />
-      </ScrollView>
-      </ScrollProvider>
+            {pendingProjectId ? (
+              <TaskComposer
+                placeholder="Milestone name…"
+                onSubmit={handleSubmitMilestone}
+                onClose={() => setPendingProjectId(null)}
+              />
+            ) : null}
+          </ZStack>
+        </Host>
+      </View>
     </>
   );
 }
