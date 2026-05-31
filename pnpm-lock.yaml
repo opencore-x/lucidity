@@ -59,6 +59,31 @@ importers:
         specifier: ^5.8.3
         version: 5.9.2
 
+  apps/daemon:
+    dependencies:
+      '@lucidity/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@lucidity/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      croner:
+        specifier: ^10.0.0
+        version: 10.0.1
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+      '@types/node':
+        specifier: ^20.11.17
+        version: 20.19.35
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.2
+
   apps/mobile:
     dependencies:
       '@clerk/clerk-expo':
@@ -413,6 +438,22 @@ importers:
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.2
+
+  packages/runtime:
+    dependencies:
+      '@lucidity/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^20.11.17
+        version: 20.19.35
       typescript:
         specifier: ^5.8.3
         version: 5.9.2
@@ -4359,6 +4400,10 @@ packages:
   cosmiconfig@7.1.0:
     resolution: {integrity: sha512-AdmX6xUzdNASswsFtmwSt7Vj8po9IuqXm0UXz7QKPuEUmPB4XyjGfaAr2PSuELMwkRMVH1EpIkX5bTZGRB3eCA==}
     engines: {node: '>=10'}
+
+  croner@10.0.1:
+    resolution: {integrity: sha512-ixNtAJndqh173VQ4KodSdJEI6nuioBWI0V1ITNKhZZsO0pEMoDxz539T4FTTbSZ/xIOSuDnzxLVRqBVSvPNE2g==}
+    engines: {node: '>=18.0'}
 
   cross-fetch@3.2.0:
     resolution: {integrity: sha512-Q+xVJLoGOeIMXZmbUK4HYk+69cQH6LudR0Vu/pRm2YlU/hDV9CiS0gKUMaWY5f2NeUH9C1nV3bsTlCo0FsTV1Q==}
@@ -12165,6 +12210,8 @@ snapshots:
       parse-json: 5.2.0
       path-type: 4.0.0
       yaml: 1.10.2
+
+  croner@10.0.1: {}
 
   cross-fetch@3.2.0:
     dependencies:
