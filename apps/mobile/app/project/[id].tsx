@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, ScrollView, RefreshControl, ActivityIndicator, Pressable, Alert } from 'react-native';
+import { View, ScrollView, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Host, HStack, Button } from '@expo/ui/swift-ui';
@@ -9,12 +9,10 @@ import {
   controlSize,
   padding,
 } from '@expo/ui/swift-ui/modifiers';
-import { PlusIcon } from 'lucide-react-native';
-import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
+import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
-import { ProjectSheet } from '@/components/ProjectSheet';
 import { InlineTaskInput } from '@/components/InlineTaskInput';
 import {
   DraggableTask,
@@ -26,13 +24,18 @@ import { useTasks, useCreateTask, useToggleTask, useUpdateTask, useReorderTasks 
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
+import { useProjectSheetStore } from '@/stores/projectSheetStore';
 import { ScrollProvider } from '@/contexts/ScrollContext';
-import { formatRelativeTime } from '@/utils/helpers';
+import { formatRelativeTime, INBOX_PROJECT, INBOX_PROJECT_ID } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
 
 export default function ProjectScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: project, isLoading: projectLoading } = useProject(id);
+  const { id, quickCapture } = useLocalSearchParams<{ id: string; quickCapture?: string }>();
+  // Inbox is a virtual project (no DB row): synthesize it and skip the fetch.
+  const isInbox = id === INBOX_PROJECT_ID;
+  const { data: fetchedProject, isLoading: fetchedProjectLoading } = useProject(isInbox ? '' : id);
+  const project = isInbox ? INBOX_PROJECT : fetchedProject;
+  const projectLoading = isInbox ? false : fetchedProjectLoading;
   const { data: allTasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: allProjects = [], refetch: refetchProjects } = useProjects();
   const createTask = useCreateTask();
@@ -41,6 +44,7 @@ export default function ProjectScreen() {
   const reorderTasks = useReorderTasks();
   const { deleteTask } = useUndoableDeleteTask();
   const { openSheet } = useSheetStore();
+  const openProjectSheet = useProjectSheetStore((s) => s.openSheet);
   const scrollViewRef = React.useRef<ScrollView>(null);
 
   const projects = React.useMemo(
@@ -49,8 +53,11 @@ export default function ProjectScreen() {
   );
 
   const rootTasks = React.useMemo(
-    () => allTasks.filter((t) => t.projectId === id && !t.parentTaskId),
-    [allTasks, id]
+    () =>
+      allTasks.filter(
+        (t) => (isInbox ? t.projectId === null : t.projectId === id) && !t.parentTaskId
+      ),
+    [allTasks, id, isInbox]
   );
 
   const activeTasks = React.useMemo(
@@ -145,12 +152,12 @@ export default function ProjectScreen() {
         text: 'Add Task',
         onPress: (title?: string) => {
           if (title?.trim()) {
-            createTask.mutate({ title: title.trim(), projectId: id });
+            createTask.mutate({ title: title.trim(), projectId: isInbox ? null : id });
           }
         },
       },
     ], 'plain-text');
-  }, [createTask, id]);
+  }, [createTask, id, isInbox]);
 
   const handleDragEnd = React.useCallback(() => {
     setIsDragging(false);
@@ -191,10 +198,14 @@ export default function ProjectScreen() {
           title: project.name,
           headerTintColor: project.color ?? undefined,
           headerRight: () => (
-            <View className="flex-row items-center gap-4">
-              <Pressable onPress={handleCreateTask} hitSlop={8} className="pl-2">
-                <Icon as={PlusIcon} className="size-6 text-foreground" />
-              </Pressable>
+            <View className="flex-row items-center gap-2">
+              {!isInbox && project ? (
+                <HeaderGlassButton
+                  systemImage="pencil"
+                  onPress={() => openProjectSheet(project)}
+                />
+              ) : null}
+              <HeaderGlassButton systemImage="plus" onPress={handleCreateTask} />
               <UserMenu />
             </View>
           ),
@@ -297,7 +308,11 @@ export default function ProjectScreen() {
               />
 
               {/* Inline task input */}
-              <InlineTaskInput projectId={id} onComplete={() => {}} />
+              <InlineTaskInput
+                projectId={isInbox ? null : id}
+                onComplete={() => {}}
+                autoFocus={quickCapture === 'true'}
+              />
             </>
           ) : (
             <>
@@ -334,9 +349,6 @@ export default function ProjectScreen() {
           <View className="h-80" />
         </ScrollView>
         </ScrollProvider>
-
-        {/* Sheets */}
-        <ProjectSheet />
       </SafeAreaView>
     </>
   );

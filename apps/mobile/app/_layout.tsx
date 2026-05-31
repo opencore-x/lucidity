@@ -22,6 +22,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { requestNotificationPermissions } from '@/lib/notifications';
 import { useQuickActions } from '@/hooks/useQuickActions';
 import { GlobalTaskSheet } from '@/components/TaskSheet/GlobalTaskSheet';
+import { GlobalProjectSheet } from '@/components/ProjectSheet/GlobalProjectSheet';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -108,8 +109,9 @@ function Routes() {
         {/* Screens outside the guards are accessible to everyone (e.g. not found) */}
       </Stack>
 
-      {/* Single global native task sheet (replaces per-screen mounts) */}
+      {/* Single global native sheets (replace per-screen mounts) */}
       {isSignedIn && <GlobalTaskSheet />}
+      {isSignedIn && <GlobalProjectSheet />}
     </>
   );
 }

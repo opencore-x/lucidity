@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import * as QuickActions from 'expo-quick-actions';
 import { useRouter } from 'expo-router';
+import { INBOX_PROJECT_ID } from '@/utils/helpers';
 
 export function useQuickActions() {
   const router = useRouter();
@@ -20,7 +21,10 @@ export function useQuickActions() {
     const checkInitial = async () => {
       const initialAction = await QuickActions.initial;
       if (initialAction?.params?.action === 'add-task') {
-        router.push('/(tabs)/(index)?quickCapture=true');
+        router.push({
+          pathname: '/project/[id]',
+          params: { id: INBOX_PROJECT_ID, quickCapture: 'true' },
+        });
       }
     };
 
@@ -29,7 +33,10 @@ export function useQuickActions() {
     // Listen for quick actions while app is running
     const subscription = QuickActions.addListener((action) => {
       if (action?.params?.action === 'add-task') {
-        router.push('/(tabs)/(index)?quickCapture=true');
+        router.push({
+          pathname: '/project/[id]',
+          params: { id: INBOX_PROJECT_ID, quickCapture: 'true' },
+        });
       }
     });
 

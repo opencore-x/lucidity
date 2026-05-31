@@ -19,7 +19,6 @@ import {
   TextField,
   useNativeState,
 } from '@expo/ui/swift-ui';
-import type { TextFieldRef } from '@expo/ui/swift-ui';
 import {
   frame,
   padding,
@@ -57,6 +56,7 @@ import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useComments, useCreateComment, useUndoableDeleteComment } from '@/hooks/useComments';
 import { useUser } from '@clerk/clerk-expo';
 import { StatusPill } from '@/components/TaskSheet/StatusPill';
+import { EditableField } from '@/components/native/EditableField';
 import {
   INBOX_PROJECT_ID,
   getSubtasks,
@@ -493,65 +493,6 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
         </>
       ) : null}
     </Section>
-  );
-}
-
-/**
- * Always-editable native `TextField` for title / description. Native-state backed, so
- * keystrokes don't re-render the tree; the latest value is tracked via `onTextChange`
- * and committed on blur (`onFocusChange(false)`) only if it changed. The PARENT remounts
- * this via `key={task.id}` on drill-down so the field resets to the new task's value
- * (no mid-focus `setText` races). `allowEmpty=false` reverts an emptied field to `value`.
- */
-function EditableField({
-  value,
-  onCommit,
-  allowEmpty = false,
-  multiline = false,
-  placeholder,
-  onFocusEnter,
-  onFocusLeave,
-  modifiers: extraModifiers = [],
-}: {
-  value: string;
-  onCommit: (text: string) => void;
-  allowEmpty?: boolean;
-  multiline?: boolean;
-  placeholder?: string;
-  // Lets the parent show a "Done" affordance while editing; `blur` dismisses + commits.
-  onFocusEnter?: (blur: () => void) => void;
-  onFocusLeave?: () => void;
-  modifiers?: React.ComponentProps<typeof TextField>['modifiers'];
-}) {
-  const textState = useNativeState(value);
-  const ref = React.useRef<TextFieldRef>(null);
-  const valueRef = React.useRef(value);
-
-  return (
-    <TextField
-      ref={ref}
-      text={textState}
-      placeholder={placeholder}
-      axis={multiline ? 'vertical' : 'horizontal'}
-      onTextChange={(t) => {
-        valueRef.current = t;
-      }}
-      onFocusChange={(focused) => {
-        if (focused) {
-          onFocusEnter?.(() => ref.current?.blur());
-          return;
-        }
-        const trimmed = valueRef.current.trim();
-        if (!allowEmpty && !trimmed) {
-          valueRef.current = value;
-          ref.current?.setText(value);
-        } else if (trimmed !== value.trim()) {
-          onCommit(trimmed);
-        }
-        onFocusLeave?.();
-      }}
-      modifiers={extraModifiers}
-    />
   );
 }
 

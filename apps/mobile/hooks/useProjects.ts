@@ -72,23 +72,33 @@ export function useUpdateProject() {
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ['projects'] });
       const previousProjects = queryClient.getQueryData<Project[]>(['projects']);
+      const previousProject = queryClient.getQueryData<Project>(['projects', id]);
 
-      // Optimistically update the project
+      // Optimistically update the project in the list...
       queryClient.setQueryData<Project[]>(['projects'], (old) =>
         old?.map((project) =>
           project.id === id ? { ...project, ...data, updatedAt: new Date() } : project
         )
       );
+      // ...and the individual query the detail screen reads, so e.g. a color change
+      // reflects immediately instead of after a manual refresh / revisit.
+      queryClient.setQueryData<Project>(['projects', id], (old) =>
+        old ? { ...old, ...data, updatedAt: new Date() } : old
+      );
 
-      return { previousProjects };
+      return { previousProjects, previousProject };
     },
-    onError: (_err, _vars, context) => {
+    onError: (_err, { id }, context) => {
       if (context?.previousProjects) {
         queryClient.setQueryData(['projects'], context.previousProjects);
       }
+      if (context?.previousProject) {
+        queryClient.setQueryData(['projects', id], context.previousProject);
+      }
     },
-    onSettled: () => {
+    onSettled: (_data, _err, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['projects', id] });
     },
   });
 }

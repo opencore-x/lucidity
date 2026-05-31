@@ -1,29 +1,67 @@
-import { Icon } from '@/components/ui/icon';
 import { UserMenu } from '@/components/user-menu';
-import { ProjectGroup } from '@/components/ProjectGroup';
-import { ProjectSheet } from '@/components/ProjectSheet';
-import { PlusIcon } from 'lucide-react-native';
+import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import * as React from 'react';
+import { View, ActivityIndicator, Alert } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { Host, List, HStack, Text, Image, Spacer, SwipeActions, Button } from '@expo/ui/swift-ui';
 import {
-  View,
-  ScrollView,
-  RefreshControl,
-  ActivityIndicator,
-  Alert,
-  Pressable,
-} from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { ScrollProvider } from '@/contexts/ScrollContext';
-import { useTasks, useToggleTask, useUpdateTask, useReorderTasks } from '@/hooks/useTasks';
-import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
-import { useProjects, useCreateProject } from '@/hooks/useProjects';
-import { useSheetStore } from '@/stores/sheetStore';
+  listStyle,
+  onTapGesture,
+  contentShape,
+  shapes,
+  foregroundStyle,
+  refreshable,
+  tint,
+} from '@expo/ui/swift-ui/modifiers';
+import { useColorScheme } from 'nativewind';
+import { useTasks } from '@/hooks/useTasks';
+import { useProjects, useCreateProject, useDeleteProject } from '@/hooks/useProjects';
+import { useProjectSheetStore } from '@/stores/projectSheetStore';
 import { groupTasksByProject, INBOX_PROJECT_ID } from '@/utils/helpers';
-import type { Task } from '@lucidity/shared';
+import type { Project } from '@lucidity/shared';
 
+// Secondary gray for the trailing count + the Inbox/no-color dot (systemGray).
+const MUTED_GRAY = '#8E8E93';
+// Amber-yellow for the Edit swipe action (sits just before Delete on the trailing edge).
+const EDIT_YELLOW = '#F59E0B';
+
+type ProjectRowData = { project: Project; total: number; completed: number };
+
+/**
+ * One project row: a color dot (gray for Inbox / colorless projects), the name,
+ * and a completed/total count. The whole row is tappable via `contentShape` +
+ * `onTapGesture`. Swipe actions (Edit / Delete) are attached by the parent.
+ */
+function ProjectRow({ row, onPress }: { row: ProjectRowData; onPress: () => void }) {
+  const { project, total, completed } = row;
+  return (
+    <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onPress)]}>
+      {/* key on the color so the native Image re-paints when the color changes
+          (the SwiftUI color prop can otherwise stick to its first value). */}
+      <Image
+        key={project.color ?? 'none'}
+        systemName="circle.fill"
+        size={12}
+        color={project.color ?? MUTED_GRAY}
+      />
+      <Text>{project.name}</Text>
+      <Spacer />
+      <Text modifiers={[foregroundStyle(MUTED_GRAY)]}>{`${completed}/${total}`}</Text>
+    </HStack>
+  );
+}
+
+/**
+ * Projects landing — a native @expo/ui `List` of tappable project rows (replaces
+ * the old accordion ProjectGroup stack). Inbox sorts first and opens its own detail
+ * view; real projects open `/project/[id]`. Pull-to-refresh via `refreshable`. Each
+ * real project carries native swipe actions: Edit (opens the project editor) and
+ * Delete (confirm first — cascades to all tasks). Inbox has no swipe actions.
+ */
 export default function ProjectsScreen() {
-  const scrollViewRef = React.useRef<ScrollView>(null);
-  const { quickCapture } = useLocalSearchParams<{ quickCapture?: string }>();
+  const router = useRouter();
+  const { colorScheme } = useColorScheme();
+  const scheme = colorScheme === 'dark' ? 'dark' : 'light';
 
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const {
@@ -31,63 +69,27 @@ export default function ProjectsScreen() {
     isLoading: projectsLoading,
     refetch: refetchProjects,
   } = useProjects();
-  const toggleTask = useToggleTask();
-  const updateTask = useUpdateTask();
-  const reorderTasks = useReorderTasks();
-  const { deleteTask } = useUndoableDeleteTask();
   const createProject = useCreateProject();
-  const { openSheet } = useSheetStore();
+  const deleteProject = useDeleteProject();
+  const openProjectSheet = useProjectSheetStore((s) => s.openSheet);
 
-  const [triggerQuickCapture, setTriggerQuickCapture] = React.useState(false);
-
-  // Filter out archived projects
   const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
-
   const isLoading = tasksLoading || projectsLoading;
-  const [refreshing, setRefreshing] = React.useState(false);
+
+  // Inbox first, then projects (groupTasksByProject sorts + buckets root tasks).
+  // Count mirrors the old header: root tasks only (no subtasks).
+  const rows = React.useMemo<ProjectRowData[]>(() => {
+    const grouped = groupTasksByProject(tasks, projects);
+    return Array.from(grouped.entries()).map(([project, projectTasks]) => ({
+      project,
+      total: projectTasks.length,
+      completed: projectTasks.filter((t) => t.status === 'completed').length,
+    }));
+  }, [tasks, projects]);
 
   const onRefresh = React.useCallback(async () => {
-    setRefreshing(true);
     await Promise.all([refetchTasks(), refetchProjects()]);
-    setRefreshing(false);
   }, [refetchTasks, refetchProjects]);
-
-  const handleTaskPress = React.useCallback(
-    (task: Task) => {
-      openSheet(task);
-    },
-    [openSheet]
-  );
-
-  const handleTaskToggle = React.useCallback(
-    (taskId: string) => {
-      toggleTask.mutate(taskId);
-    },
-    [toggleTask]
-  );
-
-  const handleReorderTasks = React.useCallback(
-    (taskIds: string[]) => {
-      reorderTasks.mutate(taskIds);
-    },
-    [reorderTasks]
-  );
-
-  const handleDeleteTask = React.useCallback(
-    (taskId: string) => {
-      deleteTask(taskId);
-    },
-    [deleteTask]
-  );
-
-  const handleSetDueToday = React.useCallback(
-    (taskId: string) => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      updateTask.mutate({ id: taskId, data: { dueDate: today } });
-    },
-    [updateTask]
-  );
 
   const handleCreateProject = React.useCallback(() => {
     Alert.prompt(
@@ -98,9 +100,7 @@ export default function ProjectsScreen() {
         {
           text: 'Add Project',
           onPress: (name?: string) => {
-            if (name?.trim()) {
-              createProject.mutate({ name: name.trim(), isArchived: false });
-            }
+            if (name?.trim()) createProject.mutate({ name: name.trim(), isArchived: false });
           },
         },
       ],
@@ -108,23 +108,31 @@ export default function ProjectsScreen() {
     );
   }, [createProject]);
 
-  const groupedTasks = React.useMemo(() => groupTasksByProject(tasks, projects), [tasks, projects]);
-
-  // Handle quick capture from quick action
-  React.useEffect(() => {
-    if (quickCapture === 'true' && !isLoading) {
-      setTriggerQuickCapture(true);
-      // Reset after triggering
-      setTimeout(() => setTriggerQuickCapture(false), 100);
-    }
-  }, [quickCapture, isLoading]);
+  // Swipe-to-delete a project — confirm first (cascades to all its tasks). A custom
+  // swipe Button doesn't auto-remove the row, so the optimistic removal in
+  // useDeleteProject runs only on confirm; Cancel simply leaves the row.
+  const handleDeleteProject = React.useCallback(
+    (row: ProjectRowData) => {
+      Alert.alert(
+        'Delete Project',
+        `Delete "${row.project.name}" and all ${row.total} of its tasks?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => deleteProject.mutate(row.project.id),
+          },
+        ]
+      );
+    },
+    [deleteProject]
+  );
 
   const headerRight = React.useCallback(
     () => (
-      <View className="flex-row items-center gap-4">
-        <Pressable onPress={handleCreateProject} hitSlop={8} className="pl-2">
-          <Icon as={PlusIcon} className="size-6 text-foreground" />
-        </Pressable>
+      <View className="flex-row items-center gap-2">
+        <HeaderGlassButton systemImage="plus" onPress={handleCreateProject} />
         <UserMenu />
       </View>
     ),
@@ -145,35 +153,43 @@ export default function ProjectsScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Projects', headerRight }} />
-      <ScrollProvider scrollViewRef={scrollViewRef}>
-        <ScrollView
-          ref={scrollViewRef}
-          contentInsetAdjustmentBehavior="automatic"
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag">
-          <View className="h-3" />
-          {Array.from(groupedTasks.entries()).map(([project, projectTasks]) => (
-            <ProjectGroup
-              key={project.id}
-              project={project}
-              tasks={projectTasks}
-              allTasks={tasks}
-              triggerAddTask={project.id === INBOX_PROJECT_ID && triggerQuickCapture}
-              onTaskPress={handleTaskPress}
-              onTaskToggle={handleTaskToggle}
-              onReorderTasks={handleReorderTasks}
-              onDeleteTask={handleDeleteTask}
-              onSetDueToday={handleSetDueToday}
-            />
-          ))}
-          {/* Bottom padding for keyboard */}
-          <View className="h-80" />
-        </ScrollView>
-      </ScrollProvider>
+      <View className="flex-1 bg-background">
+        <Host style={{ flex: 1 }} colorScheme={scheme}>
+          <List modifiers={[listStyle('insetGrouped'), refreshable(onRefresh)]}>
+            {rows.map((r) => {
+              const isInbox = r.project.id === INBOX_PROJECT_ID;
+              const open = () => router.push(`/project/${r.project.id}`);
 
-      {/* Sheets */}
-      <ProjectSheet />
+              // Inbox can't be edited or deleted — render it without swipe actions.
+              if (isInbox) {
+                return <ProjectRow key={r.project.id} row={r} onPress={open} />;
+              }
+
+              return (
+                <SwipeActions key={r.project.id}>
+                  <ProjectRow row={r} onPress={open} />
+                  {/* Both actions on the trailing edge: Delete at the edge, Edit
+                      (yellow) just before it. */}
+                  <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
+                    <Button
+                      label="Delete"
+                      systemImage="trash"
+                      role="destructive"
+                      onPress={() => handleDeleteProject(r)}
+                    />
+                    <Button
+                      label="Edit"
+                      systemImage="pencil"
+                      onPress={() => openProjectSheet(r.project)}
+                      modifiers={[tint(EDIT_YELLOW)]}
+                    />
+                  </SwipeActions.Actions>
+                </SwipeActions>
+              );
+            })}
+          </List>
+        </Host>
+      </View>
     </>
   );
 }
