@@ -96,6 +96,34 @@ function launchctl(args: string[]): { status: number; stderr: string; stdout: st
   return { status: r.status ?? -1, stderr: r.stderr ?? '', stdout: r.stdout ?? '' };
 }
 
+function sleepSync(seconds: number): void {
+  spawnSync('sleep', [String(seconds)]);
+}
+
+function isLoaded(domain: string): boolean {
+  return launchctl(['print', `${domain}/${LABEL}`]).status === 0;
+}
+
+/**
+ * bootout (if currently loaded) then bootstrap, tolerating launchd's
+ * asynchronous teardown: bootout returns before the service is fully gone, so
+ * an immediate bootstrap races and fails with "5: Input/output error". Wait for
+ * the old instance to disappear, then retry bootstrap a few times.
+ */
+function reload(domain: string): void {
+  if (isLoaded(domain)) {
+    launchctl(['bootout', `${domain}/${LABEL}`]);
+    for (let i = 0; i < 25 && isLoaded(domain); i++) sleepSync(0.2);
+  }
+  let last = { status: -1, stderr: '', stdout: '' };
+  for (let attempt = 0; attempt < 10; attempt++) {
+    last = launchctl(['bootstrap', domain, PLIST_PATH]);
+    if (last.status === 0) return;
+    sleepSync(0.3);
+  }
+  throw new Error(`launchctl bootstrap failed after retries: ${last.stderr.trim() || `status ${last.status}`}`);
+}
+
 export function installAgent(): void {
   requireDarwin();
   // Validate config now so we never install a daemon that crash-loops on boot.
@@ -113,13 +141,8 @@ export function installAgent(): void {
 
   writeFileSync(PLIST_PATH, renderPlist(nodeBin, entry, buildPath(nodeBin, claudeBin)), { mode: 0o644 });
 
-  const domain = `gui/${uid()}`;
-  // Replace any prior instance, then load.
-  launchctl(['bootout', `${domain}/${LABEL}`]); // ignore failure (may not be loaded)
-  const boot = launchctl(['bootstrap', domain, PLIST_PATH]);
-  if (boot.status !== 0) {
-    throw new Error(`launchctl bootstrap failed: ${boot.stderr.trim() || `status ${boot.status}`}`);
-  }
+  // Replace any prior instance, then load (race-tolerant).
+  reload(`gui/${uid()}`);
 
   console.error(`[install] LaunchAgent installed and started.
   label:  ${LABEL}
