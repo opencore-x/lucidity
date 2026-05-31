@@ -1,10 +1,12 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { existsSync, readFileSync, statSync } from 'node:fs';
+import { DELIVERY_CHANNELS, isDeliveryChannel, type DeliveryChannel } from './delivery/index.js';
 
 export const CONFIG_DIR = join(homedir(), '.lucidity');
 export const CONFIG_PATH = join(CONFIG_DIR, 'config.json');
 export const RUNS_DIR = join(CONFIG_DIR, 'runs');
+export const LOGS_DIR = join(CONFIG_DIR, 'logs');
 
 export interface DaemonConfig {
   /** Lucidity API key, `luc_…`. */
@@ -19,6 +21,8 @@ export interface DaemonConfig {
   timezone?: string;
   /** Optional long-lived token from `claude setup-token` for headless hosts. */
   oauthToken?: string;
+  /** User-facing delivery channel. Default: `macos` on darwin, else `stdout`. */
+  delivery: DeliveryChannel;
 }
 
 const EXAMPLE = `{
@@ -26,7 +30,8 @@ const EXAMPLE = `{
   "apiUrl": "http://localhost:3000",
   "briefingTime": "08:00",
   "model": "sonnet",              // optional; "haiku" to stay frugal
-  "timezone": "Asia/Kolkata"      // optional; IANA name
+  "timezone": "Asia/Kolkata",     // optional; IANA name
+  "delivery": "macos"             // optional; "macos" | "stdout"
 }`;
 
 function fail(message: string): never {
@@ -97,5 +102,15 @@ export function loadConfig(): DaemonConfig {
   const timezone = typeof obj['timezone'] === 'string' && obj['timezone'] ? obj['timezone'] : undefined;
   const oauthToken = typeof obj['oauthToken'] === 'string' && obj['oauthToken'] ? obj['oauthToken'] : undefined;
 
-  return { apiKey, apiUrl, briefingTime, model, timezone, oauthToken };
+  const deliveryRaw = obj['delivery'];
+  let delivery: DeliveryChannel;
+  if (deliveryRaw === undefined) {
+    delivery = process.platform === 'darwin' ? 'macos' : 'stdout';
+  } else if (isDeliveryChannel(deliveryRaw)) {
+    delivery = deliveryRaw;
+  } else {
+    fail(`${CONFIG_PATH}: "delivery" must be one of: ${DELIVERY_CHANNELS.join(', ')}.`);
+  }
+
+  return { apiKey, apiUrl, briefingTime, model, timezone, oauthToken, delivery };
 }

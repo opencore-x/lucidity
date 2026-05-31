@@ -13,6 +13,10 @@ export interface RunRecord {
   durationMs: number;
   costUsd?: number;
   sessionId?: string;
+  /** Delivery channel used (e.g. `"macos"`, `"stdout"`). */
+  delivered?: string;
+  /** Present when the briefing succeeded but delivery failed. */
+  deliveryError?: string;
   /** Present when `status === "error"`. */
   error?: string;
 }
