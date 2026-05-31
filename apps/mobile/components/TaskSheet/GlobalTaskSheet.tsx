@@ -633,123 +633,7 @@ function Composer({
   );
 }
 
-/**
- * Native parent-task picker as a NESTED `<BottomSheet>` presented over the main sheet
- * (each sheet needs its own absolute, non-interactive Host). A search field filters the
- * task list (excluding self, descendants, and completed tasks); a "None" row clears the
- * parent. Selecting calls `onSelect` then closes.
- */
-function ParentPickerSheet({
-  isPresented,
-  onClose,
-  task,
-  allTasks,
-  projects,
-  onSelect,
-  scheme,
-}: {
-  isPresented: boolean;
-  onClose: () => void;
-  task: Task;
-  allTasks: Task[];
-  projects: { id: string; name: string }[];
-  onSelect: (parentId: string | null) => void;
-  scheme: 'light' | 'dark';
-}) {
-  const [search, setSearch] = React.useState('');
-  const descendantIds = React.useMemo(
-    () => getDescendantIds(allTasks, task.id),
-    [allTasks, task.id]
-  );
-  const filtered = React.useMemo(() => {
-    const q = search.toLowerCase();
-    return allTasks.filter(
-      (t) =>
-        t.id !== task.id &&
-        !descendantIds.has(t.id) &&
-        t.status !== 'completed' &&
-        t.title.toLowerCase().includes(q)
-    );
-  }, [allTasks, task.id, descendantIds, search]);
-
-  const projectName = (id: string | null) =>
-    id ? (projects.find((p) => p.id === id)?.name ?? '') : '';
-
-  const select = (parentId: string | null) => {
-    onSelect(parentId);
-    onClose();
-  };
-
-  return (
-    <Host style={{ position: 'absolute' }} pointerEvents="none" colorScheme={scheme}>
-      <BottomSheet
-        isPresented={isPresented}
-        onIsPresentedChange={(presented) => {
-          if (!presented) onClose();
-        }}>
-        <Group
-          modifiers={[
-            frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'topLeading' }),
-            padding({ top: 16, leading: 8, trailing: 8 }),
-            presentationDetents(['large']),
-            presentationDragIndicator('visible'),
-          ]}>
-          <VStack spacing={12}>
-            <HStack modifiers={[padding({ horizontal: 8 })]}>
-              <Text modifiers={[font({ size: 18, weight: 'semibold' })]}>Parent Task</Text>
-              <Spacer />
-              <Button onPress={onClose} modifiers={[buttonStyle('plain')]}>
-                <Image systemName="xmark.circle.fill" size={24} color={MENU_VALUE_GRAY} />
-              </Button>
-            </HStack>
-
-            <HStack
-              spacing={6}
-              modifiers={[
-                padding({ horizontal: 10, vertical: 8 }),
-                glassEffect({ glass: { variant: 'regular' }, shape: 'capsule' }),
-                padding({ horizontal: 8 }),
-              ]}>
-              <Image systemName="magnifyingglass" size={16} color={MENU_VALUE_GRAY} />
-              <TextField
-                placeholder="Search tasks…"
-                onTextChange={setSearch}
-                modifiers={[textFieldStyle('plain'), frame({ maxWidth: Infinity })]}
-              />
-            </HStack>
-
-            <List modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
-              <HStack modifiers={[onTapGesture(() => select(null))]}>
-                <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>None</Text>
-                <Spacer />
-                {task.parentTaskId == null ? (
-                  <Image systemName="checkmark" size={15} color={ICON_BLUE} />
-                ) : null}
-              </HStack>
-              {filtered.map((t) => (
-                <VStack
-                  key={t.id}
-                  alignment="leading"
-                  spacing={2}
-                  modifiers={[
-                    onTapGesture(() => select(t.id)),
-                    frame({ maxWidth: Infinity, alignment: 'leading' }),
-                  ]}>
-                  <Text modifiers={[lineLimit(1)]}>{t.title}</Text>
-                  {t.projectId ? (
-                    <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY), font({ size: 13 })]}>
-                      {projectName(t.projectId)}
-                    </Text>
-                  ) : null}
-                </VStack>
-              ))}
-            </List>
-          </VStack>
-        </Group>
-      </BottomSheet>
-    </Host>
-  );
-}
+const PARENT_NONE = '__noparent__';
 
 /**
  * Single global native (@expo/ui) bottom sheet for task details. Mounted once in
@@ -816,8 +700,18 @@ export function GlobalTaskSheet() {
   const addComment = React.useCallback(() => setComposeMode('comment'), []);
   const closeComposer = React.useCallback(() => setComposeMode(null), []);
 
-  // Native nested parent-task picker (handler defined after handleUpdateField).
-  const [parentPickerOpen, setParentPickerOpen] = React.useState(false);
+  // Candidate parents for the Parent menu: every task except self, its descendants
+  // (no cycles), and completed tasks. "None" detaches it to top-level.
+  const parentOptions = React.useMemo(() => {
+    if (!task) return [{ value: PARENT_NONE, label: 'None' }];
+    const descendantIds = getDescendantIds(allTasks, task.id);
+    return [
+      { value: PARENT_NONE, label: 'None' },
+      ...allTasks
+        .filter((t) => t.id !== task.id && !descendantIds.has(t.id) && t.status !== 'completed')
+        .map((t) => ({ value: t.id, label: t.title })),
+    ];
+  }, [task, allTasks]);
 
   // Optimistic field update; sync the server response back into the task stack
   // so the open sheet stays fresh (matches the old per-screen TaskSheet flow).
@@ -873,95 +767,96 @@ export function GlobalTaskSheet() {
   ];
 
   return (
-    <>
-      <Host style={{ position: 'absolute' }} pointerEvents="none" colorScheme={scheme}>
-        <BottomSheet
-          isPresented={isPresented}
-          onIsPresentedChange={(presented) => {
-            if (!presented) closeSheet();
-          }}
-          onDismiss={onDismissed}>
-          <Group
-            modifiers={[
-              frame({
-                maxWidth: Infinity,
-                maxHeight: Infinity,
-                alignment: 'topLeading',
-              }),
-              padding({ top: 28, leading: 8, trailing: 8 }),
-              presentationDetents(['medium', 'large']),
-              presentationDragIndicator('visible'),
-            ]}>
-            <VStack spacing={12}>
-              {/* Top bar: back (hidden at root, reserves width) / status / close */}
-              <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
-                <Button
-                  onPress={goBack}
-                  modifiers={canGoBack ? circleGlass : [...circleGlass, hidden(true)]}>
-                  <Image systemName="chevron.left" size={18} />
-                </Button>
-                <Spacer />
-                {task ? (
-                  <StatusPill
-                    status={task.status}
-                    onStatusChange={(status) => handleUpdateField({ status })}
-                  />
-                ) : null}
-                <Spacer />
-                {isEditingText ? (
-                  <Button
-                    label="Done"
-                    onPress={() => blurFieldRef.current?.()}
-                    modifiers={[buttonStyle('glassProminent')]}
-                  />
-                ) : (
-                  <Button onPress={closeSheet} modifiers={circleGlass}>
-                    <Image systemName="xmark" size={18} />
-                  </Button>
-                )}
-              </HStack>
-
+    <Host style={{ position: 'absolute' }} pointerEvents="none" colorScheme={scheme}>
+      <BottomSheet
+        isPresented={isPresented}
+        onIsPresentedChange={(presented) => {
+          if (!presented) closeSheet();
+        }}
+        onDismiss={onDismissed}>
+        <Group
+          modifiers={[
+            frame({
+              maxWidth: Infinity,
+              maxHeight: Infinity,
+              alignment: 'topLeading',
+            }),
+            padding({ top: 28, leading: 8, trailing: 8 }),
+            presentationDetents(['medium', 'large']),
+            presentationDragIndicator('visible'),
+          ]}>
+          <VStack spacing={12}>
+            {/* Top bar: back (hidden at root, reserves width) / status / close */}
+            <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
+              <Button
+                onPress={goBack}
+                modifiers={canGoBack ? circleGlass : [...circleGlass, hidden(true)]}>
+                <Image systemName="chevron.left" size={18} />
+              </Button>
+              <Spacer />
               {task ? (
-                <EditableField
-                  key={`title-${task.id}`}
-                  value={task.title}
-                  onCommit={(t) => handleUpdateField({ title: t })}
-                  onFocusEnter={handleFieldFocus}
-                  onFocusLeave={handleFieldBlur}
-                  modifiers={[
-                    textFieldStyle('plain'),
-                    font({ size: 22, weight: 'semibold' }),
-                    padding({ leading: 16, trailing: 16 }),
-                  ]}
+                <StatusPill
+                  status={task.status}
+                  onStatusChange={(status) => handleUpdateField({ status })}
                 />
               ) : null}
+              <Spacer />
+              {isEditingText ? (
+                <Button
+                  label="Done"
+                  onPress={() => blurFieldRef.current?.()}
+                  modifiers={[buttonStyle('glassProminent')]}
+                />
+              ) : (
+                <Button onPress={closeSheet} modifiers={circleGlass}>
+                  <Image systemName="xmark" size={18} />
+                </Button>
+              )}
+            </HStack>
 
-              {task ? (
-                <List
-                  modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
-                  {/* Description lives in the scrollable list (not pinned) so a long note
+            {task ? (
+              <EditableField
+                key={`title-${task.id}`}
+                value={task.title}
+                onCommit={(t) => handleUpdateField({ title: t })}
+                onFocusEnter={handleFieldFocus}
+                onFocusLeave={handleFieldBlur}
+                modifiers={[
+                  textFieldStyle('plain'),
+                  font({ size: 22, weight: 'semibold' }),
+                  padding({ leading: 16, trailing: 16 }),
+                ]}
+              />
+            ) : null}
+
+            {task ? (
+              <List
+                modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
+                {/* Description lives in the scrollable list (not pinned) so a long note
                     scrolls away instead of hogging the top of the sheet. */}
-                  <EditableField
-                    key={`desc-${task.id}`}
-                    value={task.description ?? ''}
-                    onCommit={(t) => handleUpdateField({ description: t || null })}
-                    onFocusEnter={handleFieldFocus}
-                    onFocusLeave={handleFieldBlur}
-                    allowEmpty
-                    multiline
-                    placeholder="Notes…"
-                    modifiers={[textFieldStyle('plain')]}
-                  />
+                <EditableField
+                  key={`desc-${task.id}`}
+                  value={task.description ?? ''}
+                  onCommit={(t) => handleUpdateField({ description: t || null })}
+                  onFocusEnter={handleFieldFocus}
+                  onFocusLeave={handleFieldBlur}
+                  allowEmpty
+                  multiline
+                  placeholder="Notes…"
+                  modifiers={[textFieldStyle('plain')]}
+                />
 
-                  <CommentsSection taskId={task.id} onAdd={addComment} />
+                <CommentsSection taskId={task.id} onAdd={addComment} />
 
-                  <SubtaskSection
-                    subtasks={subtasks}
-                    allTasks={allTasks}
-                    onOpen={drillDown}
-                    onAdd={addSubtask}
-                  />
+                <SubtaskSection
+                  subtasks={subtasks}
+                  allTasks={allTasks}
+                  onOpen={drillDown}
+                  onAdd={addSubtask}
+                />
 
+                {/* Placement — where the task lives (project / milestone / parent) */}
+                <Section>
                   <MenuRow
                     icon="folder"
                     label="Project"
@@ -1006,27 +901,19 @@ export function GlobalTaskSheet() {
                     />
                   ) : null}
 
-                  {/* Parent task — opens the nested picker sheet */}
-                  <HStack spacing={8} modifiers={[onTapGesture(() => setParentPickerOpen(true))]}>
-                    <Image
-                      systemName="arrow.up.left"
-                      size={ICON_SIZE}
-                      color={ICON_BLUE}
-                      modifiers={[frame({ width: ICON_COL })]}
-                    />
-                    <Text>Parent</Text>
-                    <Text
-                      modifiers={[
-                        foregroundStyle(MENU_VALUE_GRAY),
-                        lineLimit(1),
-                        truncationMode('tail'),
-                        frame({ maxWidth: Infinity, alignment: 'trailing' }),
-                      ]}>
-                      {allTasks.find((t) => t.id === task.parentTaskId)?.title ?? 'None'}
-                    </Text>
-                    <Image systemName="chevron.right" size={13} color={MENU_VALUE_GRAY} />
-                  </HStack>
+                  {/* Parent task — native Menu (lists valid parents; None detaches) */}
+                  <MenuRow
+                    icon="arrow.up.left"
+                    label="Parent"
+                    value={allTasks.find((t) => t.id === task.parentTaskId)?.title ?? 'None'}
+                    selection={task.parentTaskId ?? PARENT_NONE}
+                    options={parentOptions}
+                    onSelect={(value) => handleParentChange(value === PARENT_NONE ? null : value)}
+                  />
+                </Section>
 
+                {/* Scheduling — when/how the task is due */}
+                <Section>
                   {/* Due date — single row: Add when empty, picker + clear when set */}
                   {task.dueDate ? (
                     <HStack spacing={8}>
@@ -1128,45 +1015,27 @@ export function GlobalTaskSheet() {
                       modifiers={[datePickerStyle('graphical'), labelsHidden()]}
                     />
                   ) : null}
+                </Section>
 
-                  {/* Destructive delete — its own card at the end (keeps the options
-                      card's corners intact), centered red text, no icon. */}
-                  <Section>
-                    <HStack modifiers={[onTapGesture(handleDeleteTask)]}>
-                      <Spacer />
-                      <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED)]}>Delete Task</Text>
-                      <Spacer />
-                    </HStack>
-                  </Section>
-                </List>
-              ) : null}
+                {/* Destructive delete — its own card at the end, centered red text */}
+                <Section>
+                  <HStack modifiers={[onTapGesture(handleDeleteTask)]}>
+                    <Spacer />
+                    <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED)]}>Delete Task</Text>
+                    <Spacer />
+                  </HStack>
+                </Section>
+              </List>
+            ) : null}
 
-              <NativeUndoBar />
+            <NativeUndoBar />
 
-              {task && composeMode ? (
-                <Composer
-                  key={composeMode}
-                  mode={composeMode}
-                  task={task}
-                  onClose={closeComposer}
-                />
-              ) : null}
-            </VStack>
-          </Group>
-        </BottomSheet>
-      </Host>
-
-      {task ? (
-        <ParentPickerSheet
-          isPresented={parentPickerOpen}
-          onClose={() => setParentPickerOpen(false)}
-          task={task}
-          allTasks={allTasks}
-          projects={projects}
-          onSelect={handleParentChange}
-          scheme={scheme}
-        />
-      ) : null}
-    </>
+            {task && composeMode ? (
+              <Composer key={composeMode} mode={composeMode} task={task} onClose={closeComposer} />
+            ) : null}
+          </VStack>
+        </Group>
+      </BottomSheet>
+    </Host>
   );
 }
