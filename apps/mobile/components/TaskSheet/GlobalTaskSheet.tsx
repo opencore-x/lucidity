@@ -465,40 +465,55 @@ function CommentsSection({ taskId }: { taskId: string }) {
   }, [createComment, taskId]);
 
   const list = comments ?? [];
+  const [expanded, setExpanded] = React.useState(true);
 
   return (
     <Section>
-      <HStack spacing={6} modifiers={[padding({ leading: 4, top: 4 })]}>
+      {/* Header doubles as the collapse toggle (insetGrouped can't use the native
+          collapsible Section, which is sidebar-only). */}
+      <HStack
+        spacing={6}
+        modifiers={[padding({ leading: 4, top: 4 }), onTapGesture(() => setExpanded((e) => !e))]}>
         <Image systemName="bubble.left" size={ICON_SIZE - 4} color={MENU_VALUE_GRAY} />
         <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>
           {list.length > 0 ? `Comments (${list.length})` : 'Comments'}
         </Text>
-      </HStack>
-
-      {list.length > 0 ? (
-        <List.ForEach
-          onDelete={(indices) => {
-            indices.forEach((i) => {
-              const c = list[i];
-              if (c) deleteComment.mutate({ taskId, commentId: c.id });
-            });
-          }}>
-          {list.map((c) => (
-            <CommentRow
-              key={c.id}
-              comment={c}
-              displayName={c.source === 'claude' ? 'claude' : userName}
-              claudeLogoUri={claudeLogoUri}
-            />
-          ))}
-        </List.ForEach>
-      ) : null}
-
-      <HStack spacing={12} modifiers={[onTapGesture(promptAdd)]}>
-        <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
-        <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Comment</Text>
         <Spacer />
+        <Image
+          systemName={expanded ? 'chevron.down' : 'chevron.right'}
+          size={13}
+          color={MENU_VALUE_GRAY}
+        />
       </HStack>
+
+      {expanded ? (
+        <>
+          {list.length > 0 ? (
+            <List.ForEach
+              onDelete={(indices) => {
+                indices.forEach((i) => {
+                  const c = list[i];
+                  if (c) deleteComment.mutate({ taskId, commentId: c.id });
+                });
+              }}>
+              {list.map((c) => (
+                <CommentRow
+                  key={c.id}
+                  comment={c}
+                  displayName={c.source === 'claude' ? 'claude' : userName}
+                  claudeLogoUri={claudeLogoUri}
+                />
+              ))}
+            </List.ForEach>
+          ) : null}
+
+          <HStack spacing={12} modifiers={[onTapGesture(promptAdd)]}>
+            <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
+            <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Comment</Text>
+            <Spacer />
+          </HStack>
+        </>
+      ) : null}
     </Section>
   );
 }
