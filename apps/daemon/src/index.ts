@@ -1,18 +1,18 @@
 #!/usr/bin/env node
-import { ClaudeCodeExecutor, type AgentExecutor } from '@lucidity/runtime';
-import { loadConfig, type DaemonConfig } from './config.js';
+import { ClaudeCodeExecutor } from '@lucidity/runtime';
+import { loadConfig } from './config.js';
 import { LaneQueue } from './queue.js';
 import { Scheduler } from './scheduler.js';
-import { appendRun } from './runlog.js';
+import { runJob } from './jobs/runner.js';
 import { runBriefing } from './jobs/briefing.js';
-import { createDeliverer, isDeliveryChannel, type Deliverer } from './delivery/index.js';
+import { runWeeklyReview } from './jobs/weeklyReview.js';
+import { createDeliverer, isDeliveryChannel } from './delivery/index.js';
 import { installAgent, uninstallAgent, agentStatus } from './install.js';
 import { createChatServer } from './chat/server.js';
 import { ensureChatToken } from './chat/token.js';
 import { runChatCli } from './chat/client.js';
 
-const KNOWN_JOBS = ['briefing'] as const;
-type JobName = (typeof KNOWN_JOBS)[number];
+const KNOWN_JOBS = ['briefing', 'weekly-review'] as const;
 
 interface CliArgs {
   command?: string;
@@ -37,55 +37,6 @@ function parseArgs(argv: string[]): CliArgs {
     }
   }
   return args;
-}
-
-/**
- * Runs the briefing on its serialized lane: prints the briefing to stdout
- * (logs go to stderr, so stdout stays pipeable) and appends a run record.
- * Rethrows so `--run-now` exits non-zero on failure.
- */
-function executeBriefing(
-  config: DaemonConfig,
-  executor: AgentExecutor,
-  queue: LaneQueue,
-  deliverer: Deliverer,
-): Promise<void> {
-  return queue.run('briefing', async () => {
-    const startedAt = new Date();
-    try {
-      // The job reads the vault, briefs, delivers, reflects, and logs the session.
-      const result = await runBriefing(config, executor, deliverer);
-      const finishedAt = new Date();
-      // Always write the full briefing to stdout — the transcript (under
-      // launchd this is the log file; for --run-now it's your terminal).
-      process.stdout.write(`\n${result.text}\n\n`);
-      appendRun({
-        job: 'briefing',
-        status: 'success',
-        startedAt: startedAt.toISOString(),
-        finishedAt: finishedAt.toISOString(),
-        durationMs: finishedAt.getTime() - startedAt.getTime(),
-        costUsd: result.costUsd,
-        sessionId: result.sessionId,
-        delivered: result.delivered,
-        deliveryError: result.deliveryError,
-        factsLearned: result.factsLearned,
-      });
-    } catch (err) {
-      const finishedAt = new Date();
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`[briefing] failed: ${message}`);
-      appendRun({
-        job: 'briefing',
-        status: 'error',
-        startedAt: startedAt.toISOString(),
-        finishedAt: finishedAt.toISOString(),
-        durationMs: finishedAt.getTime() - startedAt.getTime(),
-        error: message,
-      });
-      throw err;
-    }
-  });
 }
 
 async function main(): Promise<void> {
@@ -136,33 +87,44 @@ async function main(): Promise<void> {
 
   // One-shot mode: run a job once and exit.
   if (args.runNow !== undefined) {
-    if (!KNOWN_JOBS.includes(args.runNow as JobName)) {
-      console.error(`Unknown job "${args.runNow}". Known jobs: ${KNOWN_JOBS.join(', ')}.`);
+    const jobName = args.runNow;
+    if (jobName === 'briefing') {
+      await runJob('briefing', queue, () => runBriefing(config, executor, deliverer));
+    } else if (jobName === 'weekly-review') {
+      await runJob('weekly-review', queue, () => runWeeklyReview(config, executor, deliverer));
+    } else {
+      console.error(`Unknown job "${jobName}". Known jobs: ${KNOWN_JOBS.join(', ')}.`);
       process.exit(1);
     }
-    await executeBriefing(config, executor, queue, deliverer);
     return;
   }
 
   // Default mode: run the scheduler in the foreground.
   const scheduler = new Scheduler();
-  const job = scheduler.scheduleDaily(
+  const briefingJob = scheduler.scheduleDaily(
     config.briefingTime,
-    () => {
-      void executeBriefing(config, executor, queue, deliverer);
-    },
+    () => void runJob('briefing', queue, () => runBriefing(config, executor, deliverer)),
     { timezone: config.timezone },
   );
+  if (config.weeklyReview) {
+    scheduler.scheduleWeekly(
+      config.weeklyReviewDay,
+      config.weeklyReviewTime,
+      () => void runJob('weekly-review', queue, () => runWeeklyReview(config, executor, deliverer)),
+      { timezone: config.timezone },
+    );
+  }
 
   // Interactive chat server (lite local gateway): loopback + token auth.
   const chatServer = createChatServer({ config, executor, token: ensureChatToken(), queue });
   chatServer.listen(config.chatPort, '127.0.0.1');
 
   const tz = config.timezone ? ` ${config.timezone}` : '';
-  const next = job.nextRun();
+  const next = briefingJob.nextRun();
+  const weekly = config.weeklyReview ? `; weekly review ${config.weeklyReviewTime} (day ${config.weeklyReviewDay})` : '';
   console.error(
-    `[daemon] Lucid daemon started. Briefing at ${config.briefingTime}${tz} → ${deliverer.name}. ` +
-      `Next run: ${next ? next.toISOString() : 'unknown'}. Chat on 127.0.0.1:${config.chatPort}.`,
+    `[daemon] Lucid daemon started. Briefing ${config.briefingTime}${tz} → ${deliverer.name}${weekly}. ` +
+      `Next briefing: ${next ? next.toISOString() : 'unknown'}. Chat on 127.0.0.1:${config.chatPort}.`,
   );
 
   const shutdown = () => {

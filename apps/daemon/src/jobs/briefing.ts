@@ -90,7 +90,7 @@ export async function runBriefing(
   // 4. Session log
   vault.writeSessionLog({
     startedAt: new Date().toISOString(),
-    briefing: text,
+    body: text,
     deliveredVia: deliveryError ? `${deliverer.name} (failed)` : deliverer.name,
     factsLearned: learned,
   });

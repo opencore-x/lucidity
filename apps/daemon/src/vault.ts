@@ -5,7 +5,10 @@ import { loadDefaultPersona, parseFacts, renderMemoryFile } from '@lucidity/runt
 export interface SessionEntry {
   /** ISO 8601 start time. */
   startedAt: string;
-  briefing: string;
+  /** Job kind, e.g. `"briefing"` | `"weekly-review"`. Default `"briefing"`. */
+  kind?: string;
+  /** The generated text. */
+  body: string;
   deliveredVia: string;
   factsLearned: string[];
 }
@@ -75,16 +78,17 @@ export function createVault(vaultPath: string): Vault {
     writeSessionLog(entry: SessionEntry): void {
       try {
         mkdirSync(sessionsDir, { recursive: true });
+        const kind = entry.kind ?? 'briefing';
         const stamp = entry.startedAt.replace(/:/g, '-').replace(/\.\d+Z$/, 'Z');
         const facts = entry.factsLearned.length
           ? entry.factsLearned.map((f) => `- ${f}`).join('\n')
           : '_(none)_';
         const content =
-          `# Briefing — ${entry.startedAt}\n\n` +
+          `# ${kind} — ${entry.startedAt}\n\n` +
           `Delivered via: ${entry.deliveredVia}\n\n` +
-          `## Briefing\n\n${entry.briefing.trim()}\n\n` +
+          `## Message\n\n${entry.body.trim()}\n\n` +
           `## Facts learned\n\n${facts}\n`;
-        writeFileSync(join(sessionsDir, `${stamp}-briefing.md`), content, 'utf8');
+        writeFileSync(join(sessionsDir, `${stamp}-${kind}.md`), content, 'utf8');
       } catch (err) {
         console.error(`[vault] could not write session log: ${msg(err)}`);
       }

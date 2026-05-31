@@ -22,6 +22,15 @@ export class Scheduler {
     return job;
   }
 
+  /** Schedule `onTick` weekly on `dayOfWeek` (0=Sun..6=Sat) at `HH:MM`. */
+  scheduleWeekly(dayOfWeek: number, timeHHMM: string, onTick: () => void, options: DailyJobOptions = {}): Cron {
+    const [hour, minute] = parseHHMM(timeHHMM);
+    const pattern = `${minute} ${hour} * * ${dayOfWeek}`;
+    const job = new Cron(pattern, { timezone: options.timezone, protect: true }, onTick);
+    this.jobs.push(job);
+    return job;
+  }
+
   stop(): void {
     for (const job of this.jobs) job.stop();
     this.jobs.length = 0;

@@ -29,6 +29,12 @@ export interface DaemonConfig {
   reflect: boolean;
   /** Loopback port for the interactive chat server. Default: 4849. */
   chatPort: number;
+  /** Whether to run the weekly review. Default: true. */
+  weeklyReview: boolean;
+  /** Weekly-review day of week (0=Sun..6=Sat). Default: Sunday. */
+  weeklyReviewDay: number;
+  /** Weekly-review time, 24h `HH:MM`. Default: `18:00`. */
+  weeklyReviewTime: string;
 }
 
 const EXAMPLE = `{
@@ -39,7 +45,10 @@ const EXAMPLE = `{
   "timezone": "Asia/Kolkata",     // optional; IANA name
   "delivery": "macos",            // optional; "macos" | "stdout"
   "vaultPath": "~/.lucidity/vault", // optional; Lucid's memory files
-  "reflect": true                 // optional; update MEMORY.md after briefings
+  "reflect": true,                // optional; update MEMORY.md after briefings
+  "weeklyReview": true,           // optional; run a weekly review
+  "weeklyReviewDay": "sun",       // optional; sun..sat or 0-6
+  "weeklyReviewTime": "18:00"     // optional; HH:MM
 }`;
 
 function fail(message: string): never {
@@ -129,9 +138,32 @@ export function loadConfig(): DaemonConfig {
   const chatPort =
     typeof portRaw === 'number' && Number.isInteger(portRaw) && portRaw > 0 && portRaw < 65536 ? portRaw : 4849;
 
-  return { apiKey, apiUrl, briefingTime, model, timezone, oauthToken, delivery, vaultPath, reflect, chatPort };
+  const weeklyReview = obj['weeklyReview'] === undefined ? true : obj['weeklyReview'] === true;
+  const weeklyReviewDay = parseDay(obj['weeklyReviewDay']);
+  const weeklyReviewTime =
+    typeof obj['weeklyReviewTime'] === 'string' && obj['weeklyReviewTime'] ? obj['weeklyReviewTime'] : '18:00';
+  if (!isValidTime(weeklyReviewTime)) {
+    fail(`${CONFIG_PATH}: "weeklyReviewTime" must be 24h "HH:MM" (got "${weeklyReviewTime}").`);
+  }
+
+  return {
+    apiKey, apiUrl, briefingTime, model, timezone, oauthToken, delivery, vaultPath, reflect, chatPort,
+    weeklyReview, weeklyReviewDay, weeklyReviewTime,
+  };
 }
 
 function expandHome(p: string): string {
   return p === '~' || p.startsWith('~/') ? join(homedir(), p.slice(1)) : p;
+}
+
+const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+/** Accepts 0-6 or sun..sat (case-insensitive); defaults to Sunday (0). */
+function parseDay(value: unknown): number {
+  if (typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 6) return value;
+  if (typeof value === 'string') {
+    const idx = DAY_NAMES.indexOf(value.trim().toLowerCase().slice(0, 3));
+    if (idx >= 0) return idx;
+  }
+  return 0;
 }

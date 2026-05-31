@@ -45,7 +45,7 @@ test('writeSessionLog writes a readable session file', () => {
   withVault((dir) => {
     createVault(dir).writeSessionLog({
       startedAt: '2026-06-01T02:30:00.000Z',
-      briefing: 'Good morning. Pay the cards.',
+      body: 'Good morning. Pay the cards.',
       deliveredVia: 'macos',
       factsLearned: ['Likes tea'],
     });
