@@ -1,0 +1,216 @@
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { homedir } from 'node:os';
+import { existsSync, mkdirSync, writeFileSync, rmSync, chmodSync } from 'node:fs';
+import { loadConfig, CONFIG_PATH, LOGS_DIR } from './config.js';
+import { ensureNotifierBundle } from './notifierBundle.js';
+
+const LABEL = 'my.lucidity.daemon';
+const PLIST_PATH = join(homedir(), 'Library', 'LaunchAgents', `${LABEL}.plist`);
+const OUT_LOG = join(LOGS_DIR, 'daemon.out.log');
+const ERR_LOG = join(LOGS_DIR, 'daemon.err.log');
+const LOCAL_BIN = join(homedir(), '.local', 'bin');
+const LUCIDITY_CMD = join(LOCAL_BIN, 'lucidity');
+const LEGACY_CMD = join(LOCAL_BIN, 'lucid'); // pre-rename wrapper; removed on install
+
+function requireDarwin(): void {
+  if (process.platform !== 'darwin') {
+    throw new Error(`install/uninstall/status currently support macOS (launchd) only; got ${process.platform}.`);
+  }
+}
+
+function uid(): number {
+  if (typeof process.getuid !== 'function') throw new Error('Cannot determine uid (non-POSIX).');
+  return process.getuid();
+}
+
+function which(cmd: string): string | null {
+  const r = spawnSync('which', [cmd], { encoding: 'utf8' });
+  const out = r.stdout?.trim();
+  return r.status === 0 && out ? out : null;
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/** dist/index.js — the daemon entry, sibling of this compiled module. */
+function daemonEntry(): string {
+  return join(dirname(fileURLToPath(import.meta.url)), 'index.js');
+}
+
+/** PATH baked into the LaunchAgent so `node` and `claude` resolve under launchd. */
+function buildPath(nodeBin: string, claudeBin: string | null): string {
+  const dirs = [
+    dirname(nodeBin),
+    claudeBin ? dirname(claudeBin) : null,
+    join(homedir(), '.local', 'bin'),
+    '/opt/homebrew/bin',
+    '/usr/local/bin',
+    '/usr/bin',
+    '/bin',
+    '/usr/sbin',
+    '/sbin',
+  ].filter((d): d is string => Boolean(d));
+  return [...new Set(dirs)].join(':');
+}
+
+function renderPlist(nodeBin: string, entry: string, path: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>${LABEL}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>${escapeXml(nodeBin)}</string>
+    <string>${escapeXml(entry)}</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>60</integer>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>${escapeXml(path)}</string>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>${escapeXml(OUT_LOG)}</string>
+  <key>StandardErrorPath</key>
+  <string>${escapeXml(ERR_LOG)}</string>
+  <key>WorkingDirectory</key>
+  <string>${escapeXml(homedir())}</string>
+</dict>
+</plist>
+`;
+}
+
+function launchctl(args: string[]): { status: number; stderr: string; stdout: string } {
+  const r = spawnSync('launchctl', args, { encoding: 'utf8' });
+  return { status: r.status ?? -1, stderr: r.stderr ?? '', stdout: r.stdout ?? '' };
+}
+
+function sleepSync(seconds: number): void {
+  spawnSync('sleep', [String(seconds)]);
+}
+
+function isLoaded(domain: string): boolean {
+  return launchctl(['print', `${domain}/${LABEL}`]).status === 0;
+}
+
+/**
+ * bootout (if currently loaded) then bootstrap, tolerating launchd's
+ * asynchronous teardown: bootout returns before the service is fully gone, so
+ * an immediate bootstrap races and fails with "5: Input/output error". Wait for
+ * the old instance to disappear, then retry bootstrap a few times.
+ */
+function reload(domain: string): void {
+  if (isLoaded(domain)) {
+    launchctl(['bootout', `${domain}/${LABEL}`]);
+    for (let i = 0; i < 25 && isLoaded(domain); i++) sleepSync(0.2);
+  }
+  let last = { status: -1, stderr: '', stdout: '' };
+  for (let attempt = 0; attempt < 10; attempt++) {
+    last = launchctl(['bootstrap', domain, PLIST_PATH]);
+    if (last.status === 0) return;
+    sleepSync(0.3);
+  }
+  throw new Error(`launchctl bootstrap failed after retries: ${last.stderr.trim() || `status ${last.status}`}`);
+}
+
+/** Links a `lucidity` wrapper into ~/.local/bin so the CLI is on PATH. Best-effort. */
+function linkCli(nodeBin: string, entry: string): void {
+  try {
+    mkdirSync(LOCAL_BIN, { recursive: true });
+    writeFileSync(LUCIDITY_CMD, `#!/bin/sh\nexec "${nodeBin}" "${entry}" "$@"\n`, { mode: 0o755 });
+    chmodSync(LUCIDITY_CMD, 0o755);
+    rmSync(LEGACY_CMD, { force: true });
+    const onPath = (process.env['PATH'] ?? '').split(':').includes(LOCAL_BIN);
+    console.error(
+      `[install] linked \`lucidity\` → ${LUCIDITY_CMD}` +
+        (onPath ? '' : `\n  (add ${LOCAL_BIN} to your PATH to run \`lucidity\` directly)`),
+    );
+  } catch (err) {
+    console.error(`[install] could not link \`lucidity\`: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+export function installAgent(): void {
+  requireDarwin();
+  // Validate config now so we never install a daemon that crash-loops on boot.
+  loadConfig();
+
+  // Generate + register the Lucidity.app notifier bundle (logo + name on notifications).
+  ensureNotifierBundle();
+
+  const nodeBin = process.execPath;
+  const entry = daemonEntry();
+  const claudeBin = which('claude');
+  if (!claudeBin) {
+    console.error('[install] warning: `claude` not found on PATH now; baking common dirs into the agent PATH. Ensure Claude Code is installed before the first scheduled run.');
+  }
+
+  mkdirSync(dirname(PLIST_PATH), { recursive: true });
+  mkdirSync(LOGS_DIR, { recursive: true });
+
+  writeFileSync(PLIST_PATH, renderPlist(nodeBin, entry, buildPath(nodeBin, claudeBin)), { mode: 0o644 });
+
+  // Replace any prior instance, then load (race-tolerant).
+  reload(`gui/${uid()}`);
+
+  // Link the `lucid` CLI onto PATH.
+  linkCli(nodeBin, entry);
+
+  console.error(`[install] LaunchAgent installed and started.
+  label:  ${LABEL}
+  plist:  ${PLIST_PATH}
+  logs:   ${OUT_LOG}
+          ${ERR_LOG}
+  Runs at your configured briefingTime. Check: lucidity-daemon status`);
+}
+
+export function uninstallAgent(): void {
+  requireDarwin();
+  const domain = `gui/${uid()}`;
+  const out = launchctl(['bootout', `${domain}/${LABEL}`]);
+  if (out.status !== 0 && !/no such process|could not find/i.test(out.stderr)) {
+    console.error(`[uninstall] launchctl bootout: ${out.stderr.trim() || `status ${out.status}`}`);
+  }
+  if (existsSync(PLIST_PATH)) {
+    rmSync(PLIST_PATH);
+    console.error(`[uninstall] removed ${PLIST_PATH}`);
+  } else {
+    console.error('[uninstall] no plist found; nothing to remove.');
+  }
+}
+
+export function agentStatus(): void {
+  requireDarwin();
+  const installed = existsSync(PLIST_PATH);
+  console.error(`plist:     ${installed ? PLIST_PATH : '(not installed)'}`);
+  if (!installed) {
+    console.error('Run `lucidity-daemon install` to set up the LaunchAgent.');
+    return;
+  }
+  const domain = `gui/${uid()}`;
+  const printed = launchctl(['print', `${domain}/${LABEL}`]);
+  if (printed.status !== 0) {
+    console.error('loaded:    no (plist present but not bootstrapped). Try `lucidity-daemon install`.');
+    return;
+  }
+  const stateLine = printed.stdout.split('\n').map((l) => l.trim()).find((l) => l.startsWith('state ='));
+  console.error(`loaded:    yes`);
+  console.error(`${stateLine ?? 'state =    (unknown)'}`);
+  console.error(`config:    ${CONFIG_PATH}`);
+  console.error(`logs:      ${OUT_LOG}`);
+}
