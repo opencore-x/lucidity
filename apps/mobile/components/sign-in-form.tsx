@@ -1,130 +1,163 @@
 import { SocialConnections } from '@/components/social-connections';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Text } from '@/components/ui/text';
 import { useSignIn } from '@clerk/clerk-expo';
-import { Link, router } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useColorScheme } from 'nativewind';
 import * as React from 'react';
-import { type TextInput, View } from 'react-native';
+import { View } from 'react-native';
+import {
+  Host,
+  List,
+  Section,
+  VStack,
+  HStack,
+  Spacer,
+  Button,
+  TextField,
+  SecureField,
+  Text as UIText,
+} from '@expo/ui/swift-ui';
+import {
+  listStyle,
+  listSectionSpacing,
+  listRowSeparator,
+  frame,
+  foregroundStyle,
+  font,
+  padding,
+  buttonStyle,
+  controlSize,
+  textFieldStyle,
+  keyboardType,
+  textInputAutocapitalization,
+  autocorrectionDisabled,
+  textContentType,
+  submitLabel,
+  onSubmit,
+} from '@expo/ui/swift-ui/modifiers';
+
+const MUTED_GRAY = '#8E8E93';
+const DESTRUCTIVE_RED = '#FF3B30';
 
 export function SignInForm() {
+  const { colorScheme } = useColorScheme();
+  const scheme = colorScheme === 'dark' ? 'dark' : 'light';
+  const router = useRouter();
   const { signIn, setActive, isLoaded } = useSignIn();
+
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
-  const passwordInputRef = React.useRef<TextInput>(null);
-  const [error, setError] = React.useState<{ email?: string; password?: string }>({});
+  const [error, setError] = React.useState<string | null>(null);
 
-  async function onSubmit() {
-    if (!isLoaded) {
-      return;
-    }
-
-    // Start the sign-in process using the email and password provided
+  const handleSubmit = React.useCallback(async () => {
+    if (!isLoaded) return;
     try {
-      const signInAttempt = await signIn.create({
-        identifier: email,
-        password,
-      });
-
-      // If sign-in process is complete, set the created session as active
-      // and redirect the user
-      if (signInAttempt.status === 'complete') {
-        setError({ email: '', password: '' });
-        await setActive({ session: signInAttempt.createdSessionId });
+      const attempt = await signIn.create({ identifier: email, password });
+      if (attempt.status === 'complete') {
+        setError(null);
+        await setActive({ session: attempt.createdSessionId });
         return;
       }
-      // TODO: Handle other statuses
-      console.error(JSON.stringify(signInAttempt, null, 2));
+      console.error(JSON.stringify(attempt, null, 2));
     } catch (err) {
       // See https://go.clerk.com/mRUDrIe for more info on error handling
-      if (err instanceof Error) {
-        const isEmailMessage =
-          err.message.toLowerCase().includes('identifier') ||
-          err.message.toLowerCase().includes('email');
-        setError(isEmailMessage ? { email: err.message } : { password: err.message });
-        return;
-      }
-      console.error(JSON.stringify(err, null, 2));
+      if (err instanceof Error) setError(err.message);
+      else console.error(JSON.stringify(err, null, 2));
     }
-  }
-
-  function onEmailSubmitEditing() {
-    passwordInputRef.current?.focus();
-  }
+  }, [isLoaded, signIn, setActive, email, password]);
 
   return (
-    <View className="gap-6">
-      <Card className="border-border/0 shadow-none sm:border-border sm:shadow-sm sm:shadow-black/5">
-        <CardHeader>
-          <CardTitle className="text-center text-xl sm:text-left">Sign in to .</CardTitle>
-          <CardDescription className="text-center sm:text-left">
-            Welcome back! Please sign in to continue
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="gap-6">
-          <View className="gap-6">
-            <View className="gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                placeholder="m@example.com"
-                keyboardType="email-address"
-                autoComplete="email"
-                autoCapitalize="none"
-                onChangeText={setEmail}
-                onSubmitEditing={onEmailSubmitEditing}
-                returnKeyType="next"
-                submitBehavior="submit"
-              />
-              {error.email ? (
-                <Text className="text-sm font-medium text-destructive">{error.email}</Text>
-              ) : null}
-            </View>
-            <View className="gap-1.5">
-              <View className="flex-row items-center">
-                <Label htmlFor="password">Password</Label>
-                <Link asChild href={`/(auth)/forgot-password?email=${email}`}>
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="ml-auto h-4 px-1 py-0 web:h-fit sm:h-4">
-                    <Text className="font-normal leading-4">Forgot your password?</Text>
-                  </Button>
-                </Link>
-              </View>
-              <Input
-                ref={passwordInputRef}
-                id="password"
-                secureTextEntry
-                onChangeText={setPassword}
-                returnKeyType="send"
-                onSubmitEditing={onSubmit}
-              />
-              {error.password ? (
-                <Text className="text-sm font-medium text-destructive">{error.password}</Text>
-              ) : null}
-            </View>
-            <Button className="w-full" onPress={onSubmit}>
-              <Text>Continue</Text>
+    <View className="bg-background flex-1">
+      <Host style={{ flex: 1 }} colorScheme={scheme}>
+        <List modifiers={[listStyle('insetGrouped'), listSectionSpacing('compact')]}>
+          {/* Title */}
+          <VStack
+            spacing={4}
+            alignment="leading"
+            modifiers={[listRowSeparator('hidden'), padding({ top: 8 })]}>
+            <UIText modifiers={[font({ size: 28, weight: 'bold' })]}>Sign in</UIText>
+            <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 15 })]}>
+              Welcome back! Please sign in to continue
+            </UIText>
+          </VStack>
+
+          {/* Credentials */}
+          <Section>
+            <TextField
+              placeholder="Email"
+              onTextChange={setEmail}
+              modifiers={[
+                textFieldStyle('plain'),
+                keyboardType('email-address'),
+                textInputAutocapitalization('never'),
+                autocorrectionDisabled(true),
+                textContentType('emailAddress'),
+              ]}
+            />
+            <SecureField
+              placeholder="Password"
+              onTextChange={setPassword}
+              modifiers={[
+                textContentType('password'),
+                submitLabel('continue'),
+                onSubmit(handleSubmit),
+              ]}
+            />
+          </Section>
+
+          {error ? (
+            <UIText
+              modifiers={[
+                listRowSeparator('hidden'),
+                foregroundStyle(DESTRUCTIVE_RED),
+                font({ size: 13 }),
+              ]}>
+              {error}
+            </UIText>
+          ) : null}
+
+          <Button
+            onPress={handleSubmit}
+            modifiers={[
+              listRowSeparator('hidden'),
+              buttonStyle('glassProminent'),
+              controlSize('large'),
+            ]}>
+            {/* frame on the label (not the button) so the prominent button fills the width */}
+            <UIText modifiers={[frame({ maxWidth: Infinity }), font({ weight: 'semibold' })]}>
+              Continue
+            </UIText>
+          </Button>
+
+          <Button
+            label="Forgot your password?"
+            onPress={() => router.push(`/(auth)/forgot-password?email=${email}`)}
+            modifiers={[
+              listRowSeparator('hidden'),
+              buttonStyle('borderless'),
+              frame({ maxWidth: Infinity }),
+            ]}
+          />
+
+          {/* Social */}
+          <HStack modifiers={[listRowSeparator('hidden')]}>
+            <SocialConnections />
+          </HStack>
+
+          {/* Sign up */}
+          <HStack spacing={4} modifiers={[listRowSeparator('hidden')]}>
+            <Spacer />
+            <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
+              Don&apos;t have an account?
+            </UIText>
+            <Button
+              onPress={() => router.push('/(auth)/sign-up')}
+              modifiers={[buttonStyle('borderless')]}>
+              <UIText modifiers={[font({ size: 13, weight: 'semibold' })]}>Sign up</UIText>
             </Button>
-          </View>
-          <Text className="text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/(auth)/sign-up" className="text-sm underline underline-offset-4">
-              Sign up
-            </Link>
-          </Text>
-          <View className="flex-row items-center">
-            <Separator className="flex-1" />
-            <Text className="px-4 text-sm text-muted-foreground">or</Text>
-            <Separator className="flex-1" />
-          </View>
-          <SocialConnections />
-        </CardContent>
-      </Card>
+            <Spacer />
+          </HStack>
+        </List>
+      </Host>
     </View>
   );
 }
