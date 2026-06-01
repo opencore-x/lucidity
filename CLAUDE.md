@@ -39,8 +39,10 @@ pnpm format                     # Prettier
 ```
 apps/api/          → @lucidity/api      Hono REST API (tsx watch, port 3000)
 apps/mobile/       → @lucidity/mobile   Expo React Native app (expo-router v6)
+apps/daemon/       → @lucidity/daemon   Lucid local daemon — cron, jobs, chat (see apps/daemon/README.md)
 packages/db/       → @lucidity/db       Drizzle ORM schema + Neon PostgreSQL
 packages/shared/   → @lucidity/shared   Zod schemas and TypeScript types
+packages/runtime/  → @lucidity/runtime  Lucid's stateless brain (prompt builders + AgentExecutor seam)
 packages/mcp-server/                    MCP server for Claude integration
 ```
 
