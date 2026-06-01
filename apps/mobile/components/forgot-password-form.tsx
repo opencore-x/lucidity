@@ -1,80 +1,63 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Text } from '@/components/ui/text';
+import { AuthScreen, PrimaryButton, AuthError } from '@/components/native/AuthForm';
 import { useSignIn } from '@clerk/clerk-expo';
-import { router } from 'expo-router';
-import { useLocalSearchParams } from 'expo-router/build/hooks';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
-import { View } from 'react-native';
+import { Section, TextField, useNativeState } from '@expo/ui/swift-ui';
+import {
+  textFieldStyle,
+  keyboardType,
+  textInputAutocapitalization,
+  autocorrectionDisabled,
+  textContentType,
+  submitLabel,
+  onSubmit,
+} from '@expo/ui/swift-ui/modifiers';
 
 export function ForgotPasswordForm() {
   const { email: emailParam = '' } = useLocalSearchParams<{ email?: string }>();
-  const [email, setEmail] = React.useState(emailParam);
+  // Native field state, prefilled from the route param (carried over from sign-in).
+  const emailState = useNativeState(emailParam);
   const { signIn, isLoaded } = useSignIn();
-  const [error, setError] = React.useState<{ email?: string; password?: string }>({});
+  const [error, setError] = React.useState<string | null>(null);
 
-  const onSubmit = async () => {
+  const handleSubmit = React.useCallback(async () => {
+    const email = emailState.value.trim();
     if (!email) {
-      setError({ email: 'Email is required' });
+      setError('Email is required');
       return;
     }
-    if (!isLoaded) {
-      return;
-    }
-
+    if (!isLoaded) return;
     try {
-      await signIn.create({
-        strategy: 'reset_password_email_code',
-        identifier: email,
-      });
-
+      await signIn.create({ strategy: 'reset_password_email_code', identifier: email });
       router.push(`/(auth)/reset-password?email=${email}`);
     } catch (err) {
       // See https://go.clerk.com/mRUDrIe for more info on error handling
-      if (err instanceof Error) {
-        setError({ email: err.message });
-        return;
-      }
-      console.error(JSON.stringify(err, null, 2));
+      if (err instanceof Error) setError(err.message);
+      else console.error(JSON.stringify(err, null, 2));
     }
-  };
+  }, [emailState, isLoaded, signIn]);
 
   return (
-    <View className="gap-6">
-      <Card className="border-border/0 shadow-none sm:border-border sm:shadow-sm sm:shadow-black/5">
-        <CardHeader>
-          <CardTitle className="text-center text-xl sm:text-left">Forgot password?</CardTitle>
-          <CardDescription className="text-center sm:text-left">
-            Enter your email to reset your password
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="gap-6">
-          <View className="gap-6">
-            <View className="gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                defaultValue={email}
-                placeholder="m@example.com"
-                keyboardType="email-address"
-                autoComplete="email"
-                autoCapitalize="none"
-                onChangeText={setEmail}
-                onSubmitEditing={onSubmit}
-                returnKeyType="send"
-              />
-              {error.email ? (
-                <Text className="text-sm font-medium text-destructive">{error.email}</Text>
-              ) : null}
-            </View>
-            <Button className="w-full" onPress={onSubmit}>
-              <Text>Reset your password</Text>
-            </Button>
-          </View>
-        </CardContent>
-      </Card>
-    </View>
+    <AuthScreen title="Forgot password?" subtitle="Enter your email to reset your password">
+      <Section>
+        <TextField
+          text={emailState}
+          placeholder="Email"
+          modifiers={[
+            textFieldStyle('plain'),
+            keyboardType('email-address'),
+            textInputAutocapitalization('never'),
+            autocorrectionDisabled(true),
+            textContentType('emailAddress'),
+            submitLabel('continue'),
+            onSubmit(handleSubmit),
+          ]}
+        />
+      </Section>
+
+      <AuthError message={error} />
+
+      <PrimaryButton label="Reset your password" onPress={handleSubmit} />
+    </AuthScreen>
   );
 }
