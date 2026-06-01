@@ -29,6 +29,7 @@ import {
   labelsHidden,
   lineLimit,
   truncationMode,
+  multilineTextAlignment,
   foregroundStyle,
   onTapGesture,
   resizable,
@@ -723,10 +724,14 @@ export function GlobalTaskSheet() {
                 onCommit={(t) => handleUpdateField({ title: t })}
                 onFocusEnter={handleFieldFocus}
                 onFocusLeave={handleFieldBlur}
+                multiline
                 modifiers={[
                   textFieldStyle('plain'),
                   font({ size: 22, weight: 'semibold' }),
-                  padding({ leading: 16, trailing: 16 }),
+                  multilineTextAlignment('leading'),
+                  frame({ maxWidth: Infinity, alignment: 'leading' }),
+                  // Negative bottom padding pulls the Notes card up to tighten the gap.
+                  padding({ leading: 16, trailing: 16, bottom: -8 }),
                 ]}
               />
             ) : null}
