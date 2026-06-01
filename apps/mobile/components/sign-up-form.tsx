@@ -1,145 +1,111 @@
 import { SocialConnections } from '@/components/social-connections';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Text } from '@/components/ui/text';
+import { AuthScreen, PrimaryButton, AuthError } from '@/components/native/AuthForm';
 import { useSignUp } from '@clerk/clerk-expo';
-import { Link, router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import * as React from 'react';
-import { TextInput, View } from 'react-native';
+import {
+  Section,
+  HStack,
+  Spacer,
+  Button,
+  TextField,
+  SecureField,
+  Text as UIText,
+} from '@expo/ui/swift-ui';
+import {
+  textFieldStyle,
+  keyboardType,
+  textInputAutocapitalization,
+  autocorrectionDisabled,
+  textContentType,
+  submitLabel,
+  onSubmit,
+  foregroundStyle,
+  font,
+  buttonStyle,
+  listRowSeparator,
+} from '@expo/ui/swift-ui/modifiers';
+
+const MUTED_GRAY = '#8E8E93';
 
 export function SignUpForm() {
+  const router = useRouter();
   const { signUp, isLoaded } = useSignUp();
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
-  const emailInputRef = React.useRef<TextInput>(null);
-  const passwordInputRef = React.useRef<TextInput>(null);
-  const [error, setError] = React.useState<{ name?: string; email?: string; password?: string }>({});
+  const [error, setError] = React.useState<string | null>(null);
 
-  async function onSubmit() {
+  const handleSubmit = React.useCallback(async () => {
     if (!isLoaded) return;
-
-    // Parse name into first and last name for Clerk
-    const nameParts = name.trim().split(/\s+/);
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts.slice(1).join(' ') || undefined;
-
-    // Start sign-up process using email and password provided
+    const parts = name.trim().split(/\s+/);
+    const firstName = parts[0] || '';
+    const lastName = parts.slice(1).join(' ') || undefined;
     try {
-      await signUp.create({
-        emailAddress: email,
-        password,
-        firstName,
-        lastName,
-      });
-
-      // Send user an email with verification code
+      await signUp.create({ emailAddress: email, password, firstName, lastName });
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-
       router.push(`/(auth)/sign-up/verify-email?email=${email}`);
     } catch (err) {
       // See https://go.clerk.com/mRUDrIe for more info on error handling
-      if (err instanceof Error) {
-        const isEmailMessage =
-          err.message.toLowerCase().includes('identifier') ||
-          err.message.toLowerCase().includes('email');
-        setError(isEmailMessage ? { email: err.message } : { password: err.message });
-        return;
-      }
-      console.error(JSON.stringify(err, null, 2));
+      if (err instanceof Error) setError(err.message);
+      else console.error(JSON.stringify(err, null, 2));
     }
-  }
-
-  function onNameSubmitEditing() {
-    emailInputRef.current?.focus();
-  }
-
-  function onEmailSubmitEditing() {
-    passwordInputRef.current?.focus();
-  }
+  }, [isLoaded, signUp, email, password, name, router]);
 
   return (
-    <View className="gap-6">
-      <Card className="border-border/0 shadow-none sm:border-border sm:shadow-sm sm:shadow-black/5">
-        <CardHeader>
-          <CardTitle className="text-center text-xl sm:text-left">Create your account</CardTitle>
-          <CardDescription className="text-center sm:text-left">
-            Welcome! Please fill in the details to get started.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="gap-6">
-          <View className="gap-6">
-            <View className="gap-1.5">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                placeholder="John Doe"
-                autoComplete="name"
-                autoCapitalize="words"
-                onChangeText={setName}
-                onSubmitEditing={onNameSubmitEditing}
-                returnKeyType="next"
-                submitBehavior="submit"
-              />
-              {error.name ? (
-                <Text className="text-sm font-medium text-destructive">{error.name}</Text>
-              ) : null}
-            </View>
-            <View className="gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                ref={emailInputRef}
-                id="email"
-                placeholder="m@example.com"
-                keyboardType="email-address"
-                autoComplete="email"
-                autoCapitalize="none"
-                onChangeText={setEmail}
-                onSubmitEditing={onEmailSubmitEditing}
-                returnKeyType="next"
-                submitBehavior="submit"
-              />
-              {error.email ? (
-                <Text className="text-sm font-medium text-destructive">{error.email}</Text>
-              ) : null}
-            </View>
-            <View className="gap-1.5">
-              <View className="flex-row items-center">
-                <Label htmlFor="password">Password</Label>
-              </View>
-              <Input
-                ref={passwordInputRef}
-                id="password"
-                secureTextEntry
-                onChangeText={setPassword}
-                returnKeyType="send"
-                onSubmitEditing={onSubmit}
-              />
-              {error.password ? (
-                <Text className="text-sm font-medium text-destructive">{error.password}</Text>
-              ) : null}
-            </View>
-            <Button className="w-full" onPress={onSubmit}>
-              <Text>Continue</Text>
-            </Button>
-          </View>
-          <Text className="text-center text-sm">
-            Already have an account?{' '}
-            <Link href="/(auth)/sign-in" dismissTo className="text-sm underline underline-offset-4">
-              Sign in
-            </Link>
-          </Text>
-          <View className="flex-row items-center">
-            <Separator className="flex-1" />
-            <Text className="px-4 text-sm text-muted-foreground">or</Text>
-            <Separator className="flex-1" />
-          </View>
-          <SocialConnections />
-        </CardContent>
-      </Card>
-    </View>
+    <AuthScreen
+      title="Create your account"
+      subtitle="Welcome! Please fill in the details to get started.">
+      <Section>
+        <TextField
+          placeholder="Full name"
+          onTextChange={setName}
+          modifiers={[
+            textFieldStyle('plain'),
+            textInputAutocapitalization('words'),
+            textContentType('name'),
+          ]}
+        />
+        <TextField
+          placeholder="Email"
+          onTextChange={setEmail}
+          modifiers={[
+            textFieldStyle('plain'),
+            keyboardType('email-address'),
+            textInputAutocapitalization('never'),
+            autocorrectionDisabled(true),
+            textContentType('emailAddress'),
+          ]}
+        />
+        <SecureField
+          placeholder="Password"
+          onTextChange={setPassword}
+          modifiers={[
+            textContentType('newPassword'),
+            submitLabel('continue'),
+            onSubmit(handleSubmit),
+          ]}
+        />
+      </Section>
+
+      <AuthError message={error} />
+
+      <PrimaryButton label="Continue" onPress={handleSubmit} />
+
+      <HStack modifiers={[listRowSeparator('hidden')]}>
+        <SocialConnections />
+      </HStack>
+
+      <HStack spacing={4} modifiers={[listRowSeparator('hidden')]}>
+        <Spacer />
+        <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
+          Already have an account?
+        </UIText>
+        <Button onPress={() => router.back()} modifiers={[buttonStyle('borderless')]}>
+          <UIText modifiers={[font({ size: 13, weight: 'semibold' })]}>Sign in</UIText>
+        </Button>
+        <Spacer />
+      </HStack>
+    </AuthScreen>
   );
 }

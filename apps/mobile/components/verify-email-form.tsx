@@ -1,118 +1,106 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Text } from '@/components/ui/text';
+import { AuthScreen, PrimaryButton, AuthError } from '@/components/native/AuthForm';
 import { useSignUp } from '@clerk/clerk-expo';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
-import { type TextStyle, View } from 'react-native';
+import { Section, Button, TextField, Text as UIText } from '@expo/ui/swift-ui';
+import {
+  textFieldStyle,
+  keyboardType,
+  autocorrectionDisabled,
+  textContentType,
+  submitLabel,
+  onSubmit,
+  foregroundStyle,
+  font,
+  buttonStyle,
+  frame,
+  listRowSeparator,
+  disabled,
+} from '@expo/ui/swift-ui/modifiers';
 
+const MUTED_GRAY = '#8E8E93';
 const RESEND_CODE_INTERVAL_SECONDS = 30;
-
-const TABULAR_NUMBERS_STYLE: TextStyle = { fontVariant: ['tabular-nums'] };
 
 export function VerifyEmailForm() {
   const { signUp, setActive, isLoaded } = useSignUp();
   const { email = '' } = useLocalSearchParams<{ email?: string }>();
   const [code, setCode] = React.useState('');
-  const [error, setError] = React.useState('');
+  const [error, setError] = React.useState<string | null>(null);
   const { countdown, restartCountdown } = useCountdown(RESEND_CODE_INTERVAL_SECONDS);
 
-  async function onSubmit() {
+  const handleSubmit = React.useCallback(async () => {
     if (!isLoaded) return;
-
     try {
-      // Use the code the user provided to attempt verification
-      const signUpAttempt = await signUp.attemptEmailAddressVerification({
-        code,
-      });
-
-      // If verification was completed, set the session to active
-      // and redirect the user
-      if (signUpAttempt.status === 'complete') {
-        await setActive({ session: signUpAttempt.createdSessionId });
+      const attempt = await signUp.attemptEmailAddressVerification({ code });
+      if (attempt.status === 'complete') {
+        await setActive({ session: attempt.createdSessionId });
         return;
       }
-      // TODO: Handle other statuses
-      // If the status is not complete, check why. User may need to
-      // complete further steps.
-      console.error(JSON.stringify(signUpAttempt, null, 2));
+      console.error(JSON.stringify(attempt, null, 2));
     } catch (err) {
       // See https://go.clerk.com/mRUDrIe for more info on error handling
-      if (err instanceof Error) {
-        setError(err.message);
-        return;
-      }
-      console.error(JSON.stringify(err, null, 2));
+      if (err instanceof Error) setError(err.message);
+      else console.error(JSON.stringify(err, null, 2));
     }
-  }
+  }, [isLoaded, signUp, setActive, code]);
 
-  async function onResendCode() {
+  const onResend = React.useCallback(async () => {
     if (!isLoaded) return;
-
     try {
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       restartCountdown();
     } catch (err) {
-      // See https://go.clerk.com/mRUDrIe for more info on error handling
-      if (err instanceof Error) {
-        setError(err.message);
-        return;
-      }
-      console.error(JSON.stringify(err, null, 2));
+      if (err instanceof Error) setError(err.message);
+      else console.error(JSON.stringify(err, null, 2));
     }
-  }
+  }, [isLoaded, signUp, restartCountdown]);
 
   return (
-    <View className="gap-6">
-      <Card className="border-border/0 shadow-none sm:border-border sm:shadow-sm sm:shadow-black/5">
-        <CardHeader>
-          <CardTitle className="text-center text-xl sm:text-left">Verify your email</CardTitle>
-          <CardDescription className="text-center sm:text-left">
-            Enter the verification code sent to {email || 'your email'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="gap-6">
-          <View className="gap-6">
-            <View className="gap-1.5">
-              <Label htmlFor="code">Verification code</Label>
-              <Input
-                id="code"
-                autoCapitalize="none"
-                onChangeText={setCode}
-                returnKeyType="send"
-                keyboardType="numeric"
-                autoComplete="sms-otp"
-                textContentType="oneTimeCode"
-                onSubmitEditing={onSubmit}
-              />
-              {!error ? null : (
-                <Text className="text-sm font-medium text-destructive">{error}</Text>
-              )}
-              <Button variant="link" size="sm" disabled={countdown > 0} onPress={onResendCode}>
-                <Text className="text-center text-xs">
-                  Didn&apos;t receive the code? Resend{' '}
-                  {countdown > 0 ? (
-                    <Text className="text-xs" style={TABULAR_NUMBERS_STYLE}>
-                      ({countdown})
-                    </Text>
-                  ) : null}
-                </Text>
-              </Button>
-            </View>
-            <View className="gap-3">
-              <Button className="w-full" onPress={onSubmit}>
-                <Text>Continue</Text>
-              </Button>
-              <Button variant="link" className="mx-auto" onPress={router.back}>
-                <Text>Cancel</Text>
-              </Button>
-            </View>
-          </View>
-        </CardContent>
-      </Card>
-    </View>
+    <AuthScreen
+      title="Verify your email"
+      subtitle={`Enter the verification code sent to ${email || 'your email'}`}>
+      <Section>
+        <TextField
+          placeholder="Verification code"
+          onTextChange={setCode}
+          modifiers={[
+            textFieldStyle('plain'),
+            keyboardType('numeric'),
+            autocorrectionDisabled(true),
+            textContentType('oneTimeCode'),
+            submitLabel('continue'),
+            onSubmit(handleSubmit),
+          ]}
+        />
+      </Section>
+
+      <AuthError message={error} />
+
+      <PrimaryButton label="Continue" onPress={handleSubmit} />
+
+      <Button
+        onPress={onResend}
+        modifiers={[
+          listRowSeparator('hidden'),
+          buttonStyle('borderless'),
+          frame({ maxWidth: Infinity }),
+          ...(countdown > 0 ? [disabled(true)] : []),
+        ]}>
+        <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
+          {countdown > 0 ? `Resend code (${countdown})` : "Didn't receive the code? Resend"}
+        </UIText>
+      </Button>
+
+      <Button
+        onPress={() => router.back()}
+        modifiers={[
+          listRowSeparator('hidden'),
+          buttonStyle('borderless'),
+          frame({ maxWidth: Infinity }),
+        ]}>
+        <UIText modifiers={[font({ size: 14 })]}>Cancel</UIText>
+      </Button>
+    </AuthScreen>
   );
 }
 
@@ -120,13 +108,10 @@ function useCountdown(seconds = 30) {
   const [countdown, setCountdown] = React.useState(seconds);
   const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const startCountdown = React.useCallback(() => {
-    setCountdown(seconds);
-
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
+  // Starts ticking; the interval's setState is async (not flagged), so the mount
+  // effect can call this without a synchronous setState-in-effect.
+  const tick = React.useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -139,17 +124,19 @@ function useCountdown(seconds = 30) {
         return prev - 1;
       });
     }, 1000);
-  }, [seconds]);
+  }, []);
+
+  const restartCountdown = React.useCallback(() => {
+    setCountdown(seconds);
+    tick();
+  }, [seconds, tick]);
 
   React.useEffect(() => {
-    startCountdown();
-
+    tick();
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [startCountdown]);
+  }, [tick]);
 
-  return { countdown, restartCountdown: startCountdown };
+  return { countdown, restartCountdown };
 }
