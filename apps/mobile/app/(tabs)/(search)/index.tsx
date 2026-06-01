@@ -1,145 +1,177 @@
-import { Icon } from '@/components/ui/icon';
-import { Text } from '@/components/ui/text';
-import { UserMenu } from '@/components/user-menu';
-import { TaskItem } from '@/components/TaskItem';
-import { useColorScheme } from 'nativewind';
-import { PlusIcon } from 'lucide-react-native';
 import * as React from 'react';
-import {
-  View,
-  ScrollView,
-  RefreshControl,
-  ActivityIndicator,
-  TextInput,
-  Pressable,
-  Alert,
-} from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import {
+  Host,
+  ZStack,
+  List,
+  Section,
+  HStack,
+  Image,
+  TextField,
+  Text as UIText,
+  type TextFieldRef,
+} from '@expo/ui/swift-ui';
+import {
+  listStyle,
+  refreshable,
+  frame,
+  foregroundStyle,
+  font,
+  contentShape,
+  shapes,
+  onTapGesture,
+  lineLimit,
+  textFieldStyle,
+  listRowSeparator,
+  scrollDismissesKeyboard,
+  padding,
+} from '@expo/ui/swift-ui/modifiers';
+import { useColorScheme } from 'nativewind';
+import { UserMenu } from '@/components/user-menu';
+import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
+import { TaskRow } from '@/components/native/TaskRow';
+import { TaskComposer } from '@/components/native/TaskComposer';
 import { useTasks, useCreateTask, useToggleTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtaskProgress } from '@/utils/helpers';
-import { Search, X } from '@/lib/icons';
 import type { Task, Project } from '@lucidity/shared';
+
+const MUTED_GRAY = '#8E8E93';
+
+/** A native search result row for a matching project (dot + name + task count). */
+function ProjectResultRow({
+  project,
+  taskCount,
+  onPress,
+}: {
+  project: Project;
+  taskCount: number;
+  onPress: () => void;
+}) {
+  return (
+    <HStack spacing={10} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onPress)]}>
+      <Image
+        key={project.color ?? 'none'}
+        systemName="circle.fill"
+        size={12}
+        color={project.color ?? MUTED_GRAY}
+      />
+      <UIText modifiers={[lineLimit(1), frame({ maxWidth: Infinity, alignment: 'leading' })]}>
+        {project.name}
+      </UIText>
+      <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
+        {`${taskCount} tasks`}
+      </UIText>
+      <Image systemName="chevron.right" size={12} color={MUTED_GRAY} />
+    </HStack>
+  );
+}
 
 export default function SearchScreen() {
   const { colorScheme } = useColorScheme();
+  const scheme = colorScheme === 'dark' ? 'dark' : 'light';
   const router = useRouter();
-  const inputRef = React.useRef<TextInput>(null);
 
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
-  const { data: allProjects = [], isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
+  const {
+    data: allProjects = [],
+    isLoading: projectsLoading,
+    refetch: refetchProjects,
+  } = useProjects();
   const createTask = useCreateTask();
   const toggleTask = useToggleTask();
   const { openSheet } = useSheetStore();
 
-  const projects = React.useMemo(
-    () => allProjects.filter((p) => !p.isArchived),
-    [allProjects]
-  );
-
+  const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
   const isLoading = tasksLoading || projectsLoading;
-  const [refreshing, setRefreshing] = React.useState(false);
+
+  const searchRef = React.useRef<TextFieldRef>(null);
   const [query, setQuery] = React.useState('');
+  const [composing, setComposing] = React.useState(false);
 
   const onRefresh = React.useCallback(async () => {
-    setRefreshing(true);
     await Promise.all([refetchTasks(), refetchProjects()]);
-    setRefreshing(false);
   }, [refetchTasks, refetchProjects]);
 
   const filteredTasks = React.useMemo(() => {
-    if (!query.trim()) return [];
-    const q = query.toLowerCase();
-    return tasks.filter((task) => {
-      if (task.parentTaskId) return false;
-      return (
-        task.title.toLowerCase().includes(q) ||
-        (task.description && task.description.toLowerCase().includes(q))
-      );
-    });
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return tasks.filter(
+      (task) =>
+        !task.parentTaskId &&
+        (task.title.toLowerCase().includes(q) ||
+          (task.description?.toLowerCase().includes(q) ?? false))
+    );
   }, [tasks, query]);
 
   const filteredProjects = React.useMemo(() => {
-    if (!query.trim()) return [];
-    const q = query.toLowerCase();
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
     return projects.filter((p) => p.name.toLowerCase().includes(q));
   }, [projects, query]);
 
-  const recentTasks = React.useMemo(() => {
-    return tasks
-      .filter((t) => !t.parentTaskId && t.status !== 'completed')
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      .slice(0, 20);
-  }, [tasks]);
+  const recentTasks = React.useMemo(
+    () =>
+      tasks
+        .filter((t) => !t.parentTaskId && t.status !== 'completed')
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+        .slice(0, 20),
+    [tasks]
+  );
 
   const projectTaskCounts = React.useMemo(() => {
     const counts = new Map<string, number>();
     tasks.forEach((t) => {
       if (t.projectId && !t.parentTaskId && t.status !== 'completed') {
-        counts.set(t.projectId, (counts.get(t.projectId) || 0) + 1);
+        counts.set(t.projectId, (counts.get(t.projectId) ?? 0) + 1);
       }
     });
     return counts;
   }, [tasks]);
 
-  const handleTaskPress = React.useCallback(
-    (task: Task) => {
-      openSheet(task);
-    },
-    [openSheet]
-  );
-
+  const handleTaskPress = React.useCallback((task: Task) => openSheet(task), [openSheet]);
   const handleTaskToggle = React.useCallback(
-    (taskId: string) => {
-      toggleTask.mutate(taskId);
-    },
+    (taskId: string) => toggleTask.mutate(taskId),
     [toggleTask]
   );
-
-  const handleProjectPress = React.useCallback(
-    () => {
-      router.navigate('/');
-    },
-    [router]
-  );
-
-  const handleCreateTask = React.useCallback(() => {
-    Alert.prompt('New Task', undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Add Task',
-        onPress: (title?: string) => {
-          if (title?.trim()) {
-            createTask.mutate({ title: title.trim() });
-          }
-        },
-      },
-    ], 'plain-text');
-  }, [createTask]);
-
   const handleClear = React.useCallback(() => {
+    searchRef.current?.clear();
     setQuery('');
-    inputRef.current?.focus();
   }, []);
+
+  const handleCreateTask = React.useCallback(() => setComposing(true), []);
+  const handleSubmitTask = React.useCallback(
+    (title: string) => createTask.mutate({ title }),
+    [createTask]
+  );
 
   const headerRight = React.useCallback(
     () => (
-      <View className="flex-row items-center gap-4">
-        <Pressable onPress={handleCreateTask} hitSlop={8} className="pl-2">
-          <Icon as={PlusIcon} className="size-6 text-foreground" />
-        </Pressable>
+      <View className="flex-row items-center gap-2">
+        <HeaderGlassButton systemImage="plus" onPress={handleCreateTask} />
         <UserMenu />
       </View>
     ),
     [handleCreateTask]
   );
 
+  const renderTaskRow = (task: Task) => (
+    <TaskRow
+      key={task.id}
+      task={task}
+      progress={getSubtaskProgress(tasks, task.id)}
+      onToggle={() => handleTaskToggle(task.id)}
+      onOpen={() => handleTaskPress(task)}
+    />
+  );
+
   if (isLoading) {
     return (
       <>
         <Stack.Screen options={{ title: 'Search', headerRight }} />
-        <View className="flex-1 items-center justify-center bg-background">
+        <View className="bg-background flex-1 items-center justify-center">
           <ActivityIndicator size="large" />
         </View>
       </>
@@ -152,124 +184,96 @@ export default function SearchScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Search', headerRight }} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Search input */}
-        <View className="px-4 pt-3 pb-4">
-          <View className="flex-row items-center bg-muted rounded-lg px-3 py-2 gap-2">
-            <Search size={18} className="text-muted-foreground" />
-            <TextInput
-              ref={inputRef}
-              className="flex-1 text-base text-foreground font-sans"
-              placeholder="Search tasks and projects..."
-              placeholderTextColor={colorScheme === 'dark' ? '#71717a' : '#a1a1aa'}
-              value={query}
-              onChangeText={setQuery}
-              autoCorrect={false}
-              returnKeyType="search"
-            />
-            {hasQuery && (
-              <Pressable onPress={handleClear} hitSlop={8}>
-                <X size={18} className="text-muted-foreground" />
-              </Pressable>
-            )}
-          </View>
-        </View>
-
-        {hasQuery ? (
-          <>
-            {filteredProjects.length > 0 && (
-              <View className="mb-4">
-                <View className="px-4 py-2">
-                  <Text className="text-sm font-semibold text-muted-foreground">
-                    Projects ({filteredProjects.length})
-                  </Text>
-                </View>
-                {filteredProjects.map((project) => (
-                  <Pressable
-                    key={project.id}
-                    onPress={handleProjectPress}
-                    className="flex-row items-center px-4 py-3 gap-3 active:opacity-70"
-                  >
-                    <View
-                      style={{ backgroundColor: project.color || '#6366F1' }}
-                      className="w-3 h-3 rounded-full"
-                    />
-                    <Text className="text-base flex-1" numberOfLines={1}>
-                      {project.name}
-                    </Text>
-                    <Text className="text-sm text-muted-foreground">
-                      {projectTaskCounts.get(project.id) || 0} tasks
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-
-            {filteredTasks.length > 0 && (
-              <View className="mb-4">
-                <View className="px-4 py-2">
-                  <Text className="text-sm font-semibold text-muted-foreground">
-                    Tasks ({filteredTasks.length})
-                  </Text>
-                </View>
-                {filteredTasks.map((task, index) => (
-                  <TaskItem
-                    key={task.id}
-                    task={task}
-                    subtaskProgress={getSubtaskProgress(tasks, task.id)}
-                    onPress={() => handleTaskPress(task)}
-                    onToggle={() => handleTaskToggle(task.id)}
-                    isLast={index === filteredTasks.length - 1}
+      <View className="bg-background flex-1">
+        <Host style={{ flex: 1 }} colorScheme={scheme}>
+          <ZStack
+            alignment="bottom"
+            modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
+            <List
+              modifiers={[
+                listStyle('insetGrouped'),
+                refreshable(onRefresh),
+                scrollDismissesKeyboard('interactively'),
+              ]}>
+              {/* Search field as the first row (scrolls with content, like before). */}
+              <HStack spacing={8} modifiers={[listRowSeparator('hidden')]}>
+                <Image systemName="magnifyingglass" size={17} color={MUTED_GRAY} />
+                <TextField
+                  ref={searchRef}
+                  placeholder="Search tasks and projects…"
+                  onTextChange={setQuery}
+                  modifiers={[textFieldStyle('plain'), frame({ maxWidth: Infinity })]}
+                />
+                {hasQuery ? (
+                  <Image
+                    systemName="xmark.circle.fill"
+                    size={17}
+                    color={MUTED_GRAY}
+                    onPress={handleClear}
                   />
-                ))}
-              </View>
-            )}
+                ) : null}
+              </HStack>
 
-            {noResults && (
-              <View className="items-center justify-center px-8 pt-16">
-                <Text className="text-lg font-semibold text-center mb-2">No results</Text>
-                <Text className="text-muted-foreground text-center">
-                  Nothing matched "{query}"
-                </Text>
-              </View>
-            )}
-          </>
-        ) : (
-          <View className="mb-4">
-            <View className="px-4 py-2">
-              <Text className="text-sm font-semibold text-muted-foreground">
-                Recent Tasks
-              </Text>
-            </View>
-            {recentTasks.map((task, index) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                subtaskProgress={getSubtaskProgress(tasks, task.id)}
-                onPress={() => handleTaskPress(task)}
-                onToggle={() => handleTaskToggle(task.id)}
-                isLast={index === recentTasks.length - 1}
+              {hasQuery ? (
+                <>
+                  {filteredProjects.length > 0 ? (
+                    <Section title={`Projects (${filteredProjects.length})`}>
+                      {filteredProjects.map((project) => (
+                        <ProjectResultRow
+                          key={project.id}
+                          project={project}
+                          taskCount={projectTaskCounts.get(project.id) ?? 0}
+                          onPress={() => router.push(`/project/${project.id}`)}
+                        />
+                      ))}
+                    </Section>
+                  ) : null}
+
+                  {filteredTasks.length > 0 ? (
+                    <Section title={`Tasks (${filteredTasks.length})`}>
+                      {filteredTasks.map(renderTaskRow)}
+                    </Section>
+                  ) : null}
+
+                  {noResults ? (
+                    <UIText
+                      modifiers={[
+                        foregroundStyle(MUTED_GRAY),
+                        frame({ maxWidth: Infinity, alignment: 'center' }),
+                        padding({ vertical: 48 }),
+                      ]}>
+                      {`No results for "${query.trim()}"`}
+                    </UIText>
+                  ) : null}
+                </>
+              ) : (
+                <Section title="Recent">
+                  {recentTasks.length > 0 ? (
+                    recentTasks.map(renderTaskRow)
+                  ) : (
+                    <UIText
+                      modifiers={[
+                        foregroundStyle(MUTED_GRAY),
+                        frame({ maxWidth: Infinity, alignment: 'center' }),
+                        padding({ vertical: 48 }),
+                      ]}>
+                      No tasks yet
+                    </UIText>
+                  )}
+                </Section>
+              )}
+            </List>
+
+            {composing ? (
+              <TaskComposer
+                placeholder="Add task…"
+                onSubmit={handleSubmitTask}
+                onClose={() => setComposing(false)}
               />
-            ))}
-            {recentTasks.length === 0 && (
-              <View className="items-center justify-center px-8 pt-16">
-                <Text className="text-muted-foreground text-center">
-                  No tasks yet
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        <View className="h-32" />
-      </ScrollView>
+            ) : null}
+          </ZStack>
+        </Host>
+      </View>
     </>
   );
 }
