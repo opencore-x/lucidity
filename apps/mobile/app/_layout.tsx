@@ -18,6 +18,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'nativewind';
 import * as React from 'react';
+import { Appearance } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { requestNotificationPermissions } from '@/lib/notifications';
 import { useQuickActions } from '@/hooks/useQuickActions';
@@ -34,6 +35,16 @@ const queryClient = new QueryClient();
 export default function RootLayout() {
   const { colorScheme } = useColorScheme();
   const [fontsLoaded, setFontsLoaded] = React.useState(false);
+
+  // Keep the native UIKit appearance in lockstep with the in-app theme. NativeWind's
+  // setColorScheme only restyles JS surfaces; without this the native root window and
+  // native-stack push transitions stay in the system appearance and flash white in
+  // dark mode. 'unspecified' defers to the system setting.
+  React.useEffect(() => {
+    Appearance.setColorScheme(
+      colorScheme === 'dark' ? 'dark' : colorScheme === 'light' ? 'light' : 'unspecified'
+    );
+  }, [colorScheme]);
 
   React.useEffect(() => {
     Font.loadAsync(FONT_ASSETS).then(() => setFontsLoaded(true));

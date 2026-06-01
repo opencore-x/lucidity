@@ -97,8 +97,8 @@ export function UserMenu() {
       <Menu label={avatarLabel}>
         <Section title={headerTitle}>
           <Button
-            label={dark ? 'Dark Mode' : 'Light Mode'}
-            systemImage={dark ? 'moon.fill' : 'sun.max.fill'}
+            label={dark ? 'Light Mode' : 'Dark Mode'}
+            systemImage={dark ? 'sun.max.fill' : 'moon.fill'}
             onPress={onToggleTheme}
           />
           <Button label="Settings" systemImage="gearshape.fill" onPress={onSettings} />
