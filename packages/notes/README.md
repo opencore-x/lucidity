@@ -61,17 +61,23 @@ Lucid's own memory):
 Lucid then weaves a bounded recent-notes digest into briefings, weekly reviews, and
 chat. Verify with `lucidity --run-now briefing`.
 
-## Recommended: a git undo-buffer
+## Safety & undo
 
-Agent writes are atomic but **not undoable**, and iCloud syncs deletions everywhere.
-Keep a cheap snapshot history with the git dir **outside** iCloud (so `.git` never
-syncs):
+Writes go through the disciplined path — **atomic** (temp + rename) and
+**append/`edit`-favoring**, never a blind whole-file rewrite — so most accidental
+damage is prevented up front. There is no built-in undo, so the real backstop is the
+OS's own versioning, which needs no setup: **iCloud keeps file versions** and **Time
+Machine** snapshots the vault. Git is **not** a product requirement — most users
+won't have it.
+
+For power users / dogfooding, an optional git snapshot adds explicit restore points.
+Keep the git dir **outside** iCloud so `.git` never syncs:
 
 ```sh
 VAULT="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Notes"
 git --git-dir="$HOME/.lucidity/vault-backup.git" --work-tree="$VAULT" init
-# optional: skip large binaries
-printf '*.wav\n*.mp3\n*.mov\n' > "$HOME/.lucidity/vault-backup.git/info/exclude"
+# skip Obsidian churn + large binaries
+printf '.obsidian/\n.trash/\n*.wav\n*.mp3\n*.mov\n' > "$HOME/.lucidity/vault-backup.git/info/exclude"
 git --git-dir="$HOME/.lucidity/vault-backup.git" --work-tree="$VAULT" add -A
 git --git-dir="$HOME/.lucidity/vault-backup.git" --work-tree="$VAULT" commit -m "snapshot"
 ```
