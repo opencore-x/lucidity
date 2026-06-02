@@ -10,6 +10,7 @@ import type { Task, User } from '@lucidity/shared';
 import type { DaemonConfig } from '../config.js';
 import type { Deliverer } from '../delivery/index.js';
 import { createVault } from '../vault.js';
+import { loadNotesContext } from '../notesContext.js';
 
 export interface BriefingResult {
   text: string;
@@ -49,9 +50,10 @@ export async function runBriefing(
   const persona = vault.readPersona();
   const facts = vault.readMemoryFacts();
   const memory = facts.length ? facts.map((f) => `- ${f}`).join('\n') : undefined;
+  const notes = loadNotesContext(config);
 
   // 1. Briefing
-  const prompt = buildBriefingPrompt({ user, tasks, persona, memory });
+  const prompt = buildBriefingPrompt({ user, tasks, persona, memory, notes });
   const briefing = await executor.run({
     systemPrompt: prompt.systemPrompt,
     userPrompt: prompt.userPrompt,

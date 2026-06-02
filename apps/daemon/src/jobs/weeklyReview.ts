@@ -8,6 +8,7 @@ import type { Task, User } from '@lucidity/shared';
 import type { DaemonConfig } from '../config.js';
 import type { Deliverer } from '../delivery/index.js';
 import { createVault } from '../vault.js';
+import { loadNotesContext } from '../notesContext.js';
 import type { JobResult } from './runner.js';
 
 /**
@@ -32,8 +33,9 @@ export async function runWeeklyReview(
   const persona = vault.readPersona();
   const facts = vault.readMemoryFacts();
   const memory = facts.length ? facts.map((f) => `- ${f}`).join('\n') : undefined;
+  const notes = loadNotesContext(config);
 
-  const { systemPrompt, userPrompt } = buildWeeklyReviewPrompt({ user, tasks, stats, persona, memory });
+  const { systemPrompt, userPrompt } = buildWeeklyReviewPrompt({ user, tasks, stats, persona, memory, notes });
   const result = await executor.run({ systemPrompt, userPrompt, model: config.model });
   const text = result.text;
 

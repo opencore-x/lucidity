@@ -12,11 +12,10 @@ export interface BuildBriefingPromptInput {
    * the current time; pass a fixed value for deterministic tests/snapshots.
    */
   now?: Date;
-  /**
-   * Reserved for Chunk 2 (vault memory). When provided it is woven into the
-   * prompt; unused in Chunk 0.
-   */
+  /** Durable facts (MEMORY.md). Woven into the prompt when provided. */
   memory?: string;
+  /** Bounded recent-notes digest from the notes vault. Woven in when provided. */
+  notes?: string;
 }
 
 export interface BriefingPrompt {
@@ -76,7 +75,7 @@ function describeTask(task: Task, today: Date): string {
  * optional `now`. Kept deliberately lean (one system prompt + one user prompt).
  */
 export function buildBriefingPrompt(input: BuildBriefingPromptInput): BriefingPrompt {
-  const { user, tasks, persona, memory } = input;
+  const { user, tasks, persona, memory, notes } = input;
   const now = input.now ?? new Date();
   const today = startOfDay(now);
   const name = user.name?.trim() || 'there';
@@ -110,6 +109,12 @@ export function buildBriefingPrompt(input: BuildBriefingPromptInput): BriefingPr
     lines.push('');
     lines.push('What you remember about them:');
     lines.push(memory.trim());
+  }
+
+  if (notes) {
+    lines.push('');
+    lines.push('Recent notes from their vault:');
+    lines.push(notes.trim());
   }
 
   lines.push('');

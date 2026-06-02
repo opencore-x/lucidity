@@ -1,11 +1,8 @@
 {
-  "name": "@lucidity/mcp-server",
-  "version": "0.1.0",
+  "name": "@lucidity/notes",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
-  "bin": {
-    "lucidity-mcp": "./dist/index.js"
-  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -16,12 +13,11 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/index.ts"
+    "dev": "tsc --watch --preserveWatchOutput",
+    "test": "tsx --test src/vault.test.ts"
   },
   "dependencies": {
-    "@lucidity/notes": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.12.1",
-    "zod": "^3.24.4"
+    "@lucidity/shared": "workspace:*"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",

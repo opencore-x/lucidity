@@ -22,6 +22,11 @@ test('weaves in memory and context when provided', () => {
   assert.ok(sys.includes("Context for this session:\nToday's tasks: File taxes"));
 });
 
+test('weaves in the notes seam', () => {
+  const sys = buildChatSystemPrompt({ persona: 'P', user: USER, notes: '- Idea (idea.md)' });
+  assert.ok(sys.includes("Recent notes from Ada's vault:\n- Idea (idea.md)"));
+});
+
 test('omits memory/context sections when absent', () => {
   const sys = buildChatSystemPrompt({ persona: 'PERSONA', user: USER });
   assert.ok(!sys.includes('What you remember'));

@@ -7,6 +7,7 @@ import { registerProjectTools } from './tools/projects.js';
 import { registerQueryTools } from './tools/queries.js';
 import { registerMilestoneTools } from './tools/milestones.js';
 import { registerCommentTools } from './tools/comments.js';
+import { registerNoteTools } from './tools/notes.js';
 
 const server = new McpServer({
   name: 'lucidity',
@@ -18,6 +19,7 @@ registerProjectTools(server);
 registerQueryTools(server);
 registerMilestoneTools(server);
 registerCommentTools(server);
+registerNoteTools(server);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

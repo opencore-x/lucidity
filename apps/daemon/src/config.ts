@@ -25,6 +25,8 @@ export interface DaemonConfig {
   delivery: DeliveryChannel;
   /** Vault dir for Lucid's memory files. Default: `~/.lucidity/vault`. `~` expands. */
   vaultPath: string;
+  /** Dir for the user's markdown notes vault, distinct from `vaultPath`. `~` expands. Optional. */
+  notesPath?: string;
   /** Whether Lucid updates MEMORY.md after each briefing (a 2nd model call). Default: true. */
   reflect: boolean;
   /** Loopback port for the interactive chat server. Default: 4849. */
@@ -45,6 +47,7 @@ const EXAMPLE = `{
   "timezone": "Asia/Kolkata",     // optional; IANA name
   "delivery": "macos",            // optional; "macos" | "stdout"
   "vaultPath": "~/.lucidity/vault", // optional; Lucid's memory files
+  "notesPath": "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Notes", // optional; your markdown vault
   "reflect": true,                // optional; update MEMORY.md after briefings
   "weeklyReview": true,           // optional; run a weekly review
   "weeklyReviewDay": "sun",       // optional; sun..sat or 0-6
@@ -68,8 +71,8 @@ function isValidTime(value: string): boolean {
  * error if the file is missing/invalid. Warns (stderr) if the file is readable
  * by group/other. Never logs the API key.
  */
-export function loadConfig(): DaemonConfig {
-  if (!existsSync(CONFIG_PATH)) {
+export function loadConfig(configPath: string = CONFIG_PATH): DaemonConfig {
+  if (!existsSync(configPath)) {
     fail(
       `No config found at ${CONFIG_PATH}.\n` +
         `Create it (chmod 600) with:\n${EXAMPLE}`,
@@ -79,7 +82,7 @@ export function loadConfig(): DaemonConfig {
   // Warn on loose permissions (POSIX only).
   if (process.platform !== 'win32') {
     try {
-      const mode = statSync(CONFIG_PATH).mode & 0o777;
+      const mode = statSync(configPath).mode & 0o777;
       if (mode & 0o077) {
         console.error(
           `[config] warning: ${CONFIG_PATH} is group/other-accessible (mode ${mode.toString(8)}). ` +
@@ -93,7 +96,7 @@ export function loadConfig(): DaemonConfig {
 
   let raw: unknown;
   try {
-    raw = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
+    raw = JSON.parse(readFileSync(configPath, 'utf8'));
   } catch (err) {
     fail(`Could not parse ${CONFIG_PATH}: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -132,6 +135,9 @@ export function loadConfig(): DaemonConfig {
   const vaultRaw = typeof obj['vaultPath'] === 'string' && obj['vaultPath'] ? obj['vaultPath'] : undefined;
   const vaultPath = vaultRaw ? expandHome(vaultRaw) : join(CONFIG_DIR, 'vault');
 
+  const notesRaw = typeof obj['notesPath'] === 'string' && obj['notesPath'] ? obj['notesPath'] : undefined;
+  const notesPath = notesRaw ? expandHome(notesRaw) : undefined;
+
   const reflect = obj['reflect'] === undefined ? true : obj['reflect'] === true;
 
   const portRaw = obj['chatPort'];
@@ -147,7 +153,7 @@ export function loadConfig(): DaemonConfig {
   }
 
   return {
-    apiKey, apiUrl, briefingTime, model, timezone, oauthToken, delivery, vaultPath, reflect, chatPort,
+    apiKey, apiUrl, briefingTime, model, timezone, oauthToken, delivery, vaultPath, notesPath, reflect, chatPort,
     weeklyReview, weeklyReviewDay, weeklyReviewTime,
   };
 }

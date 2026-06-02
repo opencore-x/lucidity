@@ -6,6 +6,8 @@ export interface BuildChatSystemPromptInput {
   user: Pick<User, 'name'>;
   /** Durable facts (MEMORY.md bullet list). */
   memory?: string;
+  /** Bounded recent-notes digest from the notes vault. */
+  notes?: string;
   /** Optional extra session context, e.g. a snapshot of today's tasks. */
   context?: string;
 }
@@ -17,7 +19,7 @@ export interface BuildChatSystemPromptInput {
  * this is conversational, not a one-shot summary.
  */
 export function buildChatSystemPrompt(input: BuildChatSystemPromptInput): string {
-  const { persona, user, memory, context } = input;
+  const { persona, user, memory, notes, context } = input;
   const name = user.name?.trim() || 'the user';
 
   const parts = [
@@ -30,6 +32,9 @@ export function buildChatSystemPrompt(input: BuildChatSystemPromptInput): string
 
   if (memory && memory.trim()) {
     parts.push('', `What you remember about ${name}:`, memory.trim());
+  }
+  if (notes && notes.trim()) {
+    parts.push('', `Recent notes from ${name}'s vault:`, notes.trim());
   }
   if (context && context.trim()) {
     parts.push('', 'Context for this session:', context.trim());

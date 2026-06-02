@@ -9,6 +9,10 @@ export {
   TIME_SESSION_DEVICE_VALUES,
 } from './constants.js';
 
+// Notes
+export { parseFrontmatter, noteTitle } from './notes.js';
+export type { ParsedNote } from './notes.js';
+
 // Schemas
 export {
   TaskSchema,
