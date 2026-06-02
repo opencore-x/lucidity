@@ -19,8 +19,10 @@ export interface BuildWeeklyReviewPromptInput {
   persona: string;
   /** Reference "now"; defaults to the current time. Pass a fixed value for tests. */
   now?: Date;
-  /** Reserved memory seam (MEMORY.md facts). */
+  /** Durable facts (MEMORY.md). Woven into the prompt when provided. */
   memory?: string;
+  /** Bounded recent-notes digest from the notes vault. Woven in when provided. */
+  notes?: string;
 }
 
 export interface WeeklyReviewPrompt {
@@ -52,7 +54,7 @@ function describeTask(task: Task): string {
  * (reflective, week-scoped, stats-aware).
  */
 export function buildWeeklyReviewPrompt(input: BuildWeeklyReviewPromptInput): WeeklyReviewPrompt {
-  const { user, tasks, stats, persona, memory } = input;
+  const { user, tasks, stats, persona, memory, notes } = input;
   const name = user.name?.trim() || 'there';
 
   const systemPrompt = [
@@ -84,6 +86,12 @@ export function buildWeeklyReviewPrompt(input: BuildWeeklyReviewPromptInput): We
     lines.push('');
     lines.push('What you remember about them:');
     lines.push(memory.trim());
+  }
+
+  if (notes) {
+    lines.push('');
+    lines.push('Recent notes from their vault:');
+    lines.push(notes.trim());
   }
 
   lines.push('');

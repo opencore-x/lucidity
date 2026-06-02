@@ -10,6 +10,7 @@ import type { Task, User } from '@lucidity/shared';
 import type { DaemonConfig } from '../config.js';
 import { LaneQueue } from '../queue.js';
 import { createVault } from '../vault.js';
+import { loadNotesContext } from '../notesContext.js';
 
 export interface ChatServerDeps {
   config: DaemonConfig;
@@ -119,6 +120,7 @@ export function createChatServer(deps: ChatServerDeps): Server {
       const persona = vault.readPersona();
       const facts = vault.readMemoryFacts();
       const memory = facts.length ? facts.map((f) => `- ${f}`).join('\n') : undefined;
+      const notes = loadNotesContext(config);
       let name = '';
       let context: string | undefined;
       try {
@@ -132,7 +134,7 @@ export function createChatServer(deps: ChatServerDeps): Server {
       } catch {
         // Offline / API down → chat still works, just without live task context.
       }
-      const systemPrompt = buildChatSystemPrompt({ user: { name }, memory, persona, context });
+      const systemPrompt = buildChatSystemPrompt({ user: { name }, memory, notes, persona, context });
       return { userPrompt: message, systemPrompt, sessionId, model: config.model };
     }
   }

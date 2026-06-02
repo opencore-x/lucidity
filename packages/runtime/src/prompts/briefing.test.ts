@@ -126,3 +126,16 @@ test('uses singular noun for one task and weaves in the memory seam', () => {
   assert.ok(userPrompt.includes('1 task due today or overdue, most urgent first:'));
   assert.ok(userPrompt.includes('What you remember about them:\nPrefers deep work before noon.'));
 });
+
+test('weaves in the notes seam', () => {
+  const { userPrompt } = buildBriefingPrompt({
+    user: USER,
+    tasks: [],
+    persona: PERSONA,
+    now: NOW,
+    notes: '- Project ideas (ideas.md)\n- Trip plan (trip.md)',
+  });
+  assert.ok(
+    userPrompt.includes('Recent notes from their vault:\n- Project ideas (ideas.md)\n- Trip plan (trip.md)'),
+  );
+});

@@ -43,3 +43,10 @@ test('weaves in the memory seam', () => {
   });
   assert.ok(userPrompt.includes('What you remember about them:\n- Prefers deep work'));
 });
+
+test('weaves in the notes seam', () => {
+  const { userPrompt } = buildWeeklyReviewPrompt({
+    user: USER, tasks: [], stats: STATS, persona: 'P', now: NOW, notes: '- Idea (idea.md)',
+  });
+  assert.ok(userPrompt.includes('Recent notes from their vault:\n- Idea (idea.md)'));
+});
