@@ -7,7 +7,7 @@
     "android": "expo start -c --android",
     "ios": "expo start -c --ios",
     "web": "expo start -c --web",
-    "ios:local": "APP_ENV=development npx expo run:ios --device",
+    "ios:local": "APP_ENV=development expo run:ios --device",
     "ios:prod": "APP_ENV=production expo run:ios --device --configuration Release",
     "clean": "rm -rf .expo node_modules",
     "lint": "expo lint"
