@@ -39,6 +39,7 @@
     "expo-blur": "~56.0.3",
     "expo-clipboard": "~56.0.3",
     "expo-constants": "~56.0.16",
+    "expo-file-system": "~56.0.7",
     "expo-font": "^56.0.5",
     "expo-glass-effect": "~56.0.4",
     "expo-linking": "~56.0.13",

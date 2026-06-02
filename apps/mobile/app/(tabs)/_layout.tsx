@@ -15,6 +15,10 @@ export default function TabLayout() {
         <NativeTabs.Trigger.Label>Milestones</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="flag.fill" />
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="(notes)">
+        <NativeTabs.Trigger.Label>Notes</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="note.text" />
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="(search)" role="search">
         <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="magnifyingglass" />
