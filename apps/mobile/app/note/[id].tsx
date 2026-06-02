@@ -26,6 +26,7 @@ export default function NoteScreen() {
   const { colorScheme } = useColorScheme();
   const dark = colorScheme === 'dark';
   const textColor = dark ? '#E5E5E7' : '#1C1C1E';
+  const codeBg = dark ? '#2C2C2E' : '#F2F2F7';
 
   const [editing, setEditing] = React.useState(edit === '1');
   const [draft, setDraft] = React.useState('');
@@ -102,10 +103,16 @@ export default function NoteScreen() {
             <Markdown
               style={{
                 body: { color: textColor, fontSize: 16, lineHeight: 24 },
-                heading1: { color: textColor, fontWeight: '700' },
-                heading2: { color: textColor, fontWeight: '700' },
-                code_inline: { color: textColor },
-                fence: { color: textColor },
+                // color the actual text spans, not just the wrapper (fixes dark mode)
+                text: { color: textColor },
+                heading1: { color: textColor, fontSize: 28, lineHeight: 36, fontWeight: '700', marginTop: 8, marginBottom: 8 },
+                heading2: { color: textColor, fontSize: 22, lineHeight: 30, fontWeight: '700', marginTop: 8, marginBottom: 6 },
+                heading3: { color: textColor, fontSize: 18, lineHeight: 26, fontWeight: '600', marginTop: 6, marginBottom: 4 },
+                link: { color: ACCENT },
+                code_inline: { color: textColor, backgroundColor: codeBg, borderRadius: 4, paddingHorizontal: 4 },
+                fence: { color: textColor, backgroundColor: codeBg, borderRadius: 8, padding: 12 },
+                code_block: { color: textColor, backgroundColor: codeBg, borderRadius: 8, padding: 12 },
+                blockquote: { backgroundColor: codeBg, borderColor: MUTED, borderLeftWidth: 3, paddingHorizontal: 12 },
               }}>
               {note?.body ?? ''}
             </Markdown>
