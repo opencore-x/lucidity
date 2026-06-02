@@ -13,8 +13,28 @@ const VAULT_DIR_NAME = 'Lucidity';
 
 function vaultRoot(): Directory {
   const dir = new Directory(Paths.document, VAULT_DIR_NAME);
-  if (!dir.exists) dir.create({ intermediates: true });
+  if (!dir.exists) {
+    dir.create({ intermediates: true });
+    seedWelcome(dir);
+  }
   return dir;
+}
+
+/** First-run seed so the browser has something to show before iCloud lands. */
+function seedWelcome(dir: Directory): void {
+  try {
+    const file = new File(dir, 'Welcome.md');
+    file.create();
+    file.write(
+      '# Welcome to Lucidity Notes\n\n' +
+        'These are plain `.md` files in your local vault — the same files Claude can read and edit.\n\n' +
+        '- Tap a note to open it\n' +
+        '- Markdown renders here\n' +
+        '- Once iCloud is set up, this becomes your synced **Lucidity** vault\n',
+    );
+  } catch {
+    // seeding is best-effort
+  }
 }
 
 function relSegments(rel: string): string[] {
