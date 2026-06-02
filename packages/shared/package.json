@@ -13,7 +13,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch --preserveWatchOutput"
+    "dev": "tsc --watch --preserveWatchOutput",
+    "test": "tsx --test src/notes.test.ts"
   },
   "keywords": [],
   "dependencies": {
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3"
   }
 }
