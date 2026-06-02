@@ -8,10 +8,10 @@ import {
   Text,
   KeyboardAvoidingView,
   Platform,
+  useColorScheme,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import Markdown from 'react-native-markdown-display';
-import { useColorScheme } from 'nativewind';
 import { useNote, useWriteNote } from '@/hooks/useNotes';
 
 const ACCENT = '#0A84FF';
@@ -23,7 +23,7 @@ export default function NoteScreen() {
   const { data: note, isLoading } = useNote(path);
   const writeNote = useWriteNote();
 
-  const { colorScheme } = useColorScheme();
+  const colorScheme = useColorScheme();
   const dark = colorScheme === 'dark';
   const textColor = dark ? '#E5E5E7' : '#1C1C1E';
   const codeBg = dark ? '#2C2C2E' : '#F2F2F7';
