@@ -6,7 +6,7 @@ import {
   ZStack,
   VStack,
   HStack,
-  Spacer,
+  ScrollView,
   Button,
   List,
   Section,
@@ -24,6 +24,7 @@ import {
   foregroundStyle,
   font,
   scrollDismissesKeyboard,
+  scrollIndicators,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { useQueryClient } from '@tanstack/react-query';
@@ -77,7 +78,9 @@ export default function MilestoneScreen() {
   const { openSheet } = useSheetStore();
   const queryClient = useQueryClient();
 
-  const [selectedTab, setSelectedTab] = React.useState<'active' | 'completed'>('active');
+  const [selectedTab, setSelectedTab] = React.useState<'active' | 'deferred' | 'completed'>(
+    'active'
+  );
   const [composing, setComposing] = React.useState(false);
 
   const rootTasks = React.useMemo(
@@ -85,7 +88,11 @@ export default function MilestoneScreen() {
     [allTasks, id]
   );
   const activeTasks = React.useMemo(
-    () => rootTasks.filter((t) => t.status !== 'completed'),
+    () => rootTasks.filter((t) => t.status !== 'completed' && t.status !== 'deferred'),
+    [rootTasks]
+  );
+  const deferredTasks = React.useMemo(
+    () => rootTasks.filter((t) => t.status === 'deferred'),
     [rootTasks]
   );
   const completedTasks = React.useMemo(
@@ -159,6 +166,21 @@ export default function MilestoneScreen() {
     ? new Date(milestone.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : null;
 
+  const tabTasks =
+    selectedTab === 'active'
+      ? activeTasks
+      : selectedTab === 'deferred'
+        ? deferredTasks
+        : completedTasks;
+  const emptyLabel =
+    selectedTab === 'active'
+      ? 'No active tasks'
+      : selectedTab === 'deferred'
+        ? 'No deferred tasks'
+        : 'No completed tasks';
+  // Completed rows get a single full-swipe Delete; active/deferred rows also offer "Today".
+  const showTodayAction = selectedTab !== 'completed';
+
   return (
     <>
       <Stack.Screen
@@ -202,71 +224,45 @@ export default function MilestoneScreen() {
 
               {/* Tabs + the task list. */}
               <Section>
-                <HStack spacing={8} modifiers={[listRowSeparator('hidden')]}>
-                  <SegmentTab
-                    label="Active"
-                    count={activeTasks.length}
-                    selected={selectedTab === 'active'}
-                    onPress={() => setSelectedTab('active')}
-                    tintColor={project?.color}
-                  />
-                  <SegmentTab
-                    label="Completed"
-                    count={completedTasks.length}
-                    selected={selectedTab === 'completed'}
-                    onPress={() => setSelectedTab('completed')}
-                    tintColor={project?.color}
-                  />
-                  <Spacer />
-                </HStack>
+                <ScrollView
+                  axes="horizontal"
+                  modifiers={[listRowSeparator('hidden'), scrollIndicators('hidden')]}>
+                  <HStack spacing={8}>
+                    <SegmentTab
+                      label="Active"
+                      count={activeTasks.length}
+                      selected={selectedTab === 'active'}
+                      onPress={() => setSelectedTab('active')}
+                      tintColor={project?.color}
+                    />
+                    <SegmentTab
+                      label="Completed"
+                      count={completedTasks.length}
+                      selected={selectedTab === 'completed'}
+                      onPress={() => setSelectedTab('completed')}
+                      tintColor={project?.color}
+                    />
+                    <SegmentTab
+                      label="Deferred"
+                      count={deferredTasks.length}
+                      selected={selectedTab === 'deferred'}
+                      onPress={() => setSelectedTab('deferred')}
+                      tintColor={project?.color}
+                    />
+                  </HStack>
+                </ScrollView>
 
-                {selectedTab === 'active' ? (
-                  activeTasks.length === 0 ? (
-                    <UIText
-                      modifiers={[
-                        foregroundStyle(MUTED_GRAY),
-                        frame({ maxWidth: Infinity, alignment: 'center' }),
-                        padding({ vertical: 40 }),
-                      ]}>
-                      No active tasks
-                    </UIText>
-                  ) : (
-                    activeTasks.map((task) => (
-                      <SwipeActions key={task.id}>
-                        <TaskRow
-                          task={task}
-                          progress={getSubtaskProgress(allTasks, task.id)}
-                          onToggle={() => handleTaskToggle(task.id)}
-                          onOpen={() => handleTaskPress(task)}
-                        />
-                        <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
-                          <Button
-                            label="Delete"
-                            systemImage="trash"
-                            role="destructive"
-                            onPress={() => handleDeleteTask(task.id)}
-                          />
-                          <Button
-                            label="Today"
-                            systemImage="calendar"
-                            onPress={() => handleSetDueToday(task.id)}
-                            modifiers={[tint(TODAY_AMBER)]}
-                          />
-                        </SwipeActions.Actions>
-                      </SwipeActions>
-                    ))
-                  )
-                ) : completedTasks.length === 0 ? (
+                {tabTasks.length === 0 ? (
                   <UIText
                     modifiers={[
                       foregroundStyle(MUTED_GRAY),
                       frame({ maxWidth: Infinity, alignment: 'center' }),
                       padding({ vertical: 40 }),
                     ]}>
-                    No completed tasks
+                    {emptyLabel}
                   </UIText>
                 ) : (
-                  completedTasks.map((task) => (
+                  tabTasks.map((task) => (
                     <SwipeActions key={task.id}>
                       <TaskRow
                         task={task}
@@ -274,13 +270,21 @@ export default function MilestoneScreen() {
                         onToggle={() => handleTaskToggle(task.id)}
                         onOpen={() => handleTaskPress(task)}
                       />
-                      <SwipeActions.Actions edge="trailing">
+                      <SwipeActions.Actions edge="trailing" allowsFullSwipe={!showTodayAction}>
                         <Button
                           label="Delete"
                           systemImage="trash"
                           role="destructive"
                           onPress={() => handleDeleteTask(task.id)}
                         />
+                        {showTodayAction ? (
+                          <Button
+                            label="Today"
+                            systemImage="calendar"
+                            onPress={() => handleSetDueToday(task.id)}
+                            modifiers={[tint(TODAY_AMBER)]}
+                          />
+                        ) : null}
                       </SwipeActions.Actions>
                     </SwipeActions>
                   ))
