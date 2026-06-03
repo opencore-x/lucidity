@@ -32,6 +32,7 @@ import { TaskComposer } from '@/components/native/TaskComposer';
 import { useProjects } from '@/hooks/useProjects';
 import { useAllMilestones, useCreateMilestone } from '@/hooks/useMilestones';
 import { useUndoableDeleteMilestone } from '@/hooks/useUndoableDeleteMilestone';
+import { useMilestoneFilterStore } from '@/stores/milestoneFilterStore';
 
 const MUTED_GRAY = '#8E8E93';
 
@@ -57,7 +58,9 @@ export default function MilestonesScreen() {
   const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
   const isLoading = projectsLoading || milestonesLoading;
 
-  const [selectedProjectId, setSelectedProjectId] = React.useState<string | null>(null);
+  // Persisted across sessions so reopening Milestones restores the last project filter.
+  const selectedProjectId = useMilestoneFilterStore((s) => s.selectedProjectId);
+  const setSelectedProjectId = useMilestoneFilterStore((s) => s.setSelectedProjectId);
   // The composer for naming a new milestone; pendingProjectId is the project it lands in.
   const [pendingProjectId, setPendingProjectId] = React.useState<string | null>(null);
 
@@ -66,10 +69,20 @@ export default function MilestonesScreen() {
     return projects.filter((p) => projectIds.has(p.id));
   }, [milestones, projects]);
 
+  // Fall back to "All" if the remembered project no longer has a filter pill (deleted or
+  // its milestones are gone) — keeps the highlight + filter consistent without clearing
+  // the saved choice, so it re-applies if that project regains milestones.
+  const effectiveProjectId =
+    selectedProjectId && projectsWithMilestones.some((p) => p.id === selectedProjectId)
+      ? selectedProjectId
+      : null;
+
   const filteredMilestones = React.useMemo(
     () =>
-      selectedProjectId ? milestones.filter((m) => m.projectId === selectedProjectId) : milestones,
-    [milestones, selectedProjectId]
+      effectiveProjectId
+        ? milestones.filter((m) => m.projectId === effectiveProjectId)
+        : milestones,
+    [milestones, effectiveProjectId]
   );
 
   const onRefresh = React.useCallback(async () => {
@@ -84,8 +97,8 @@ export default function MilestonesScreen() {
       Alert.alert('No Projects', 'Create a project first to add milestones.');
       return;
     }
-    if (selectedProjectId) {
-      setPendingProjectId(selectedProjectId);
+    if (effectiveProjectId) {
+      setPendingProjectId(effectiveProjectId);
       return;
     }
     if (projects.length === 1) {
@@ -99,7 +112,7 @@ export default function MilestonesScreen() {
         if (index < projects.length) setPendingProjectId(projects[index].id);
       }
     );
-  }, [projects, selectedProjectId]);
+  }, [projects, effectiveProjectId]);
 
   const handleSubmitMilestone = React.useCallback(
     (name: string) => {
@@ -125,7 +138,7 @@ export default function MilestonesScreen() {
       onPress={() => setSelectedProjectId(id)}
       modifiers={[
         controlSize('small'),
-        buttonStyle(selectedProjectId === id ? 'glassProminent' : 'glass'),
+        buttonStyle(effectiveProjectId === id ? 'glassProminent' : 'glass'),
       ]}
     />
   );
