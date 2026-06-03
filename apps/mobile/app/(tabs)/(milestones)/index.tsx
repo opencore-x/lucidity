@@ -10,6 +10,7 @@ import {
   Button,
   SwipeActions,
   Text as UIText,
+  useNativeState,
 } from '@expo/ui/swift-ui';
 import {
   listStyle,
@@ -22,6 +23,9 @@ import {
   padding,
   scrollDismissesKeyboard,
   scrollIndicators,
+  scrollPosition,
+  scrollTargetLayout,
+  id as scrollTargetId,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { useQueryClient } from '@tanstack/react-query';
@@ -85,6 +89,13 @@ export default function MilestonesScreen() {
     [milestones, effectiveProjectId]
   );
 
+  // Scroll the selected filter pill into view so a persisted selection isn't left clipped
+  // at the right edge when the screen opens. ('all' is the leftmost pill's id.)
+  const tabScrollState = useNativeState<string | null>(null);
+  React.useEffect(() => {
+    tabScrollState.value = effectiveProjectId ?? 'all';
+  }, [effectiveProjectId, projectsWithMilestones.length, tabScrollState]);
+
   const onRefresh = React.useCallback(async () => {
     queryClient.invalidateQueries({ queryKey: ['milestoneProgress'] });
     await Promise.all([refetchProjects(), refetchMilestones()]);
@@ -139,6 +150,7 @@ export default function MilestonesScreen() {
       modifiers={[
         controlSize('small'),
         buttonStyle(effectiveProjectId === id ? 'glassProminent' : 'glass'),
+        scrollTargetId(id ?? 'all'),
       ]}
     />
   );
@@ -171,8 +183,12 @@ export default function MilestonesScreen() {
               {projectsWithMilestones.length > 1 ? (
                 <ScrollView
                   axes="horizontal"
-                  modifiers={[listRowSeparator('hidden'), scrollIndicators('hidden')]}>
-                  <HStack spacing={8}>
+                  modifiers={[
+                    listRowSeparator('hidden'),
+                    scrollIndicators('hidden'),
+                    scrollPosition(tabScrollState, { anchor: 'center' }),
+                  ]}>
+                  <HStack spacing={8} modifiers={[scrollTargetLayout()]}>
                     {filterButton(null, 'All')}
                     {projectsWithMilestones.map((p) => filterButton(p.id, p.name))}
                   </HStack>
