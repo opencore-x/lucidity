@@ -79,4 +79,27 @@ export function registerCommentTools(server: McpServer) {
       };
     },
   );
+
+  server.tool(
+    'delete_comment',
+    'Delete a comment from a task. Get the comment_id from list_comments or get_task.',
+    {
+      task_id: z.string().describe('Task ID the comment belongs to'),
+      comment_id: z.string().describe('Comment ID to delete'),
+    },
+    async ({ task_id, comment_id }) => {
+      await apiRequest(`/api/tasks/${task_id}/comments/${comment_id}`, {
+        method: 'DELETE',
+      });
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Deleted comment ${comment_id} from task ${task_id}.`,
+          },
+        ],
+      };
+    },
+  );
 }
