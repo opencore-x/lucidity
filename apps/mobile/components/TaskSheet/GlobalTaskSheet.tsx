@@ -835,7 +835,7 @@ export function GlobalTaskSheet() {
                     multilineTextAlignment('leading'),
                     frame({ maxWidth: Infinity, alignment: 'leading' }),
                     // Negative bottom padding pulls the Notes card up to tighten the gap.
-                    padding({ leading: 16, trailing: 16, bottom: -8 }),
+                    padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
                   ]}
                 />
               ) : (
@@ -846,7 +846,7 @@ export function GlobalTaskSheet() {
                     font({ size: 22, weight: 'semibold' }),
                     multilineTextAlignment('leading'),
                     frame({ maxWidth: Infinity, alignment: 'leading' }),
-                    padding({ leading: 16, trailing: 16, bottom: -8 }),
+                    padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
                     onTapGesture(() => setEditingTitle(true)),
                   ]}>
                   <Text>{task.title}</Text>
