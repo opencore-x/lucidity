@@ -16,6 +16,7 @@ import {
   Slider,
   DatePicker,
   Toggle,
+  useNativeState,
 } from '@expo/ui/swift-ui';
 import {
   frame,
@@ -25,6 +26,7 @@ import {
   buttonStyle,
   glassEffect,
   hidden,
+  disabled,
   datePickerStyle,
   labelsHidden,
   lineLimit,
@@ -40,8 +42,10 @@ import {
   font,
   textFieldStyle,
   scrollDismissesKeyboard,
+  symbolEffect,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSheetStore } from '@/stores/sheetStore';
 import { useToastStore } from '@/stores/toastStore';
 import {
@@ -601,6 +605,8 @@ export function GlobalTaskSheet() {
   const task = taskStack.length > 0 ? taskStack[taskStack.length - 1] : null;
   const canGoBack = taskStack.length > 1;
 
+  const queryClient = useQueryClient();
+
   // Source data globally (replaces the per-screen props). Auto-close if the open
   // task disappears from the list (deleted elsewhere).
   const { data: allTasks = [] } = useTasks();
@@ -632,6 +638,13 @@ export function GlobalTaskSheet() {
   // The description is likewise tap-to-edit: rendered markdown when read-only, raw markdown
   // in a monospaced field while editing.
   const [editingDesc, setEditingDesc] = React.useState(false);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  // Native state mirror of isRefreshing so the refresh SF Symbol spins (symbolEffect
+  // rotate) while a refetch is in flight.
+  const refreshingState = useNativeState(false);
+  React.useEffect(() => {
+    refreshingState.value = isRefreshing;
+  }, [isRefreshing, refreshingState]);
   const blurFieldRef = React.useRef<(() => void) | null>(null);
   const handleFieldFocus = React.useCallback((blur: () => void) => {
     blurFieldRef.current = blur;
@@ -701,6 +714,25 @@ export function GlobalTaskSheet() {
     if (task) deleteTask(task.id);
   }, [task, deleteTask]);
 
+  // Pull fresh data for the open task — its fields + comments — so changes made elsewhere
+  // (e.g. comments written by Lucid/MCP) appear without reopening the sheet. After the
+  // ['tasks'] list refetches, re-sync the authoritative task into the stack.
+  const handleRefresh = React.useCallback(async () => {
+    if (!task || isRefreshing) return;
+    const id = task.id;
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+        queryClient.invalidateQueries({ queryKey: ['comments', id] }),
+      ]);
+      const fresh = queryClient.getQueryData<Task[]>(['tasks'])?.find((t) => t.id === id);
+      if (fresh) updateCurrentTask(fresh);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [task, isRefreshing, queryClient, updateCurrentTask]);
+
   // A circular Liquid Glass icon button (back / close).
   const circleGlass = [
     buttonStyle('plain'),
@@ -731,13 +763,32 @@ export function GlobalTaskSheet() {
             presentationDragIndicator('visible'),
           ]}>
           <VStack spacing={12}>
-            {/* Top bar: back (hidden at root, reserves width) / status / close */}
+            {/* Top bar: [back?][refresh] / status / [back-placeholder?][close|Done]. Refresh
+                (left) balances close (right); a hidden placeholder (right) balances Back
+                (left) so the status pill stays centered at root AND when drilled into a
+                subtask. Refresh hides while editing text (avoid refetching mid-edit). */}
             <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
-              <Button
-                onPress={goBack}
-                modifiers={canGoBack ? circleGlass : [...circleGlass, hidden(true)]}>
-                <Image systemName="chevron.left" size={18} />
-              </Button>
+              {canGoBack ? (
+                <Button onPress={goBack} modifiers={circleGlass}>
+                  <Image systemName="chevron.left" size={18} />
+                </Button>
+              ) : null}
+              {task && !isEditingText ? (
+                <Button
+                  onPress={handleRefresh}
+                  modifiers={isRefreshing ? [...circleGlass, disabled(true)] : circleGlass}>
+                  <Image
+                    systemName="arrow.clockwise"
+                    size={18}
+                    modifiers={[
+                      symbolEffect(
+                        { effect: 'rotate' },
+                        { isActive: refreshingState, options: { speed: 2.5, repeat: 'continuous' } }
+                      ),
+                    ]}
+                  />
+                </Button>
+              ) : null}
               <Spacer />
               {task ? (
                 <StatusPill
@@ -746,6 +797,12 @@ export function GlobalTaskSheet() {
                 />
               ) : null}
               <Spacer />
+              {/* Invisible 40×40 placeholder so Back (left) has a counterweight (right). */}
+              {canGoBack ? (
+                <Button onPress={() => {}} modifiers={[...circleGlass, hidden(true)]}>
+                  <Image systemName="chevron.left" size={18} />
+                </Button>
+              ) : null}
               {isEditingText ? (
                 <Button
                   label="Done"
