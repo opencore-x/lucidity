@@ -8,6 +8,8 @@ import {
   lineLimit,
   frame,
   font,
+  glassEffect,
+  padding,
 } from '@expo/ui/swift-ui/modifiers';
 import { formatRelativeTime } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
@@ -19,6 +21,21 @@ const CHECKBOX_GRAY = '#C7C7CC';
 // Second-line metadata is deliberately small + quiet.
 const META_ICON = 11;
 const META_FONT = 12;
+
+// Color-coded status shown as a small glass pill (matches the task sheet StatusPill).
+// `pending` (the default) and `completed` (green checkmark + done time) are conveyed
+// elsewhere, so they're omitted here.
+const STATUS_META: Record<string, { label: string; color: string }> = {
+  in_progress: { label: 'In Progress', color: '#3B82F6' },
+  blocked: { label: 'Blocked', color: '#EF4444' },
+  deferred: { label: 'Deferred', color: '#F59E0B' },
+};
+
+// Shared glass-capsule style for every second-line metadata chip.
+const CHIP_MODS = [
+  padding({ horizontal: 8, vertical: 3 }),
+  glassEffect({ glass: { variant: 'regular' }, shape: 'capsule' }),
+];
 
 type DueInfo = { label: string; color: string } | null;
 
@@ -72,41 +89,67 @@ export function TaskRow({
   const due = completed ? null : getDueInfo(task.dueDate);
   const reminderColor = completed ? null : getReminderColor(task.reminderAt);
 
-  // Build the quiet second line. Order: #number, then recurring / progress / reminder /
-  // due for active tasks, or the completed-at time for done ones.
+  // Build the quiet second line of glass chips. Order: #number (always first), status,
+  // then recurring / progress / reminder / due for active tasks, or the completed-at time
+  // for done ones.
   const meta: React.ReactNode[] = [];
   if (task.taskNumber != null) {
     meta.push(
-      <Text key="num" modifiers={[foregroundStyle(MUTED_GRAY), font({ size: META_FONT })]}>
-        {`#${task.taskNumber}`}
-      </Text>
+      <HStack key="num" modifiers={CHIP_MODS}>
+        <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: META_FONT })]}>
+          {`#${task.taskNumber}`}
+        </Text>
+      </HStack>
+    );
+  }
+  const statusMeta = completed ? undefined : STATUS_META[task.status];
+  if (statusMeta) {
+    meta.push(
+      <HStack key="status" spacing={5} modifiers={CHIP_MODS}>
+        <Image systemName="circle.fill" size={5} color={statusMeta.color} />
+        <Text modifiers={[foregroundStyle(statusMeta.color), font({ size: META_FONT })]}>
+          {statusMeta.label}
+        </Text>
+      </HStack>
     );
   }
   if (completed) {
     if (task.completedAt) {
       meta.push(
-        <Text key="done" modifiers={[foregroundStyle(MUTED_GRAY), font({ size: META_FONT })]}>
-          {formatRelativeTime(task.completedAt)}
-        </Text>
+        <HStack key="done" modifiers={CHIP_MODS}>
+          <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: META_FONT })]}>
+            {formatRelativeTime(task.completedAt)}
+          </Text>
+        </HStack>
       );
     }
   } else {
     if (task.recurringFrequency) {
-      meta.push(<Image key="repeat" systemName="repeat" size={META_ICON} color={MUTED_GRAY} />);
+      meta.push(
+        <HStack key="repeat" modifiers={CHIP_MODS}>
+          <Image systemName="repeat" size={META_ICON} color={MUTED_GRAY} />
+        </HStack>
+      );
     }
     if (progress) {
       meta.push(
-        <Text key="progress" modifiers={[foregroundStyle(MUTED_GRAY), font({ size: META_FONT })]}>
-          {`${progress.completed}/${progress.total}`}
-        </Text>
+        <HStack key="progress" modifiers={CHIP_MODS}>
+          <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: META_FONT })]}>
+            {`${progress.completed}/${progress.total}`}
+          </Text>
+        </HStack>
       );
     }
     if (reminderColor) {
-      meta.push(<Image key="bell" systemName="bell.fill" size={META_ICON} color={reminderColor} />);
+      meta.push(
+        <HStack key="bell" modifiers={CHIP_MODS}>
+          <Image systemName="bell.fill" size={META_ICON} color={reminderColor} />
+        </HStack>
+      );
     }
     if (due) {
       meta.push(
-        <HStack key="due" spacing={3}>
+        <HStack key="due" spacing={3} modifiers={CHIP_MODS}>
           <Image systemName="calendar" size={META_ICON} color={due.color} />
           <Text modifiers={[foregroundStyle(due.color), font({ size: META_FONT })]}>
             {due.label}
