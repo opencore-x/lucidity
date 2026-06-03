@@ -19,6 +19,7 @@ import {
   padding,
   listStyle,
   listRowSeparator,
+  listRowBackground,
   refreshable,
   frame,
   foregroundStyle,
@@ -207,10 +208,14 @@ export default function MilestoneScreen() {
                 refreshable(onRefresh),
                 scrollDismissesKeyboard('interactively'),
               ]}>
-              {/* Milestone name as a wrapping title card — long names don't fit the
-                  nav bar (which shows the short project name). */}
+              {/* Milestone name as a plain wrapping heading (no grouped card) — long names
+                  don't fit the nav bar, which shows the short project name. The clear row
+                  background drops the inset-grouped card without clipping the title. */}
               <Section>
-                <VStack spacing={4} alignment="leading">
+                <VStack
+                  spacing={4}
+                  alignment="leading"
+                  modifiers={[listRowBackground('#00000000'), listRowSeparator('hidden')]}>
                   <UIText modifiers={[font({ size: 22, weight: 'semibold' })]}>
                     {milestone.name}
                   </UIText>
