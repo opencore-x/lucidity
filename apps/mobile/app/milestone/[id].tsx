@@ -29,7 +29,6 @@ import {
   textFieldStyle,
   lineLimit,
   truncationMode,
-  onTapGesture,
   listSectionSpacing,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
@@ -40,6 +39,7 @@ import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { TaskRow } from '@/components/native/TaskRow';
 import { TaskComposer } from '@/components/native/TaskComposer';
 import { EditableField } from '@/components/native/EditableField';
+import { PillButton } from '@/components/native/PillButton';
 import { SegmentTab } from '@/components/native/SegmentTab';
 import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
 import { useProjects } from '@/hooks/useProjects';
@@ -259,13 +259,12 @@ export default function MilestoneScreen() {
                       {`Due ${due}`}
                     </UIText>
                   ) : null}
-                  {/* Milestone description, via two-stage tap so reading doesn't pop the
-                      keyboard:
-                      - collapsed: subtle muted 3-line preview; tap to expand (or, when empty,
-                        tap the placeholder straight into editing — nothing to read)
-                      - expanded: full read-only text (no keyboard); tap to edit
-                      - editing: larger auto-focused plain field, saved via nav-bar "Done"
-                      Extra top padding adds breathing room below the name/due. */}
+                  {/* Milestone description. Reading + editing are driven by explicit glass
+                      pills (no keyboard on read):
+                      - collapsed: muted 3-line preview + a "Read more" pill
+                      - expanded: full text + "Read less" and "Edit" pills
+                      - editing: auto-focused field, saved via nav-bar "Done"
+                      Empty: a single "Add description" pill. */}
                   {descMode === 'editing' ? (
                     <EditableField
                       key={`mdesc-${milestone.id}`}
@@ -284,24 +283,43 @@ export default function MilestoneScreen() {
                       onFocusLeave={handleDescBlur}
                       modifiers={[textFieldStyle('plain'), font({ size: 17 }), padding({ top: 6 })]}
                     />
-                  ) : (
-                    <UIText
+                  ) : milestone.description ? (
+                    <VStack
+                      alignment="leading"
+                      spacing={8}
                       modifiers={[
-                        foregroundStyle(MUTED_GRAY),
-                        font({ size: 15 }),
+                        frame({ maxWidth: Infinity, alignment: 'leading' }),
                         padding({ top: 6 }),
-                        ...(descMode === 'expanded'
-                          ? [onTapGesture(() => setDescMode('editing'))]
-                          : [
-                              lineLimit(3),
-                              truncationMode('tail'),
-                              onTapGesture(() =>
-                                setDescMode(milestone.description ? 'expanded' : 'editing')
-                              ),
-                            ]),
                       ]}>
-                      {milestone.description ?? 'Description…'}
-                    </UIText>
+                      <UIText
+                        modifiers={[
+                          foregroundStyle(MUTED_GRAY),
+                          font({ size: 15 }),
+                          frame({ maxWidth: Infinity, alignment: 'leading' }),
+                          ...(descMode === 'collapsed'
+                            ? [lineLimit(3), truncationMode('tail')]
+                            : []),
+                        ]}>
+                        {milestone.description}
+                      </UIText>
+                      <HStack spacing={8}>
+                        {descMode === 'collapsed' ? (
+                          <PillButton label="Read more" onPress={() => setDescMode('expanded')} />
+                        ) : (
+                          <>
+                            <PillButton
+                              label="Read less"
+                              onPress={() => setDescMode('collapsed')}
+                            />
+                            <PillButton label="Edit" onPress={() => setDescMode('editing')} />
+                          </>
+                        )}
+                      </HStack>
+                    </VStack>
+                  ) : (
+                    <HStack spacing={8} modifiers={[padding({ top: 6 })]}>
+                      <PillButton label="Add description" onPress={() => setDescMode('editing')} />
+                    </HStack>
                   )}
                 </VStack>
               </Section>
