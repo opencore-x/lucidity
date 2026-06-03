@@ -32,6 +32,8 @@ import {
   multilineTextAlignment,
   foregroundStyle,
   onTapGesture,
+  contentShape,
+  shapes,
   resizable,
   clipShape,
   listStyle,
@@ -56,6 +58,7 @@ import { useComments, useCreateComment, useUndoableDeleteComment } from '@/hooks
 import { useUser } from '@clerk/clerk-expo';
 import { StatusPill } from '@/components/TaskSheet/StatusPill';
 import { EditableField } from '@/components/native/EditableField';
+import { MarkdownView } from '@/components/native/MarkdownView';
 import { TaskComposer } from '@/components/native/TaskComposer';
 import {
   INBOX_PROJECT_ID,
@@ -396,6 +399,7 @@ function CommentRow({
   claudeLogoUri: string | null;
 }) {
   const isClaude = comment.source === 'claude';
+  const { colorScheme } = useColorScheme();
   return (
     <VStack
       spacing={4}
@@ -419,11 +423,8 @@ function CommentRow({
           {formatRelativeTime(comment.createdAt)}
         </Text>
       </HStack>
-      {/* SwiftUI markdown is inline-only (bold/italic/links/inline-code); block
-          elements like headings/lists/code-blocks render as plain text. */}
-      <Text markdownEnabled modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
-        {comment.content}
-      </Text>
+      {/* Full markdown — headings/lists/code-blocks/inline — via the native renderer. */}
+      <MarkdownView content={comment.content} dark={colorScheme === 'dark'} />
     </VStack>
   );
 }
@@ -593,6 +594,9 @@ export function GlobalTaskSheet() {
   // The title is tap-to-edit so it can show the task number inline after the text in its
   // read-only display state; tapping swaps in the auto-focused field.
   const [editingTitle, setEditingTitle] = React.useState(false);
+  // The description is likewise tap-to-edit: rendered markdown when read-only, raw markdown
+  // in a monospaced field while editing.
+  const [editingDesc, setEditingDesc] = React.useState(false);
   const blurFieldRef = React.useRef<(() => void) | null>(null);
   const handleFieldFocus = React.useCallback((blur: () => void) => {
     blurFieldRef.current = blur;
@@ -771,18 +775,45 @@ export function GlobalTaskSheet() {
               <List
                 modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
                 {/* Description lives in the scrollable list (not pinned) so a long note
-                    scrolls away instead of hogging the top of the sheet. */}
-                <EditableField
-                  key={`desc-${task.id}`}
-                  value={task.description ?? ''}
-                  onCommit={(t) => handleUpdateField({ description: t || null })}
-                  onFocusEnter={handleFieldFocus}
-                  onFocusLeave={handleFieldBlur}
-                  allowEmpty
-                  multiline
-                  placeholder="Description…"
-                  modifiers={[textFieldStyle('plain')]}
-                />
+                    scrolls away instead of hogging the top of the sheet. Tap-to-edit: the
+                    rendered markdown shows read-only; tapping swaps in a monospaced field
+                    that edits the raw markdown source (saved via the top-bar Done). */}
+                {editingDesc ? (
+                  <EditableField
+                    key={`desc-${task.id}`}
+                    value={task.description ?? ''}
+                    onCommit={(t) => handleUpdateField({ description: t || null })}
+                    onFocusEnter={handleFieldFocus}
+                    onFocusLeave={() => {
+                      handleFieldBlur();
+                      setEditingDesc(false);
+                    }}
+                    allowEmpty
+                    multiline
+                    autoFocus
+                    placeholder="Description…"
+                    modifiers={[textFieldStyle('plain'), font({ design: 'monospaced', size: 14 })]}
+                  />
+                ) : task.description ? (
+                  <VStack
+                    alignment="leading"
+                    modifiers={[
+                      frame({ maxWidth: Infinity, alignment: 'leading' }),
+                      contentShape(shapes.rectangle()),
+                      onTapGesture(() => setEditingDesc(true)),
+                    ]}>
+                    <MarkdownView content={task.description} dark={colorScheme === 'dark'} />
+                  </VStack>
+                ) : (
+                  <Text
+                    modifiers={[
+                      foregroundStyle(MENU_VALUE_GRAY),
+                      frame({ maxWidth: Infinity, alignment: 'leading' }),
+                      onTapGesture(() => setEditingDesc(true)),
+                    ]}>
+                    Description…
+                  </Text>
+                )}
 
                 <CommentsSection taskId={task.id} onAdd={addComment} />
 
