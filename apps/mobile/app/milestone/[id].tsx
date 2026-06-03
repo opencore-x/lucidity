@@ -329,7 +329,9 @@ export default function MilestoneScreen() {
                 <ScrollView
                   axes="horizontal"
                   modifiers={[listRowSeparator('hidden'), scrollIndicators('hidden')]}>
-                  <HStack spacing={8}>
+                  {/* Inner padding gives the glass tabs room to "lift" on press without the
+                      ScrollView clipping the expanded edges (top/bottom + first/last). */}
+                  <HStack spacing={8} modifiers={[padding({ vertical: 8, horizontal: 4 })]}>
                     <SegmentTab
                       label="Active"
                       count={activeTasks.length}
