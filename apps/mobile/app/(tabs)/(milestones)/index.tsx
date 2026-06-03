@@ -21,6 +21,7 @@ import {
   controlSize,
   padding,
   scrollDismissesKeyboard,
+  scrollIndicators,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { useQueryClient } from '@tanstack/react-query';
@@ -155,7 +156,9 @@ export default function MilestonesScreen() {
                 scrollDismissesKeyboard('interactively'),
               ]}>
               {projectsWithMilestones.length > 1 ? (
-                <ScrollView axes="horizontal" modifiers={[listRowSeparator('hidden')]}>
+                <ScrollView
+                  axes="horizontal"
+                  modifiers={[listRowSeparator('hidden'), scrollIndicators('hidden')]}>
                   <HStack spacing={8}>
                     {filterButton(null, 'All')}
                     {projectsWithMilestones.map((p) => filterButton(p.id, p.name))}
