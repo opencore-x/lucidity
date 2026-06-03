@@ -20,6 +20,13 @@ interface Task {
   updatedAt: string;
 }
 
+interface Comment {
+  id: string;
+  content: string;
+  source: string | null;
+  createdAt: string;
+}
+
 function formatTask(t: Task): string {
   const statusMap: Record<string, string> = {
     completed: '[x]',
@@ -36,7 +43,94 @@ function formatTask(t: Task): string {
   return `${status} ${t.title}${num}${due}${recurring}`;
 }
 
+// Full multi-line rendering for a single task, including every field that the
+// list/search summaries omit. Comments are inlined when provided.
+function formatTaskDetail(t: Task, comments: Comment[]): string {
+  const lines = [
+    formatTask(t),
+    `id: ${t.id}`,
+    `status: ${t.status ?? 'pending'}    priority: ${t.priority}`,
+  ];
+  if (t.projectId) lines.push(`project: ${t.projectId}`);
+  if (t.parentTaskId) lines.push(`parent task: ${t.parentTaskId}`);
+  if (t.dueDate) lines.push(`due: ${new Date(t.dueDate).toLocaleDateString()}`);
+  if (t.status === 'completed' && t.completedAt)
+    lines.push(`completed: ${new Date(t.completedAt).toLocaleString()}`);
+  lines.push(`reviewed: ${t.reviewedAt ? 'yes' : 'no'}`);
+  lines.push('', t.description?.trim() ? t.description : '(no description)');
+
+  if (comments.length > 0) {
+    lines.push('', `Comments (${comments.length}):`);
+    for (const cmt of comments) {
+      const who = cmt.source === 'claude' ? 'AI' : 'user';
+      const when = new Date(cmt.createdAt).toLocaleString();
+      lines.push(`  - [${when} · ${who}] ${cmt.content}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
 export function registerTaskTools(server: McpServer) {
+  server.tool(
+    'get_task',
+    'Get a single task in full — including its description, all fields, and comments (which list_tasks and search omit). Identify the task either by id, or by project_id + task_number (e.g. #133).',
+    {
+      id: z.string().optional().describe('Task ID (UUID)'),
+      project_id: z
+        .string()
+        .optional()
+        .describe('Project ID — use with task_number'),
+      task_number: z
+        .number()
+        .optional()
+        .describe('Task number within the project (the #N shown in listings)'),
+    },
+    async ({ id, project_id, task_number }) => {
+      let taskId = id;
+
+      if (!taskId) {
+        if (!project_id || task_number === undefined) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: 'Provide either `id`, or both `project_id` and `task_number`.',
+              },
+            ],
+          };
+        }
+        const params = new URLSearchParams({
+          project_id,
+          task_number: String(task_number),
+        });
+        const found = await apiRequest<{ tasks: Task[] }>(`/api/tasks?${params}`);
+        if (!found.tasks.length) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `No task #${task_number} found in project ${project_id}.`,
+              },
+            ],
+          };
+        }
+        taskId = found.tasks[0]!.id;
+      }
+
+      const [task, comments] = await Promise.all([
+        apiRequest<Task>(`/api/tasks/${taskId}`),
+        apiRequest<Comment[]>(`/api/tasks/${taskId}/comments`),
+      ]);
+
+      return {
+        content: [
+          { type: 'text' as const, text: formatTaskDetail(task, comments) },
+        ],
+      };
+    },
+  );
+
   server.tool(
     'list_tasks',
     'List tasks with server-side filtering and pagination. Returns task IDs for use with other tools.',
