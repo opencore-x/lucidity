@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '../lib/db.js';
-import { tasks, projects, eq, and, isNull, sql } from '@lucidity/db';
+import { tasks, projects, comments, eq, and, isNull, sql } from '@lucidity/db';
 import { getCurrentUser } from '../lib/auth.js';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 
@@ -140,7 +140,25 @@ taskQueryRouter.patch('/:id/review', async (c) => {
 
 const searchRouter = new Hono();
 
-// GET /api/search?q=... — ILIKE search across tasks and projects
+// Build a short context snippet around the first occurrence of `q` in `text`,
+// with leading/trailing ellipses and collapsed whitespace.
+function buildSnippet(text: string, q: string, radius = 40): string {
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) {
+    return text.length > radius * 2 ? `${text.slice(0, radius * 2)}…` : text;
+  }
+  const start = Math.max(0, idx - radius);
+  const end = Math.min(text.length, idx + q.length + radius);
+  let snippet = text.slice(start, end).replace(/\s+/g, ' ').trim();
+  if (start > 0) snippet = `…${snippet}`;
+  if (end < text.length) snippet = `${snippet}…`;
+  return snippet;
+}
+
+// GET /api/search?q=... — ILIKE search across task titles, descriptions,
+// comment content, and project names. Each matched task carries a `match`
+// object naming the field that matched (title | description | comment) and a
+// context snippet so callers can see why it surfaced.
 searchRouter.get('/search', async (c) => {
   const user = await getCurrentUser(c);
   const q = c.req.query('q')?.trim();
@@ -151,7 +169,7 @@ searchRouter.get('/search', async (c) => {
 
   const pattern = `%${q}%`;
 
-  const [matchedTasks, matchedProjects] = await Promise.all([
+  const [titleDescTasks, commentMatches, matchedProjects] = await Promise.all([
     db
       .select()
       .from(tasks)
@@ -162,6 +180,15 @@ searchRouter.get('/search', async (c) => {
         ),
       )
       .orderBy(sql`${tasks.createdAt} DESC`)
+      .limit(50),
+    db
+      .select({ task: tasks, commentContent: comments.content })
+      .from(comments)
+      .innerJoin(tasks, eq(comments.taskId, tasks.id))
+      .where(
+        and(eq(tasks.userId, user.id), sql`${comments.content} ILIKE ${pattern}`),
+      )
+      .orderBy(sql`${comments.createdAt} DESC`)
       .limit(50),
     db
       .select()
@@ -176,7 +203,26 @@ searchRouter.get('/search', async (c) => {
       .limit(20),
   ]);
 
-  return c.json({ tasks: matchedTasks, projects: matchedProjects });
+  const ql = q.toLowerCase();
+  const byId = new Map<string, any>();
+
+  // Title/description matches take priority over comment matches.
+  for (const t of titleDescTasks) {
+    const inTitle = t.title.toLowerCase().includes(ql);
+    const field = inTitle ? 'title' : 'description';
+    const source = inTitle ? t.title : (t.description ?? '');
+    byId.set(t.id, { ...t, match: { field, snippet: buildSnippet(source, q) } });
+  }
+
+  for (const { task, commentContent } of commentMatches) {
+    if (byId.has(task.id)) continue;
+    byId.set(task.id, {
+      ...task,
+      match: { field: 'comment', snippet: buildSnippet(commentContent, q) },
+    });
+  }
+
+  return c.json({ tasks: [...byId.values()], projects: matchedProjects });
 });
 
 export { taskQueryRouter, searchRouter };

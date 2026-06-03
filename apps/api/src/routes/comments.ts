@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { uuidv7 } from 'uuidv7';
 import { db } from '../lib/db.js';
-import { comments, tasks, eq, and, sql } from '@lucidity/db';
+import { comments, tasks, users, eq, and, sql } from '@lucidity/db';
 import { CreateCommentSchema, UpdateCommentSchema } from '@lucidity/shared';
 import { getCurrentUser } from '../lib/auth.js';
 
@@ -20,9 +20,22 @@ router.get('/:taskId/comments', async (c) => {
 
   if (!task) return c.json({ error: 'Task not found' }, 404);
 
+  // Join the author so the client can render their real name + avatar (not just the
+  // current logged-in user). leftJoin keeps the comment even if the user row is missing.
   const result = await db
-    .select()
+    .select({
+      id: comments.id,
+      taskId: comments.taskId,
+      userId: comments.userId,
+      content: comments.content,
+      source: comments.source,
+      createdAt: comments.createdAt,
+      updatedAt: comments.updatedAt,
+      authorName: users.name,
+      authorAvatarUrl: users.avatarUrl,
+    })
     .from(comments)
+    .leftJoin(users, eq(comments.userId, users.id))
     .where(eq(comments.taskId, taskId))
     .orderBy(sql`${comments.createdAt} ASC`);
 
@@ -54,7 +67,11 @@ router.post('/:taskId/comments', async (c) => {
     .values({ ...parsed.data, id, taskId, userId: user.id })
     .returning();
 
-  return c.json(newComment, 201);
+  // Echo the author's name + avatar so the new comment renders them immediately.
+  return c.json(
+    { ...newComment, authorName: user.name, authorAvatarUrl: user.avatarUrl },
+    201,
+  );
 });
 
 // PATCH /api/tasks/:taskId/comments/:commentId

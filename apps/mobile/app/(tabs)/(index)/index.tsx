@@ -42,11 +42,13 @@ type ProjectRowData = { project: Project; total: number; completed: number };
 
 /**
  * One project row: a color dot (gray for Inbox / colorless projects), the name,
- * and a completed/total count. The whole row is tappable via `contentShape` +
- * `onTapGesture`. Swipe actions (Edit / Delete) are attached by the parent.
+ * and a trailing count of remaining (uncompleted) tasks — hidden when none are left.
+ * The whole row is tappable via `contentShape` + `onTapGesture`. Swipe actions
+ * (Edit / Delete) are attached by the parent.
  */
 function ProjectRow({ row, onPress }: { row: ProjectRowData; onPress: () => void }) {
   const { project, total, completed } = row;
+  const remaining = total - completed;
   return (
     <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onPress)]}>
       {/* key on the color so the native Image re-paints when the color changes
@@ -59,7 +61,9 @@ function ProjectRow({ row, onPress }: { row: ProjectRowData; onPress: () => void
       />
       <Text>{project.name}</Text>
       <Spacer />
-      <Text modifiers={[foregroundStyle(MUTED_GRAY)]}>{`${completed}/${total}`}</Text>
+      {remaining > 0 ? (
+        <Text modifiers={[foregroundStyle(MUTED_GRAY)]}>{String(remaining)}</Text>
+      ) : null}
     </HStack>
   );
 }

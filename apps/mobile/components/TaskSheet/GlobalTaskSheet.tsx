@@ -16,6 +16,7 @@ import {
   Slider,
   DatePicker,
   Toggle,
+  useNativeState,
 } from '@expo/ui/swift-ui';
 import {
   frame,
@@ -25,6 +26,7 @@ import {
   buttonStyle,
   glassEffect,
   hidden,
+  disabled,
   datePickerStyle,
   labelsHidden,
   lineLimit,
@@ -32,14 +34,18 @@ import {
   multilineTextAlignment,
   foregroundStyle,
   onTapGesture,
+  contentShape,
+  shapes,
   resizable,
   clipShape,
   listStyle,
   font,
   textFieldStyle,
   scrollDismissesKeyboard,
+  symbolEffect,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSheetStore } from '@/stores/sheetStore';
 import { useToastStore } from '@/stores/toastStore';
 import {
@@ -56,6 +62,7 @@ import { useComments, useCreateComment, useUndoableDeleteComment } from '@/hooks
 import { useUser } from '@clerk/clerk-expo';
 import { StatusPill } from '@/components/TaskSheet/StatusPill';
 import { EditableField } from '@/components/native/EditableField';
+import { MarkdownView } from '@/components/native/MarkdownView';
 import { TaskComposer } from '@/components/native/TaskComposer';
 import {
   INBOX_PROJECT_ID,
@@ -95,6 +102,32 @@ function useClaudeLogoUri(): string | null {
       active = false;
     };
   }, [uri]);
+  return uri;
+}
+
+// The native Image renders local files only (uiImage), so cache a remote avatar URL to a
+// local file and hand back its URI. Returns null (→ SF Symbol placeholder) while loading
+// or on failure. expo-asset dedupes by URL, so repeat authors don't re-download.
+function useRemoteImageUri(url: string | null | undefined): string | null {
+  const [uri, setUri] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!url) {
+      setUri(null);
+      return;
+    }
+    let active = true;
+    Asset.fromURI(url)
+      .downloadAsync()
+      .then((a) => {
+        if (active) setUri(a.localUri ?? null);
+      })
+      .catch(() => {
+        if (active) setUri(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [url]);
   return uri;
 }
 
@@ -390,12 +423,16 @@ function CommentRow({
   comment,
   displayName,
   claudeLogoUri,
+  avatarUrl,
 }: {
   comment: Comment;
   displayName: string;
   claudeLogoUri: string | null;
+  avatarUrl: string | null;
 }) {
   const isClaude = comment.source === 'claude';
+  const { colorScheme } = useColorScheme();
+  const avatarLocalUri = useRemoteImageUri(isClaude ? null : avatarUrl);
   return (
     <VStack
       spacing={4}
@@ -407,6 +444,11 @@ function CommentRow({
             uiImage={claudeLogoUri}
             modifiers={[resizable(), frame({ width: 16, height: 16 }), clipShape('circle')]}
           />
+        ) : !isClaude && avatarLocalUri ? (
+          <Image
+            uiImage={avatarLocalUri}
+            modifiers={[resizable(), frame({ width: 16, height: 16 }), clipShape('circle')]}
+          />
         ) : (
           <Image
             systemName={isClaude ? 'sparkles' : 'person.crop.circle.fill'}
@@ -415,15 +457,12 @@ function CommentRow({
           />
         )}
         <Text>{`@${displayName}`}</Text>
-        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>
+        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY), font({ size: 13 })]}>
           {formatRelativeTime(comment.createdAt)}
         </Text>
       </HStack>
-      {/* SwiftUI markdown is inline-only (bold/italic/links/inline-code); block
-          elements like headings/lists/code-blocks render as plain text. */}
-      <Text markdownEnabled modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
-        {comment.content}
-      </Text>
+      {/* Full markdown — headings/lists/code-blocks/inline — via the native renderer. */}
+      <MarkdownView content={comment.content} dark={colorScheme === 'dark'} />
     </VStack>
   );
 }
@@ -478,8 +517,9 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
                 <CommentRow
                   key={c.id}
                   comment={c}
-                  displayName={c.source === 'claude' ? 'claude' : userName}
+                  displayName={c.source === 'claude' ? 'claude' : c.authorName || userName}
                   claudeLogoUri={claudeLogoUri}
+                  avatarUrl={c.authorAvatarUrl ?? null}
                 />
               ))}
             </List.ForEach>
@@ -565,6 +605,8 @@ export function GlobalTaskSheet() {
   const task = taskStack.length > 0 ? taskStack[taskStack.length - 1] : null;
   const canGoBack = taskStack.length > 1;
 
+  const queryClient = useQueryClient();
+
   // Source data globally (replaces the per-screen props). Auto-close if the open
   // task disappears from the list (deleted elsewhere).
   const { data: allTasks = [] } = useTasks();
@@ -590,6 +632,19 @@ export function GlobalTaskSheet() {
   // multiline notes, which can't submit on Enter). blurFieldRef holds the focused
   // field's blur fn.
   const [isEditingText, setIsEditingText] = React.useState(false);
+  // The title is tap-to-edit so it can show the task number inline after the text in its
+  // read-only display state; tapping swaps in the auto-focused field.
+  const [editingTitle, setEditingTitle] = React.useState(false);
+  // The description is likewise tap-to-edit: rendered markdown when read-only, raw markdown
+  // in a monospaced field while editing.
+  const [editingDesc, setEditingDesc] = React.useState(false);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  // Native state mirror of isRefreshing so the refresh SF Symbol spins (symbolEffect
+  // rotate) while a refetch is in flight.
+  const refreshingState = useNativeState(false);
+  React.useEffect(() => {
+    refreshingState.value = isRefreshing;
+  }, [isRefreshing, refreshingState]);
   const blurFieldRef = React.useRef<(() => void) | null>(null);
   const handleFieldFocus = React.useCallback((blur: () => void) => {
     blurFieldRef.current = blur;
@@ -659,6 +714,25 @@ export function GlobalTaskSheet() {
     if (task) deleteTask(task.id);
   }, [task, deleteTask]);
 
+  // Pull fresh data for the open task — its fields + comments — so changes made elsewhere
+  // (e.g. comments written by Lucid/MCP) appear without reopening the sheet. After the
+  // ['tasks'] list refetches, re-sync the authoritative task into the stack.
+  const handleRefresh = React.useCallback(async () => {
+    if (!task || isRefreshing) return;
+    const id = task.id;
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+        queryClient.invalidateQueries({ queryKey: ['comments', id] }),
+      ]);
+      const fresh = queryClient.getQueryData<Task[]>(['tasks'])?.find((t) => t.id === id);
+      if (fresh) updateCurrentTask(fresh);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [task, isRefreshing, queryClient, updateCurrentTask]);
+
   // A circular Liquid Glass icon button (back / close).
   const circleGlass = [
     buttonStyle('plain'),
@@ -689,13 +763,32 @@ export function GlobalTaskSheet() {
             presentationDragIndicator('visible'),
           ]}>
           <VStack spacing={12}>
-            {/* Top bar: back (hidden at root, reserves width) / status / close */}
+            {/* Top bar: [back?][refresh] / status / [back-placeholder?][close|Done]. Refresh
+                (left) balances close (right); a hidden placeholder (right) balances Back
+                (left) so the status pill stays centered at root AND when drilled into a
+                subtask. Refresh hides while editing text (avoid refetching mid-edit). */}
             <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
-              <Button
-                onPress={goBack}
-                modifiers={canGoBack ? circleGlass : [...circleGlass, hidden(true)]}>
-                <Image systemName="chevron.left" size={18} />
-              </Button>
+              {canGoBack ? (
+                <Button onPress={goBack} modifiers={circleGlass}>
+                  <Image systemName="chevron.left" size={18} />
+                </Button>
+              ) : null}
+              {task && !isEditingText ? (
+                <Button
+                  onPress={handleRefresh}
+                  modifiers={isRefreshing ? [...circleGlass, disabled(true)] : circleGlass}>
+                  <Image
+                    systemName="arrow.clockwise"
+                    size={18}
+                    modifiers={[
+                      symbolEffect(
+                        { effect: 'rotate' },
+                        { isActive: refreshingState, options: { speed: 2.5, repeat: 'continuous' } }
+                      ),
+                    ]}
+                  />
+                </Button>
+              ) : null}
               <Spacer />
               {task ? (
                 <StatusPill
@@ -704,6 +797,12 @@ export function GlobalTaskSheet() {
                 />
               ) : null}
               <Spacer />
+              {/* Invisible 40×40 placeholder so Back (left) has a counterweight (right). */}
+              {canGoBack ? (
+                <Button onPress={() => {}} modifiers={[...circleGlass, hidden(true)]}>
+                  <Image systemName="chevron.left" size={18} />
+                </Button>
+              ) : null}
               {isEditingText ? (
                 <Button
                   label="Done"
@@ -718,40 +817,95 @@ export function GlobalTaskSheet() {
             </HStack>
 
             {task ? (
-              <EditableField
-                key={`title-${task.id}`}
-                value={task.title}
-                onCommit={(t) => handleUpdateField({ title: t })}
-                onFocusEnter={handleFieldFocus}
-                onFocusLeave={handleFieldBlur}
-                multiline
-                modifiers={[
-                  textFieldStyle('plain'),
-                  font({ size: 22, weight: 'semibold' }),
-                  multilineTextAlignment('leading'),
-                  frame({ maxWidth: Infinity, alignment: 'leading' }),
-                  // Negative bottom padding pulls the Notes card up to tighten the gap.
-                  padding({ leading: 16, trailing: 16, bottom: -8 }),
-                ]}
-              />
+              editingTitle ? (
+                <EditableField
+                  key={`title-${task.id}`}
+                  value={task.title}
+                  onCommit={(t) => handleUpdateField({ title: t })}
+                  onFocusEnter={handleFieldFocus}
+                  onFocusLeave={() => {
+                    handleFieldBlur();
+                    setEditingTitle(false);
+                  }}
+                  autoFocus
+                  multiline
+                  modifiers={[
+                    textFieldStyle('plain'),
+                    font({ size: 22, weight: 'semibold' }),
+                    multilineTextAlignment('leading'),
+                    frame({ maxWidth: Infinity, alignment: 'leading' }),
+                    // Negative bottom padding pulls the Notes card up to tighten the gap.
+                    padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
+                  ]}
+                />
+              ) : (
+                // Read-only display: the title with the task number concatenated inline
+                // after the text (muted, smaller). Tap anywhere to edit.
+                <Text
+                  modifiers={[
+                    font({ size: 22, weight: 'semibold' }),
+                    multilineTextAlignment('leading'),
+                    frame({ maxWidth: Infinity, alignment: 'leading' }),
+                    padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
+                    onTapGesture(() => setEditingTitle(true)),
+                  ]}>
+                  <Text>{task.title}</Text>
+                  {task.taskNumber != null ? (
+                    <Text
+                      modifiers={[
+                        foregroundStyle(MENU_VALUE_GRAY),
+                        font({ size: 15, weight: 'regular' }),
+                      ]}>
+                      {`  #${task.taskNumber}`}
+                    </Text>
+                  ) : null}
+                </Text>
+              )
             ) : null}
 
             {task ? (
               <List
                 modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
                 {/* Description lives in the scrollable list (not pinned) so a long note
-                    scrolls away instead of hogging the top of the sheet. */}
-                <EditableField
-                  key={`desc-${task.id}`}
-                  value={task.description ?? ''}
-                  onCommit={(t) => handleUpdateField({ description: t || null })}
-                  onFocusEnter={handleFieldFocus}
-                  onFocusLeave={handleFieldBlur}
-                  allowEmpty
-                  multiline
-                  placeholder="Notes…"
-                  modifiers={[textFieldStyle('plain')]}
-                />
+                    scrolls away instead of hogging the top of the sheet. Tap-to-edit: the
+                    rendered markdown shows read-only; tapping swaps in a monospaced field
+                    that edits the raw markdown source (saved via the top-bar Done). */}
+                {editingDesc ? (
+                  <EditableField
+                    key={`desc-${task.id}`}
+                    value={task.description ?? ''}
+                    onCommit={(t) => handleUpdateField({ description: t || null })}
+                    onFocusEnter={handleFieldFocus}
+                    onFocusLeave={() => {
+                      handleFieldBlur();
+                      setEditingDesc(false);
+                    }}
+                    allowEmpty
+                    multiline
+                    autoFocus
+                    placeholder="Description…"
+                    modifiers={[textFieldStyle('plain'), font({ design: 'monospaced', size: 14 })]}
+                  />
+                ) : task.description ? (
+                  <VStack
+                    alignment="leading"
+                    modifiers={[
+                      frame({ maxWidth: Infinity, alignment: 'leading' }),
+                      contentShape(shapes.rectangle()),
+                      onTapGesture(() => setEditingDesc(true)),
+                    ]}>
+                    <MarkdownView content={task.description} dark={colorScheme === 'dark'} />
+                  </VStack>
+                ) : (
+                  <Text
+                    modifiers={[
+                      foregroundStyle(MENU_VALUE_GRAY),
+                      frame({ maxWidth: Infinity, alignment: 'leading' }),
+                      onTapGesture(() => setEditingDesc(true)),
+                    ]}>
+                    Description…
+                  </Text>
+                )}
 
                 <CommentsSection taskId={task.id} onAdd={addComment} />
 

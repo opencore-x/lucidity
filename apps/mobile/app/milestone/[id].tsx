@@ -6,7 +6,7 @@ import {
   ZStack,
   VStack,
   HStack,
-  Spacer,
+  ScrollView,
   Button,
   List,
   Section,
@@ -19,11 +19,18 @@ import {
   padding,
   listStyle,
   listRowSeparator,
+  listRowBackground,
   refreshable,
   frame,
   foregroundStyle,
   font,
   scrollDismissesKeyboard,
+  scrollIndicators,
+  textFieldStyle,
+  lineLimit,
+  truncationMode,
+  onTapGesture,
+  listSectionSpacing,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from 'nativewind';
 import { useQueryClient } from '@tanstack/react-query';
@@ -32,10 +39,11 @@ import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { TaskRow } from '@/components/native/TaskRow';
 import { TaskComposer } from '@/components/native/TaskComposer';
+import { EditableField } from '@/components/native/EditableField';
 import { SegmentTab } from '@/components/native/SegmentTab';
 import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
 import { useProjects } from '@/hooks/useProjects';
-import { useAllMilestones, useMilestoneProgress } from '@/hooks/useMilestones';
+import { useAllMilestones, useMilestoneProgress, useUpdateMilestone } from '@/hooks/useMilestones';
 import { useTasks, useCreateTask, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useSheetStore } from '@/stores/sheetStore';
@@ -47,9 +55,10 @@ const TODAY_AMBER = '#F59E0B';
 const PROGRESS_BLUE = '#3B82F6';
 const DONE_GREEN = '#22C55E';
 
-// Milestone names are long ("M1: Core Platform + Visitor Management") and don't fit
-// the nav bar OR the large-title area without truncating. So the nav title is the
-// short project name, and the milestone name lives as a wrapping title in the content.
+// Milestone names are long ("M1: Core Platform + Visitor Management") and don't fit the
+// nav bar OR the large-title area without truncating. So the nav title is the generic
+// "Milestone" (signals the screen type), and the milestone name lives as a wrapping
+// title in the content.
 const MILESTONE_HEADER = { ...LARGE_TITLE_SCREEN_OPTIONS, headerLargeTitle: false } as const;
 
 export default function MilestoneScreen() {
@@ -73,19 +82,42 @@ export default function MilestoneScreen() {
   const createTask = useCreateTask();
   const toggleTask = useToggleTask();
   const updateTask = useUpdateTask();
+  const updateMilestone = useUpdateMilestone();
   const { deleteTask } = useUndoableDeleteTask();
   const { openSheet } = useSheetStore();
   const queryClient = useQueryClient();
 
-  const [selectedTab, setSelectedTab] = React.useState<'active' | 'completed'>('active');
+  const [selectedTab, setSelectedTab] = React.useState<'active' | 'deferred' | 'completed'>(
+    'active'
+  );
   const [composing, setComposing] = React.useState(false);
+
+  // Description has three modes: a collapsed 3-line preview (tap to read), an expanded
+  // read-only full view (no keyboard; tap to re-collapse, with an explicit Edit button),
+  // and an editing field. Reading and editing are deliberately separate so a tap to read
+  // doesn't pop the keyboard. While editing, the nav bar shows a "Done" button that blurs
+  // the field (its save affordance, since a multiline field can't submit on Enter);
+  // blurDescRef holds that blur fn.
+  const [descMode, setDescMode] = React.useState<'collapsed' | 'expanded' | 'editing'>(
+    'collapsed'
+  );
+  const blurDescRef = React.useRef<(() => void) | null>(null);
+  const handleDescFocus = React.useCallback((blur: () => void) => {
+    blurDescRef.current = blur;
+    setDescMode('editing');
+  }, []);
+  const handleDescBlur = React.useCallback(() => setDescMode('expanded'), []);
 
   const rootTasks = React.useMemo(
     () => allTasks.filter((t) => t.milestoneId === id && !t.parentTaskId),
     [allTasks, id]
   );
   const activeTasks = React.useMemo(
-    () => rootTasks.filter((t) => t.status !== 'completed'),
+    () => rootTasks.filter((t) => t.status !== 'completed' && t.status !== 'deferred'),
+    [rootTasks]
+  );
+  const deferredTasks = React.useMemo(
+    () => rootTasks.filter((t) => t.status === 'deferred'),
     [rootTasks]
   );
   const completedTasks = React.useMemo(
@@ -159,19 +191,45 @@ export default function MilestoneScreen() {
     ? new Date(milestone.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : null;
 
+  const tabTasks =
+    selectedTab === 'active'
+      ? activeTasks
+      : selectedTab === 'deferred'
+        ? deferredTasks
+        : completedTasks;
+  const emptyLabel =
+    selectedTab === 'active'
+      ? 'No active tasks'
+      : selectedTab === 'deferred'
+        ? 'No deferred tasks'
+        : 'No completed tasks';
+  // Completed rows get a single full-swipe Delete; active/deferred rows also offer "Today".
+  const showTodayAction = selectedTab !== 'completed';
+
   return (
     <>
       <Stack.Screen
         options={{
           ...MILESTONE_HEADER,
-          title: project?.name ?? 'Milestone',
+          // Always "Milestone" — the milestone's own name is the in-content heading, so a
+          // generic nav title is what signals which kind of screen you're on.
+          title: 'Milestone',
           headerTintColor: project?.color ?? undefined,
-          headerRight: () => (
-            <View className="flex-row items-center gap-2">
-              <HeaderGlassButton systemImage="plus" onPress={handleCreateTask} />
-              <UserMenu />
-            </View>
-          ),
+          headerRight: () =>
+            descMode === 'editing' ? (
+              <Host matchContents colorScheme={scheme}>
+                <Button
+                  label="Done"
+                  onPress={() => blurDescRef.current?.()}
+                  modifiers={project?.color ? [tint(project.color)] : []}
+                />
+              </Host>
+            ) : (
+              <View className="flex-row items-center gap-2">
+                <HeaderGlassButton systemImage="plus" onPress={handleCreateTask} />
+                <UserMenu />
+              </View>
+            ),
         }}
       />
       <View className="bg-background flex-1">
@@ -185,10 +243,14 @@ export default function MilestoneScreen() {
                 refreshable(onRefresh),
                 scrollDismissesKeyboard('interactively'),
               ]}>
-              {/* Milestone name as a wrapping title card — long names don't fit the
-                  nav bar (which shows the short project name). */}
-              <Section>
-                <VStack spacing={4} alignment="leading">
+              {/* Milestone name as a plain wrapping heading (no grouped card) — long names
+                  don't fit the nav bar, which shows the short project name. The clear row
+                  background drops the inset-grouped card without clipping the title. */}
+              <Section modifiers={[listSectionSpacing('compact')]}>
+                <VStack
+                  spacing={4}
+                  alignment="leading"
+                  modifiers={[listRowBackground('#00000000'), listRowSeparator('hidden')]}>
                   <UIText modifiers={[font({ size: 22, weight: 'semibold' })]}>
                     {milestone.name}
                   </UIText>
@@ -197,76 +259,94 @@ export default function MilestoneScreen() {
                       {`Due ${due}`}
                     </UIText>
                   ) : null}
+                  {/* Milestone description, via two-stage tap so reading doesn't pop the
+                      keyboard:
+                      - collapsed: subtle muted 3-line preview; tap to expand (or, when empty,
+                        tap the placeholder straight into editing — nothing to read)
+                      - expanded: full read-only text (no keyboard); tap to edit
+                      - editing: larger auto-focused plain field, saved via nav-bar "Done"
+                      Extra top padding adds breathing room below the name/due. */}
+                  {descMode === 'editing' ? (
+                    <EditableField
+                      key={`mdesc-${milestone.id}`}
+                      value={milestone.description ?? ''}
+                      onCommit={(t) =>
+                        updateMilestone.mutate({
+                          id: milestone.id,
+                          data: { description: t || null },
+                        })
+                      }
+                      allowEmpty
+                      multiline
+                      autoFocus
+                      placeholder="Description…"
+                      onFocusEnter={handleDescFocus}
+                      onFocusLeave={handleDescBlur}
+                      modifiers={[textFieldStyle('plain'), font({ size: 17 }), padding({ top: 6 })]}
+                    />
+                  ) : (
+                    <UIText
+                      modifiers={[
+                        foregroundStyle(MUTED_GRAY),
+                        font({ size: 15 }),
+                        padding({ top: 6 }),
+                        ...(descMode === 'expanded'
+                          ? [onTapGesture(() => setDescMode('editing'))]
+                          : [
+                              lineLimit(3),
+                              truncationMode('tail'),
+                              onTapGesture(() =>
+                                setDescMode(milestone.description ? 'expanded' : 'editing')
+                              ),
+                            ]),
+                      ]}>
+                      {milestone.description ?? 'Description…'}
+                    </UIText>
+                  )}
                 </VStack>
               </Section>
 
               {/* Tabs + the task list. */}
               <Section>
-                <HStack spacing={8} modifiers={[listRowSeparator('hidden')]}>
-                  <SegmentTab
-                    label="Active"
-                    count={activeTasks.length}
-                    selected={selectedTab === 'active'}
-                    onPress={() => setSelectedTab('active')}
-                    tintColor={project?.color}
-                  />
-                  <SegmentTab
-                    label="Completed"
-                    count={completedTasks.length}
-                    selected={selectedTab === 'completed'}
-                    onPress={() => setSelectedTab('completed')}
-                    tintColor={project?.color}
-                  />
-                  <Spacer />
-                </HStack>
+                <ScrollView
+                  axes="horizontal"
+                  modifiers={[listRowSeparator('hidden'), scrollIndicators('hidden')]}>
+                  <HStack spacing={8}>
+                    <SegmentTab
+                      label="Active"
+                      count={activeTasks.length}
+                      selected={selectedTab === 'active'}
+                      onPress={() => setSelectedTab('active')}
+                      tintColor={project?.color}
+                    />
+                    <SegmentTab
+                      label="Completed"
+                      count={completedTasks.length}
+                      selected={selectedTab === 'completed'}
+                      onPress={() => setSelectedTab('completed')}
+                      tintColor={project?.color}
+                    />
+                    <SegmentTab
+                      label="Deferred"
+                      count={deferredTasks.length}
+                      selected={selectedTab === 'deferred'}
+                      onPress={() => setSelectedTab('deferred')}
+                      tintColor={project?.color}
+                    />
+                  </HStack>
+                </ScrollView>
 
-                {selectedTab === 'active' ? (
-                  activeTasks.length === 0 ? (
-                    <UIText
-                      modifiers={[
-                        foregroundStyle(MUTED_GRAY),
-                        frame({ maxWidth: Infinity, alignment: 'center' }),
-                        padding({ vertical: 40 }),
-                      ]}>
-                      No active tasks
-                    </UIText>
-                  ) : (
-                    activeTasks.map((task) => (
-                      <SwipeActions key={task.id}>
-                        <TaskRow
-                          task={task}
-                          progress={getSubtaskProgress(allTasks, task.id)}
-                          onToggle={() => handleTaskToggle(task.id)}
-                          onOpen={() => handleTaskPress(task)}
-                        />
-                        <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
-                          <Button
-                            label="Delete"
-                            systemImage="trash"
-                            role="destructive"
-                            onPress={() => handleDeleteTask(task.id)}
-                          />
-                          <Button
-                            label="Today"
-                            systemImage="calendar"
-                            onPress={() => handleSetDueToday(task.id)}
-                            modifiers={[tint(TODAY_AMBER)]}
-                          />
-                        </SwipeActions.Actions>
-                      </SwipeActions>
-                    ))
-                  )
-                ) : completedTasks.length === 0 ? (
+                {tabTasks.length === 0 ? (
                   <UIText
                     modifiers={[
                       foregroundStyle(MUTED_GRAY),
                       frame({ maxWidth: Infinity, alignment: 'center' }),
                       padding({ vertical: 40 }),
                     ]}>
-                    No completed tasks
+                    {emptyLabel}
                   </UIText>
                 ) : (
-                  completedTasks.map((task) => (
+                  tabTasks.map((task) => (
                     <SwipeActions key={task.id}>
                       <TaskRow
                         task={task}
@@ -274,13 +354,21 @@ export default function MilestoneScreen() {
                         onToggle={() => handleTaskToggle(task.id)}
                         onOpen={() => handleTaskPress(task)}
                       />
-                      <SwipeActions.Actions edge="trailing">
+                      <SwipeActions.Actions edge="trailing" allowsFullSwipe={!showTodayAction}>
                         <Button
                           label="Delete"
                           systemImage="trash"
                           role="destructive"
                           onPress={() => handleDeleteTask(task.id)}
                         />
+                        {showTodayAction ? (
+                          <Button
+                            label="Today"
+                            systemImage="calendar"
+                            onPress={() => handleSetDueToday(task.id)}
+                            modifiers={[tint(TODAY_AMBER)]}
+                          />
+                        ) : null}
                       </SwipeActions.Actions>
                     </SwipeActions>
                   ))

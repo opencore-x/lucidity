@@ -19,6 +19,10 @@ interface Task {
   updatedAt: string;
 }
 
+interface SearchTask extends Task {
+  match?: { field: 'title' | 'description' | 'comment'; snippet: string };
+}
+
 interface Project {
   id: string;
   name: string;
@@ -150,12 +154,12 @@ export function registerQueryTools(server: McpServer) {
 
   server.tool(
     'search',
-    'Search tasks and projects by keyword. Searches task titles, descriptions, and project names.',
+    'Search tasks and projects by keyword. Searches task titles, descriptions, comment content, and project names. Each task result includes which field matched and a snippet of the surrounding text.',
     {
       query: z.string().describe('Search query'),
     },
     async ({ query }) => {
-      const result = await apiRequest<{ tasks: Task[]; projects: Project[] }>(
+      const result = await apiRequest<{ tasks: SearchTask[]; projects: Project[] }>(
         `/api/search?q=${encodeURIComponent(query)}`,
       );
 
@@ -164,7 +168,12 @@ export function registerQueryTools(server: McpServer) {
       if (result.tasks.length > 0) {
         summary += `Tasks (${result.tasks.length}):\n`;
         summary += result.tasks
-          .map((t) => `  - ${formatTask(t)} [${t.id}]`)
+          .map((t) => {
+            const line = `  - ${formatTask(t)} [${t.id}]`;
+            return t.match
+              ? `${line}\n    ↳ ${t.match.field}: ${t.match.snippet}`
+              : line;
+          })
           .join('\n');
         summary += '\n\n';
       }

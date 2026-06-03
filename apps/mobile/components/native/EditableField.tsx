@@ -18,6 +18,7 @@ export function EditableField({
   allowEmpty = false,
   multiline = false,
   placeholder,
+  autoFocus = false,
   onFocusEnter,
   onFocusLeave,
   modifiers: extraModifiers = [],
@@ -27,6 +28,8 @@ export function EditableField({
   allowEmpty?: boolean;
   multiline?: boolean;
   placeholder?: string;
+  // Focus on mount — used when the field is revealed by a tap (e.g. tap-to-edit).
+  autoFocus?: boolean;
   // Lets the parent show a "Done" affordance while editing; `blur` dismisses + commits.
   onFocusEnter?: (blur: () => void) => void;
   onFocusLeave?: () => void;
@@ -41,6 +44,7 @@ export function EditableField({
       ref={ref}
       text={textState}
       placeholder={placeholder}
+      autoFocus={autoFocus}
       axis={multiline ? 'vertical' : 'horizontal'}
       onTextChange={(t) => {
         valueRef.current = t;
