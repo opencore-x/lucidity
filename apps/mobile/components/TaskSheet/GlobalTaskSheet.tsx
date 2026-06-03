@@ -749,7 +749,7 @@ export function GlobalTaskSheet() {
                   onFocusLeave={handleFieldBlur}
                   allowEmpty
                   multiline
-                  placeholder="Notes…"
+                  placeholder="Description…"
                   modifiers={[textFieldStyle('plain')]}
                 />
 
