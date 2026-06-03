@@ -32,8 +32,11 @@ type Theme = {
 function themeFor(dark: boolean): Theme {
   return {
     text: dark ? '#E5E5E7' : '#1C1C1E',
-    muted: dark ? '#8E8E93' : '#8E8E93',
-    codeBg: dark ? '#2C2C2E' : '#F2F2F7',
+    muted: '#8E8E93',
+    // Code / quote cards sit on the inset-grouped section card (≈#1C1C1E dark, white light),
+    // so the fill needs enough contrast to read as a raised card: a clearly-lighter gray in
+    // dark mode, a slightly-deeper gray in light mode.
+    codeBg: dark ? '#3A3A3C' : '#E5E5EA',
   };
 }
 
