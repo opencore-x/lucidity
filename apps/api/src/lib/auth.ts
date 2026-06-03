@@ -34,7 +34,27 @@ export async function getCurrentUser(c: Context) {
     .from(users)
     .where(eq(users.clerkId, auth.userId));
 
-  if (user) return user;
+  if (user) {
+    // Lazy one-time backfill: users created before avatar sync have a null avatarUrl.
+    // Fetch the Clerk image once and persist it; subsequent requests skip this branch.
+    if (!user.avatarUrl) {
+      try {
+        const clerk = c.get('clerk');
+        const clerkUser = await clerk.users.getUser(auth.userId);
+        if (clerkUser.imageUrl) {
+          const [updated] = await db
+            .update(users)
+            .set({ avatarUrl: clerkUser.imageUrl })
+            .where(eq(users.id, user.id))
+            .returning();
+          if (updated) return updated;
+        }
+      } catch {
+        // Non-fatal — fall through and return the user without an avatar.
+      }
+    }
+    return user;
+  }
 
   // First time - fetch user details from Clerk API
   const clerkClient = c.get('clerk');
@@ -55,6 +75,7 @@ export async function getCurrentUser(c: Context) {
       name: clerkUser.firstName
         ? `${clerkUser.firstName} ${clerkUser.lastName ?? ''}`.trim()
         : 'User',
+      avatarUrl: clerkUser.imageUrl ?? null,
     })
     .returning();
 

@@ -101,6 +101,32 @@ function useClaudeLogoUri(): string | null {
   return uri;
 }
 
+// The native Image renders local files only (uiImage), so cache a remote avatar URL to a
+// local file and hand back its URI. Returns null (→ SF Symbol placeholder) while loading
+// or on failure. expo-asset dedupes by URL, so repeat authors don't re-download.
+function useRemoteImageUri(url: string | null | undefined): string | null {
+  const [uri, setUri] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!url) {
+      setUri(null);
+      return;
+    }
+    let active = true;
+    Asset.fromURI(url)
+      .downloadAsync()
+      .then((a) => {
+        if (active) setUri(a.localUri ?? null);
+      })
+      .catch(() => {
+        if (active) setUri(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [url]);
+  return uri;
+}
+
 // BFS over parentTaskId to collect every descendant of a task — excluded from the
 // parent picker so a task can't be nested under its own child (no cycles).
 function getDescendantIds(tasks: Task[], taskId: string): Set<string> {
@@ -393,13 +419,16 @@ function CommentRow({
   comment,
   displayName,
   claudeLogoUri,
+  avatarUrl,
 }: {
   comment: Comment;
   displayName: string;
   claudeLogoUri: string | null;
+  avatarUrl: string | null;
 }) {
   const isClaude = comment.source === 'claude';
   const { colorScheme } = useColorScheme();
+  const avatarLocalUri = useRemoteImageUri(isClaude ? null : avatarUrl);
   return (
     <VStack
       spacing={4}
@@ -411,6 +440,11 @@ function CommentRow({
             uiImage={claudeLogoUri}
             modifiers={[resizable(), frame({ width: 16, height: 16 }), clipShape('circle')]}
           />
+        ) : !isClaude && avatarLocalUri ? (
+          <Image
+            uiImage={avatarLocalUri}
+            modifiers={[resizable(), frame({ width: 16, height: 16 }), clipShape('circle')]}
+          />
         ) : (
           <Image
             systemName={isClaude ? 'sparkles' : 'person.crop.circle.fill'}
@@ -419,7 +453,7 @@ function CommentRow({
           />
         )}
         <Text>{`@${displayName}`}</Text>
-        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>
+        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY), font({ size: 13 })]}>
           {formatRelativeTime(comment.createdAt)}
         </Text>
       </HStack>
@@ -479,8 +513,9 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
                 <CommentRow
                   key={c.id}
                   comment={c}
-                  displayName={c.source === 'claude' ? 'claude' : userName}
+                  displayName={c.source === 'claude' ? 'claude' : c.authorName || userName}
                   claudeLogoUri={claudeLogoUri}
+                  avatarUrl={c.authorAvatarUrl ?? null}
                 />
               ))}
             </List.ForEach>
