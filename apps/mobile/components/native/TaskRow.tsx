@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { HStack, Spacer, Image, Text } from '@expo/ui/swift-ui';
+import { HStack, VStack, Image, Text } from '@expo/ui/swift-ui';
 import {
   contentShape,
   shapes,
@@ -15,6 +15,10 @@ import type { Task } from '@lucidity/shared';
 const MUTED_GRAY = '#8E8E93';
 const DONE_GREEN = '#22C55E';
 const CHECKBOX_GRAY = '#C7C7CC';
+
+// Second-line metadata is deliberately small + quiet.
+const META_ICON = 11;
+const META_FONT = 12;
 
 type DueInfo = { label: string; color: string } | null;
 
@@ -46,11 +50,12 @@ function getReminderColor(reminderAt: string | Date | null | undefined): string 
 }
 
 /**
- * A native @expo/ui task row for the project / Inbox lists — a circular checkbox
- * (tap to toggle), the title (strikethrough + gray when complete), and trailing
- * status (subtask progress, recurring, reminder, due date; or the completed-at time
- * for done tasks). The whole row is tappable to open the task sheet. Swipe actions
- * are attached by the parent List.
+ * A native @expo/ui task row for the project / Inbox / Today / Search lists. The checkbox
+ * (tap to toggle) sits beside a VStack of the title (full width, so it rarely truncates)
+ * and a quieter second line of metadata — task number, recurring ↻, subtask progress,
+ * reminder 🔔, and the due-date pill (or, for completed tasks, the completed-at time).
+ * Tasks with no metadata collapse to a single line. The whole row opens the task sheet;
+ * swipe actions are attached by the parent List.
  */
 export function TaskRow({
   task,
@@ -67,48 +72,74 @@ export function TaskRow({
   const due = completed ? null : getDueInfo(task.dueDate);
   const reminderColor = completed ? null : getReminderColor(task.reminderAt);
 
+  // Build the quiet second line. Order: #number, then recurring / progress / reminder /
+  // due for active tasks, or the completed-at time for done ones.
+  const meta: React.ReactNode[] = [];
+  if (task.taskNumber != null) {
+    meta.push(
+      <Text key="num" modifiers={[foregroundStyle(MUTED_GRAY), font({ size: META_FONT })]}>
+        {`#${task.taskNumber}`}
+      </Text>
+    );
+  }
+  if (completed) {
+    if (task.completedAt) {
+      meta.push(
+        <Text key="done" modifiers={[foregroundStyle(MUTED_GRAY), font({ size: META_FONT })]}>
+          {formatRelativeTime(task.completedAt)}
+        </Text>
+      );
+    }
+  } else {
+    if (task.recurringFrequency) {
+      meta.push(<Image key="repeat" systemName="repeat" size={META_ICON} color={MUTED_GRAY} />);
+    }
+    if (progress) {
+      meta.push(
+        <Text key="progress" modifiers={[foregroundStyle(MUTED_GRAY), font({ size: META_FONT })]}>
+          {`${progress.completed}/${progress.total}`}
+        </Text>
+      );
+    }
+    if (reminderColor) {
+      meta.push(<Image key="bell" systemName="bell.fill" size={META_ICON} color={reminderColor} />);
+    }
+    if (due) {
+      meta.push(
+        <HStack key="due" spacing={3}>
+          <Image systemName="calendar" size={META_ICON} color={due.color} />
+          <Text modifiers={[foregroundStyle(due.color), font({ size: META_FONT })]}>
+            {due.label}
+          </Text>
+        </HStack>
+      );
+    }
+  }
+
   return (
-    <HStack spacing={10} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onOpen)]}>
+    <HStack spacing={10} alignment="top" modifiers={[contentShape(shapes.rectangle()), onTapGesture(onOpen)]}>
       <Image
         systemName={completed ? 'checkmark.circle.fill' : 'circle'}
         size={22}
         color={completed ? DONE_GREEN : CHECKBOX_GRAY}
         onPress={onToggle}
       />
-      <Text
-        modifiers={[
-          lineLimit(2),
-          frame({ maxWidth: Infinity, alignment: 'leading' }),
-          ...(completed ? [foregroundStyle(MUTED_GRAY)] : []),
-        ]}>
-        {task.title}
-      </Text>
-
-      {completed ? (
-        task.completedAt ? (
-          <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 12 })]}>
-            {formatRelativeTime(task.completedAt)}
-          </Text>
-        ) : null
-      ) : (
-        <>
-          {task.recurringFrequency ? (
-            <Image systemName="repeat" size={13} color={MUTED_GRAY} />
-          ) : null}
-          {progress ? (
-            <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 13 })]}>
-              {`${progress.completed}/${progress.total}`}
-            </Text>
-          ) : null}
-          {reminderColor ? <Image systemName="bell.fill" size={12} color={reminderColor} /> : null}
-          {due ? (
-            <HStack spacing={3}>
-              <Image systemName="calendar" size={11} color={due.color} />
-              <Text modifiers={[foregroundStyle(due.color), font({ size: 12 })]}>{due.label}</Text>
-            </HStack>
-          ) : null}
-        </>
-      )}
+      <VStack spacing={5} alignment="leading" modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
+        <Text
+          modifiers={[
+            font({ size: 16 }),
+            lineLimit(2),
+            frame({ maxWidth: Infinity, alignment: 'leading' }),
+            ...(completed ? [foregroundStyle(MUTED_GRAY)] : []),
+          ]}>
+          {task.title}
+        </Text>
+        {meta.length > 0 ? (
+          <HStack spacing={8} modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
+            {meta}
+          </HStack>
+        ) : null}
+      </VStack>
     </HStack>
   );
 }
