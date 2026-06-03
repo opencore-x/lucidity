@@ -696,6 +696,12 @@ export function GlobalTaskSheet() {
                 modifiers={canGoBack ? circleGlass : [...circleGlass, hidden(true)]}>
                 <Image systemName="chevron.left" size={18} />
               </Button>
+              {/* Per-project task number — a subtle muted badge inline in the top bar. */}
+              {task?.taskNumber != null ? (
+                <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY), font({ size: 13 })]}>
+                  {`#${task.taskNumber}`}
+                </Text>
+              ) : null}
               <Spacer />
               {task ? (
                 <StatusPill
