@@ -590,6 +590,9 @@ export function GlobalTaskSheet() {
   // multiline notes, which can't submit on Enter). blurFieldRef holds the focused
   // field's blur fn.
   const [isEditingText, setIsEditingText] = React.useState(false);
+  // The title is tap-to-edit so it can show the task number inline after the text in its
+  // read-only display state; tapping swaps in the auto-focused field.
+  const [editingTitle, setEditingTitle] = React.useState(false);
   const blurFieldRef = React.useRef<(() => void) | null>(null);
   const handleFieldFocus = React.useCallback((blur: () => void) => {
     blurFieldRef.current = blur;
@@ -696,12 +699,6 @@ export function GlobalTaskSheet() {
                 modifiers={canGoBack ? circleGlass : [...circleGlass, hidden(true)]}>
                 <Image systemName="chevron.left" size={18} />
               </Button>
-              {/* Per-project task number — a subtle muted badge inline in the top bar. */}
-              {task?.taskNumber != null ? (
-                <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY), font({ size: 13 })]}>
-                  {`#${task.taskNumber}`}
-                </Text>
-              ) : null}
               <Spacer />
               {task ? (
                 <StatusPill
@@ -724,22 +721,50 @@ export function GlobalTaskSheet() {
             </HStack>
 
             {task ? (
-              <EditableField
-                key={`title-${task.id}`}
-                value={task.title}
-                onCommit={(t) => handleUpdateField({ title: t })}
-                onFocusEnter={handleFieldFocus}
-                onFocusLeave={handleFieldBlur}
-                multiline
-                modifiers={[
-                  textFieldStyle('plain'),
-                  font({ size: 22, weight: 'semibold' }),
-                  multilineTextAlignment('leading'),
-                  frame({ maxWidth: Infinity, alignment: 'leading' }),
-                  // Negative bottom padding pulls the Notes card up to tighten the gap.
-                  padding({ leading: 16, trailing: 16, bottom: -8 }),
-                ]}
-              />
+              editingTitle ? (
+                <EditableField
+                  key={`title-${task.id}`}
+                  value={task.title}
+                  onCommit={(t) => handleUpdateField({ title: t })}
+                  onFocusEnter={handleFieldFocus}
+                  onFocusLeave={() => {
+                    handleFieldBlur();
+                    setEditingTitle(false);
+                  }}
+                  autoFocus
+                  multiline
+                  modifiers={[
+                    textFieldStyle('plain'),
+                    font({ size: 22, weight: 'semibold' }),
+                    multilineTextAlignment('leading'),
+                    frame({ maxWidth: Infinity, alignment: 'leading' }),
+                    // Negative bottom padding pulls the Notes card up to tighten the gap.
+                    padding({ leading: 16, trailing: 16, bottom: -8 }),
+                  ]}
+                />
+              ) : (
+                // Read-only display: the title with the task number concatenated inline
+                // after the text (muted, smaller). Tap anywhere to edit.
+                <Text
+                  modifiers={[
+                    font({ size: 22, weight: 'semibold' }),
+                    multilineTextAlignment('leading'),
+                    frame({ maxWidth: Infinity, alignment: 'leading' }),
+                    padding({ leading: 16, trailing: 16, bottom: -8 }),
+                    onTapGesture(() => setEditingTitle(true)),
+                  ]}>
+                  <Text>{task.title}</Text>
+                  {task.taskNumber != null ? (
+                    <Text
+                      modifiers={[
+                        foregroundStyle(MENU_VALUE_GRAY),
+                        font({ size: 15, weight: 'regular' }),
+                      ]}>
+                      {`  #${task.taskNumber}`}
+                    </Text>
+                  ) : null}
+                </Text>
+              )
             ) : null}
 
             {task ? (
