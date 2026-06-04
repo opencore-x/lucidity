@@ -22,3 +22,10 @@ export const UpdateMilestoneSchema = z.object({
   description: z.string().nullable().optional(),
   dueDate: z.coerce.date().nullable().optional(),
 });
+
+// Merge one or more source milestones into a target: reassign all their
+// tasks to the target, then delete the sources.
+export const MergeMilestonesSchema = z.object({
+  targetMilestoneId: z.uuidv7(),
+  sourceMilestoneIds: z.array(z.uuidv7()).min(1),
+});
