@@ -14,7 +14,7 @@ import {
   getDaysInMonth,
 } from 'date-fns';
 import { db } from '../lib/db.js';
-import { tasks, eq, and, asc, isNull, sql } from '@lucidity/db';
+import { tasks, eq, and, asc, desc, isNull, sql } from '@lucidity/db';
 import { CreateTaskSchema, UpdateTaskSchema } from '@lucidity/shared';
 import { getCurrentUser } from '../lib/auth.js';
 
@@ -107,6 +107,9 @@ router.get('/', async (c) => {
   const rootOnly = c.req.query('root_only') === 'true';
   const dueBefore = c.req.query('due_before');
   const dueAfter = c.req.query('due_after');
+  const createdAfter = c.req.query('created_after');
+  const createdBefore = c.req.query('created_before');
+  const sortBy = c.req.query('sort_by');
   const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '50', 10) || 50, 1), 200);
   const offset = Math.max(parseInt(c.req.query('offset') || '0', 10) || 0, 0);
 
@@ -133,15 +136,30 @@ router.get('/', async (c) => {
   if (dueAfter) {
     conditions.push(sql`${tasks.dueDate} >= ${new Date(dueAfter)}`);
   }
+  if (createdAfter) {
+    conditions.push(sql`${tasks.createdAt} >= ${new Date(createdAfter)}`);
+  }
+  if (createdBefore) {
+    conditions.push(sql`${tasks.createdAt} <= ${new Date(createdBefore)}`);
+  }
 
   const where = and(...conditions);
+
+  // Default ordering groups by position then oldest-first; sort_by is opt-in and
+  // overrides it (e.g. created_desc for global "most recently added" browsing).
+  const orderByClause =
+    sortBy === 'created_desc'
+      ? [desc(tasks.createdAt)]
+      : sortBy === 'created_asc'
+        ? [asc(tasks.createdAt)]
+        : [sql`${tasks.position} ASC NULLS LAST`, asc(tasks.createdAt)];
 
   const [allTasks, countResult] = await Promise.all([
     db
       .select()
       .from(tasks)
       .where(where)
-      .orderBy(sql`${tasks.position} ASC NULLS LAST`, asc(tasks.createdAt))
+      .orderBy(...orderByClause)
       .limit(limit)
       .offset(offset),
     db

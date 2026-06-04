@@ -44,7 +44,7 @@ import {
   scrollDismissesKeyboard,
   symbolEffect,
 } from '@expo/ui/swift-ui/modifiers';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSheetStore } from '@/stores/sheetStore';
 import { useToastStore } from '@/stores/toastStore';
@@ -923,12 +923,12 @@ export function GlobalTaskSheet() {
                     label="Project"
                     value={
                       task.projectId
-                        ? (allProjects.find((p) => p.id === task.projectId)?.name ?? 'Inbox')
-                        : 'Inbox'
+                        ? (allProjects.find((p) => p.id === task.projectId)?.name ?? 'None')
+                        : 'None'
                     }
                     selection={task.projectId ?? INBOX_PROJECT_ID}
                     options={[
-                      { value: INBOX_PROJECT_ID, label: 'Inbox' },
+                      { value: INBOX_PROJECT_ID, label: 'None' },
                       ...projects.map((p) => ({ value: p.id, label: p.name })),
                     ]}
                     onSelect={(value) => {

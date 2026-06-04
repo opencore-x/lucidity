@@ -20,7 +20,9 @@ import {
   padding,
   scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { layout } from '@/lib/layout';
+import { COLORS } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
@@ -107,7 +109,7 @@ export default function TodayScreen() {
 
   const headerRight = React.useCallback(
     () => (
-      <View className="flex-row items-center gap-2">
+      <View style={layout.row}>
         <HeaderGlassButton systemImage="plus" onPress={handleCreateTask} />
         <UserMenu />
       </View>
@@ -149,7 +151,7 @@ export default function TodayScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Today', headerRight }} />
-        <View className="bg-background flex-1 items-center justify-center">
+        <View style={[layout.center, { backgroundColor: COLORS[scheme].background }]}>
           <ActivityIndicator size="large" />
         </View>
       </>
@@ -159,7 +161,7 @@ export default function TodayScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Today', headerRight }} />
-      <View className="bg-background flex-1">
+      <View style={[layout.flex1, { backgroundColor: COLORS[scheme].background }]}>
         <Host style={{ flex: 1 }} colorScheme={scheme}>
           {/* ZStack (not VStack) so the List fills the whole Host — its dark insetGrouped
               background sits BEHIND the translucent glass composer (a VStack sibling would

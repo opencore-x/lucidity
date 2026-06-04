@@ -4,7 +4,7 @@ import { frame, glassEffect, resizable, clipShape } from '@expo/ui/swift-ui/modi
 import { Asset } from 'expo-asset';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 const AVATAR_SIZE = 36;
 

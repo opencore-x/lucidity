@@ -9,7 +9,9 @@ import {
   foregroundStyle,
   padding,
 } from '@expo/ui/swift-ui/modifiers';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { layout } from '@/lib/layout';
+import { COLORS } from '@/lib/theme';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { NoteRow } from '@/components/native/NoteRow';
@@ -52,7 +54,7 @@ export default function NotesScreen() {
 
   const headerRight = React.useCallback(
     () => (
-      <View className="flex-row items-center gap-2">
+      <View style={layout.row}>
         <HeaderGlassButton systemImage="plus" onPress={handleCreate} />
         <UserMenu />
       </View>
@@ -64,7 +66,7 @@ export default function NotesScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Notes', headerRight }} />
-        <View className="bg-background flex-1 items-center justify-center">
+        <View style={[layout.center, { backgroundColor: COLORS[scheme].background }]}>
           <ActivityIndicator size="large" />
         </View>
       </>
@@ -74,7 +76,7 @@ export default function NotesScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Notes', headerRight }} />
-      <View className="bg-background flex-1">
+      <View style={[layout.flex1, { backgroundColor: COLORS[scheme].background }]}>
         <Host style={{ flex: 1 }} colorScheme={scheme}>
           <List modifiers={[listStyle('insetGrouped'), refreshable(onRefresh)]}>
             {notes.length === 0 ? (

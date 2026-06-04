@@ -1,6 +1,9 @@
 import * as React from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+
 import { Text } from '@/components/ui/text';
+import { useThemeColors } from '@/hooks/useColorScheme';
+import { FONTS } from '@/lib/fonts';
 
 interface EmptyStateProps {
   title?: string;
@@ -11,13 +14,19 @@ export function EmptyState({
   title = 'No tasks yet',
   message = 'Tap + to add your first task',
 }: EmptyStateProps) {
+  const colors = useThemeColors();
   return (
-    <View className="flex-1 items-center justify-center p-8">
-      <Text className="text-6xl mb-4">📝</Text>
-      <Text className="text-xl font-semibold text-foreground mb-2">
-        {title}
-      </Text>
-      <Text className="text-muted-foreground text-center">{message}</Text>
+    <View style={styles.container}>
+      <Text style={styles.emoji}>📝</Text>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.message, { color: colors.mutedForeground }]}>{message}</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  emoji: { fontSize: 60, marginBottom: 16 },
+  title: { fontSize: 20, fontFamily: FONTS.semibold, marginBottom: 8 },
+  message: { textAlign: 'center' },
+});

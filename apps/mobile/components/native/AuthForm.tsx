@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { View } from 'react-native';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { layout } from '@/lib/layout';
+import { COLORS } from '@/lib/theme';
 import { Host, List, VStack, Button, Text as UIText } from '@expo/ui/swift-ui';
 import {
   listStyle,
@@ -34,7 +36,7 @@ export function AuthScreen({
   const { colorScheme } = useColorScheme();
   const scheme = colorScheme === 'dark' ? 'dark' : 'light';
   return (
-    <View className="bg-background flex-1">
+    <View style={[layout.flex1, { backgroundColor: COLORS[scheme].background }]}>
       <Host style={{ flex: 1 }} colorScheme={scheme}>
         <List modifiers={[listStyle('insetGrouped'), listSectionSpacing('compact')]}>
           <VStack

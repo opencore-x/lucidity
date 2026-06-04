@@ -26,7 +26,9 @@ import {
   frame,
   scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { layout } from '@/lib/layout';
+import { COLORS } from '@/lib/theme';
 import { useTasks } from '@/hooks/useTasks';
 import { useProjects, useCreateProject, useDeleteProject } from '@/hooks/useProjects';
 import { useProjectSheetStore } from '@/stores/projectSheetStore';
@@ -138,7 +140,7 @@ export default function ProjectsScreen() {
 
   const headerRight = React.useCallback(
     () => (
-      <View className="flex-row items-center gap-2">
+      <View style={layout.row}>
         <HeaderGlassButton systemImage="plus" onPress={handleCreateProject} />
         <UserMenu />
       </View>
@@ -150,7 +152,7 @@ export default function ProjectsScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Projects', headerRight }} />
-        <View className="bg-background flex-1 items-center justify-center">
+        <View style={[layout.center, { backgroundColor: COLORS[scheme].background }]}>
           <ActivityIndicator size="large" />
         </View>
       </>
@@ -160,7 +162,7 @@ export default function ProjectsScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Projects', headerRight }} />
-      <View className="bg-background flex-1">
+      <View style={[layout.flex1, { backgroundColor: COLORS[scheme].background }]}>
         <Host style={{ flex: 1 }} colorScheme={scheme}>
           {/* ZStack so the List fills the Host behind the translucent glass composer —
               same pattern as the project / Today screens. */}

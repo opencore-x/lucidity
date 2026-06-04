@@ -27,7 +27,9 @@ import {
   scrollTargetLayout,
   id as scrollTargetId,
 } from '@expo/ui/swift-ui/modifiers';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { layout } from '@/lib/layout';
+import { COLORS } from '@/lib/theme';
 import { useQueryClient } from '@tanstack/react-query';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
@@ -134,7 +136,7 @@ export default function MilestonesScreen() {
 
   const headerRight = React.useCallback(
     () => (
-      <View className="flex-row items-center gap-2">
+      <View style={layout.row}>
         <HeaderGlassButton systemImage="plus" onPress={handleCreateMilestone} />
         <UserMenu />
       </View>
@@ -159,7 +161,7 @@ export default function MilestonesScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Milestones', headerRight }} />
-        <View className="bg-background flex-1 items-center justify-center">
+        <View style={[layout.center, { backgroundColor: COLORS[scheme].background }]}>
           <ActivityIndicator size="large" />
         </View>
       </>
@@ -169,7 +171,7 @@ export default function MilestonesScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Milestones', headerRight }} />
-      <View className="bg-background flex-1">
+      <View style={[layout.flex1, { backgroundColor: COLORS[scheme].background }]}>
         <Host style={{ flex: 1 }} colorScheme={scheme}>
           <ZStack
             alignment="bottom"
@@ -188,7 +190,11 @@ export default function MilestonesScreen() {
                     scrollIndicators('hidden'),
                     scrollPosition(tabScrollState, { anchor: 'center' }),
                   ]}>
-                  <HStack spacing={8} modifiers={[scrollTargetLayout()]}>
+                  {/* Inner padding gives the glass pills room to "lift" on press without the
+                      ScrollView clipping the expanded edges (top/bottom + first/last). */}
+                  <HStack
+                    spacing={8}
+                    modifiers={[scrollTargetLayout(), padding({ vertical: 8, horizontal: 4 })]}>
                     {filterButton(null, 'All')}
                     {projectsWithMilestones.map((p) => filterButton(p.id, p.name))}
                   </HStack>

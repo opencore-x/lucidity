@@ -112,3 +112,25 @@ export function hslToHex(hsl: string): string {
       .padStart(2, '0');
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
+
+/**
+ * Theme colors as `#rrggbb` hex, ready for React Native `style` props (which don't
+ * reliably parse the space-separated `hsl()` strings in THEME). Single source of
+ * truth derived from THEME so the two never drift. Used by `useThemeColors()`.
+ */
+export const COLORS = {
+  light: {
+    background: hslToHex(THEME.light.background),
+    foreground: hslToHex(THEME.light.foreground),
+    mutedForeground: hslToHex(THEME.light.mutedForeground),
+    border: hslToHex(THEME.light.border),
+    card: hslToHex(THEME.light.card),
+  },
+  dark: {
+    background: hslToHex(THEME.dark.background),
+    foreground: hslToHex(THEME.dark.foreground),
+    mutedForeground: hslToHex(THEME.dark.mutedForeground),
+    border: hslToHex(THEME.dark.border),
+    card: hslToHex(THEME.dark.card),
+  },
+} as const;

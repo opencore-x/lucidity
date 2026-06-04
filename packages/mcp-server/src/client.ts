@@ -1,5 +1,5 @@
 const API_KEY = process.env['LUCIDITY_API_KEY'];
-const API_URL = process.env['LUCIDITY_API_URL'] || 'http://localhost:3000';
+const API_URL = process.env['LUCIDITY_API_URL'] || 'https://api.lucidity.my';
 
 if (!API_KEY) {
   console.error(
