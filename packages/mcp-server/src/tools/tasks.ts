@@ -133,7 +133,7 @@ export function registerTaskTools(server: McpServer) {
 
   server.tool(
     'list_tasks',
-    'List tasks with server-side filtering and pagination. Returns task IDs for use with other tools.',
+    'List tasks with server-side filtering and pagination. Returns task IDs for use with other tools. Default order is by position then oldest-first (created ascending); pass sort_by="created_desc" for the most recently added tasks. When sorting/filtering by creation, each row also shows its created date.',
     {
       status: z
         .enum(['pending', 'in_progress', 'completed', 'blocked', 'deferred'])
@@ -157,6 +157,20 @@ export function registerTaskTools(server: McpServer) {
         .string()
         .optional()
         .describe('Tasks due on or after this date (ISO 8601)'),
+      created_after: z
+        .string()
+        .optional()
+        .describe('Tasks created on or after this date/time (ISO 8601)'),
+      created_before: z
+        .string()
+        .optional()
+        .describe('Tasks created on or before this date/time (ISO 8601)'),
+      sort_by: z
+        .enum(['created_desc', 'created_asc'])
+        .optional()
+        .describe(
+          'Sort order. Omit for the default (position, then oldest-first). "created_desc" = most recently added first.',
+        ),
       limit: z
         .number()
         .optional()
@@ -166,7 +180,7 @@ export function registerTaskTools(server: McpServer) {
         .optional()
         .describe('Number of results to skip (default 0)'),
     },
-    async ({ status, project_id, milestone_id, task_number, root_only, due_before, due_after, limit, offset }) => {
+    async ({ status, project_id, milestone_id, task_number, root_only, due_before, due_after, created_after, created_before, sort_by, limit, offset }) => {
       const params = new URLSearchParams();
       if (status) params.set('status', status);
       if (project_id) params.set('project_id', project_id);
@@ -175,6 +189,9 @@ export function registerTaskTools(server: McpServer) {
       if (root_only) params.set('root_only', 'true');
       if (due_before) params.set('due_before', due_before);
       if (due_after) params.set('due_after', due_after);
+      if (created_after) params.set('created_after', created_after);
+      if (created_before) params.set('created_before', created_before);
+      if (sort_by) params.set('sort_by', sort_by);
       if (limit !== undefined) params.set('limit', String(limit));
       if (offset !== undefined) params.set('offset', String(offset));
 
@@ -183,10 +200,20 @@ export function registerTaskTools(server: McpServer) {
         `/api/tasks${qs ? `?${qs}` : ''}`,
       );
 
+      // Surface the created date when the caller is browsing by recency, so they
+      // don't have to decode it from the UUIDv7 id.
+      const showCreated = Boolean(sort_by?.startsWith('created') || created_after || created_before);
       const summary =
         result.tasks.length === 0
           ? 'No tasks found.'
-          : result.tasks.map((t) => `- ${formatTask(t)} [${t.id}]`).join('\n');
+          : result.tasks
+              .map((t) => {
+                const created = showCreated
+                  ? ` · created ${new Date(t.createdAt).toLocaleDateString()}`
+                  : '';
+                return `- ${formatTask(t)} [${t.id}]${created}`;
+              })
+              .join('\n');
 
       let text = `Found ${result.tasks.length} of ${result.total} task(s):\n\n${summary}`;
       if (result.hasMore) {
