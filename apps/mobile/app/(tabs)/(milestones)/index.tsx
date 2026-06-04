@@ -188,7 +188,11 @@ export default function MilestonesScreen() {
                     scrollIndicators('hidden'),
                     scrollPosition(tabScrollState, { anchor: 'center' }),
                   ]}>
-                  <HStack spacing={8} modifiers={[scrollTargetLayout()]}>
+                  {/* Inner padding gives the glass pills room to "lift" on press without the
+                      ScrollView clipping the expanded edges (top/bottom + first/last). */}
+                  <HStack
+                    spacing={8}
+                    modifiers={[scrollTargetLayout(), padding({ vertical: 8, horizontal: 4 })]}>
                     {filterButton(null, 'All')}
                     {projectsWithMilestones.map((p) => filterButton(p.id, p.name))}
                   </HStack>
