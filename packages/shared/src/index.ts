@@ -36,6 +36,7 @@ export {
   MilestoneSchema,
   CreateMilestoneSchema,
   UpdateMilestoneSchema,
+  MergeMilestonesSchema,
 } from './schemas/milestone.js';
 
 export {

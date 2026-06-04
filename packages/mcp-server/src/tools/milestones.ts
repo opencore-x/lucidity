@@ -153,6 +153,42 @@ export function registerMilestoneTools(server: McpServer) {
   );
 
   server.tool(
+    'merge_milestones',
+    'Merge one or more source milestones into a target milestone: reassigns all their tasks to the target, then deletes the sources. All milestones must belong to the same project.',
+    {
+      target_milestone_id: z
+        .string()
+        .describe('Milestone ID that tasks are moved into (kept)'),
+      source_milestone_ids: z
+        .array(z.string())
+        .min(1)
+        .describe('Milestone IDs to merge in and delete'),
+    },
+    async ({ target_milestone_id, source_milestone_ids }) => {
+      const result = await apiRequest<{
+        targetMilestoneId: string;
+        mergedMilestoneIds: string[];
+        movedTaskCount: number;
+      }>('/api/milestones/merge', {
+        method: 'POST',
+        body: JSON.stringify({
+          targetMilestoneId: target_milestone_id,
+          sourceMilestoneIds: source_milestone_ids,
+        }),
+      });
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Merged ${result.mergedMilestoneIds.length} milestone(s) into ${result.targetMilestoneId}, moving ${result.movedTaskCount} task(s). Deleted: ${result.mergedMilestoneIds.join(', ')}`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
     'get_milestone_progress',
     'Get completion progress for a milestone. Shows task counts by status and a visual progress bar.',
     {

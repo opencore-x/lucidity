@@ -45,12 +45,18 @@ export const TaskSchema = CreateTaskSchema.extend({
   updatedAt: z.coerce.date(),
 });
 
-// Partial schema for updates - allows null for clearable fields
+// Partial schema for updates - allows null for clearable fields.
+// NOTE: status/priority must override CreateTaskSchema's `.default()` here.
+// `.partial()` makes fields optional but does NOT strip defaults, so without
+// these overrides an update that omits status/priority would inject
+// status:'pending' and priority:500 and silently clobber the stored values.
 export const UpdateTaskSchema = CreateTaskSchema.partial().extend({
   projectId: z.uuidv7().nullable().optional(),
   milestoneId: z.uuidv7().nullable().optional(),
   parentTaskId: z.uuidv7().nullable().optional(),
   description: z.string().nullable().optional(),
+  status: z.enum(TASK_STATUS_VALUES).optional(),
+  priority: z.number().min(PRIORITY_MIN).max(PRIORITY_MAX).optional(),
   dueDate: z.coerce.date().nullable().optional(),
   reminderAt: z.coerce.date().nullable().optional(),
   recurringFrequency: z.enum(RECURRING_FREQUENCY_VALUES).nullable().optional(),

@@ -11,7 +11,7 @@ export * from './schema/apiKeys.js';
 export * from './schema/timeSessions.js';
 
 // Re-export drizzle-orm helpers
-export { eq, and, or, desc, asc, isNull, isNotNull, sql } from 'drizzle-orm';
+export { eq, and, or, desc, asc, isNull, isNotNull, inArray, sql } from 'drizzle-orm';
 
 export function createDb(databaseUrl: string) {
   const client = neon(databaseUrl);
