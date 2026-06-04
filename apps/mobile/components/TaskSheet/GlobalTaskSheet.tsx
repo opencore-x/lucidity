@@ -923,12 +923,12 @@ export function GlobalTaskSheet() {
                     label="Project"
                     value={
                       task.projectId
-                        ? (allProjects.find((p) => p.id === task.projectId)?.name ?? 'Inbox')
-                        : 'Inbox'
+                        ? (allProjects.find((p) => p.id === task.projectId)?.name ?? 'None')
+                        : 'None'
                     }
                     selection={task.projectId ?? INBOX_PROJECT_ID}
                     options={[
-                      { value: INBOX_PROJECT_ID, label: 'Inbox' },
+                      { value: INBOX_PROJECT_ID, label: 'None' },
                       ...projects.map((p) => ({ value: p.id, label: p.name })),
                     ]}
                     onSelect={(value) => {
