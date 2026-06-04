@@ -8,11 +8,12 @@ import {
   Text,
   KeyboardAvoidingView,
   Platform,
-  useColorScheme,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import Markdown from 'react-native-markdown-display';
 import { useNote, useWriteNote } from '@/hooks/useNotes';
+import { useColorScheme, useThemeColors } from '@/hooks/useColorScheme';
+import { layout } from '@/lib/layout';
 
 const ACCENT = '#0A84FF';
 const MUTED = '#8E8E93';
@@ -23,7 +24,8 @@ export default function NoteScreen() {
   const { data: note, isLoading } = useNote(path);
   const writeNote = useWriteNote();
 
-  const colorScheme = useColorScheme();
+  const { colorScheme } = useColorScheme();
+  const colors = useThemeColors();
   const dark = colorScheme === 'dark';
   const textColor = dark ? '#E5E5E7' : '#1C1C1E';
   const codeBg = dark ? '#2C2C2E' : '#F2F2F7';
@@ -69,9 +71,9 @@ export default function NoteScreen() {
       <Stack.Screen
         options={{ title: note?.title ?? 'Note', headerBackTitle: 'Notes', headerRight }}
       />
-      <View className="bg-background flex-1">
+      <View style={[layout.flex1, { backgroundColor: colors.background }]}>
         {isLoading ? (
-          <View className="flex-1 items-center justify-center">
+          <View style={layout.center}>
             <ActivityIndicator size="large" />
           </View>
         ) : editing ? (

@@ -23,7 +23,9 @@ import {
   font,
   scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { layout } from '@/lib/layout';
+import { COLORS } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
@@ -148,7 +150,7 @@ export default function ProjectScreen() {
     return (
       <>
         <Stack.Screen options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: '' }} />
-        <View className="bg-background flex-1 items-center justify-center">
+        <View style={[layout.center, { backgroundColor: COLORS[scheme].background }]}>
           <ActivityIndicator size="large" />
         </View>
       </>
@@ -159,8 +161,8 @@ export default function ProjectScreen() {
     return (
       <>
         <Stack.Screen options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: 'Not Found' }} />
-        <View className="bg-background flex-1 items-center justify-center">
-          <Text className="text-muted-foreground">Project not found</Text>
+        <View style={[layout.center, { backgroundColor: COLORS[scheme].background }]}>
+          <Text style={{ color: COLORS[scheme].mutedForeground }}>Project not found</Text>
         </View>
       </>
     );
@@ -174,7 +176,7 @@ export default function ProjectScreen() {
           title: project.name,
           headerTintColor: project.color ?? undefined,
           headerRight: () => (
-            <View className="flex-row items-center gap-2">
+            <View style={layout.row}>
               {!isInbox ? (
                 <HeaderGlassButton systemImage="pencil" onPress={() => openProjectSheet(project)} />
               ) : null}
@@ -184,7 +186,7 @@ export default function ProjectScreen() {
           ),
         }}
       />
-      <View className="bg-background flex-1">
+      <View style={[layout.flex1, { backgroundColor: COLORS[scheme].background }]}>
         <Host style={{ flex: 1 }} colorScheme={scheme}>
           {/* ZStack (not VStack) so the List fills the whole Host — its dark insetGrouped
               background sits BEHIND the translucent glass composer (a VStack sibling would

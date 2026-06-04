@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Host, Button, Image } from '@expo/ui/swift-ui';
 import { buttonStyle, frame, glassEffect } from '@expo/ui/swift-ui/modifiers';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 // Square frame + a circle-shaped glassEffect draws a true round button (matching
 // the round UserMenu avatar). `buttonStyle('glass')` alone hugs the icon and stays

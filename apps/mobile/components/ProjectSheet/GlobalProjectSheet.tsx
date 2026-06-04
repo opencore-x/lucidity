@@ -34,7 +34,7 @@ import {
 } from '@expo/ui/swift-ui/modifiers';
 import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { useProjectSheetStore } from '@/stores/projectSheetStore';
 import { useUpdateProject, useDeleteProject } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';

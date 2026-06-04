@@ -29,7 +29,7 @@ import {
   textInputAutocapitalization,
   labelsHidden,
 } from '@expo/ui/swift-ui/modifiers';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import * as Clipboard from 'expo-clipboard';
 import { useApiKey, useCreateApiKey, useRevokeApiKey } from '@/hooks/useApiKey';
 import { useEnvStore } from '@/stores/envStore';

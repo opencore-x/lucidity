@@ -2,7 +2,7 @@ import { useSSO, type StartSSOFlowParams } from '@clerk/clerk-expo';
 import { Asset } from 'expo-asset';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import * as React from 'react';
 import { Platform } from 'react-native';
 import { HStack, Button, Image, Spacer } from '@expo/ui/swift-ui';

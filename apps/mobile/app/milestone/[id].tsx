@@ -31,7 +31,9 @@ import {
   truncationMode,
   listSectionSpacing,
 } from '@expo/ui/swift-ui/modifiers';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { layout } from '@/lib/layout';
+import { COLORS } from '@/lib/theme';
 import { useQueryClient } from '@tanstack/react-query';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
@@ -166,7 +168,7 @@ export default function MilestoneScreen() {
     return (
       <>
         <Stack.Screen options={{ ...MILESTONE_HEADER, title: '' }} />
-        <View className="bg-background flex-1 items-center justify-center">
+        <View style={[layout.center, { backgroundColor: COLORS[scheme].background }]}>
           <ActivityIndicator size="large" />
         </View>
       </>
@@ -177,8 +179,8 @@ export default function MilestoneScreen() {
     return (
       <>
         <Stack.Screen options={{ ...MILESTONE_HEADER, title: 'Not Found' }} />
-        <View className="bg-background flex-1 items-center justify-center">
-          <Text className="text-muted-foreground">Milestone not found</Text>
+        <View style={[layout.center, { backgroundColor: COLORS[scheme].background }]}>
+          <Text style={{ color: COLORS[scheme].mutedForeground }}>Milestone not found</Text>
         </View>
       </>
     );
@@ -225,14 +227,14 @@ export default function MilestoneScreen() {
                 />
               </Host>
             ) : (
-              <View className="flex-row items-center gap-2">
+              <View style={layout.row}>
                 <HeaderGlassButton systemImage="plus" onPress={handleCreateTask} />
                 <UserMenu />
               </View>
             ),
         }}
       />
-      <View className="bg-background flex-1">
+      <View style={[layout.flex1, { backgroundColor: COLORS[scheme].background }]}>
         <Host style={{ flex: 1 }} colorScheme={scheme}>
           <ZStack
             alignment="bottom"
