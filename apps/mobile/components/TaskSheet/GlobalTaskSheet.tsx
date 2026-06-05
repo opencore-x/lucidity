@@ -808,10 +808,13 @@ function TaskSheetLevel({ depth }: { depth: number }) {
         ) : null}
         <Spacer />
         {isEditingText ? (
-          // Same-size circular glass tick as the close button it replaces, so the
-          // status pill stays centered instead of shifting when editing begins.
-          <Button onPress={() => blurFieldRef.current?.()} modifiers={circleGlass}>
-            <Image systemName="checkmark" size={18} color={ICON_BLUE} />
+          // Prominent blue-filled circle (glassProminent) with a white tick — the blue
+          // background reads as a clear "save" affordance. Same 40×40 footprint as the
+          // close button so the status pill stays centered when editing begins.
+          <Button
+            onPress={() => blurFieldRef.current?.()}
+            modifiers={[buttonStyle('glassProminent'), frame({ width: 40, height: 40 })]}>
+            <Image systemName="checkmark" size={18} color="#FFFFFF" />
           </Button>
         ) : (
           <Button onPress={handleClose} modifiers={circleGlass}>

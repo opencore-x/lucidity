@@ -8,6 +8,7 @@ import {
   HStack,
   ScrollView,
   Button,
+  Image,
   List,
   Section,
   SwipeActions,
@@ -16,6 +17,7 @@ import {
 } from '@expo/ui/swift-ui';
 import {
   tint,
+  buttonStyle,
   padding,
   listStyle,
   listRowSeparator,
@@ -100,9 +102,7 @@ export default function MilestoneScreen() {
   // doesn't pop the keyboard. While editing, the nav bar shows a "Done" button that blurs
   // the field (its save affordance, since a multiline field can't submit on Enter);
   // blurDescRef holds that blur fn.
-  const [descMode, setDescMode] = React.useState<'collapsed' | 'expanded' | 'editing'>(
-    'collapsed'
-  );
+  const [descMode, setDescMode] = React.useState<'collapsed' | 'expanded' | 'editing'>('collapsed');
   const blurDescRef = React.useRef<(() => void) | null>(null);
   const handleDescFocus = React.useCallback((blur: () => void) => {
     blurDescRef.current = blur;
@@ -221,10 +221,13 @@ export default function MilestoneScreen() {
             descMode === 'editing' ? (
               <Host matchContents colorScheme={scheme}>
                 <Button
-                  label="Done"
                   onPress={() => blurDescRef.current?.()}
-                  modifiers={project?.color ? [tint(project.color)] : []}
-                />
+                  modifiers={[
+                    buttonStyle('glassProminent'),
+                    ...(project?.color ? [tint(project.color)] : []),
+                  ]}>
+                  <Image systemName="checkmark" size={18} color="#FFFFFF" />
+                </Button>
               </Host>
             ) : (
               <View style={layout.row}>
