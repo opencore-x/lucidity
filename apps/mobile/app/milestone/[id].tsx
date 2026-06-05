@@ -222,19 +222,36 @@ export default function MilestoneScreen() {
           headerRight: () =>
             descMode === 'editing' ? (
               <Host matchContents colorScheme={scheme}>
+                {/* KNOWN ISSUE (tracked on Lucidity task #203 — left open): this is the
+                    SAME blue interactive-glass save tick as GlobalTaskSheet's circleBlue
+                    (identical modifiers), but rendered as a nav-bar headerRight item it
+                    shows a faint "button in button" glass edge — the tinted circle doesn't
+                    read edge-to-edge the way it does inside the sheet. The difference is the
+                    surface, not the button: the nav bar appears to wrap the bar item in its
+                    own (clear) glass, so a tinted glass nested inside reveals an outer ring.
+                    Already fixed: vertical clipping (36pt) and the project-color press
+                    (tint override below). The residual double-glass is unresolved — next
+                    things to try: a borderless/non-glass icon here, or move the "Done"
+                    affordance off the nav bar so it can be a plain sheet-style glass button.
+                    Do NOT try to fix this by chasing padding/insets — it's the bar item. */}
                 <Button
                   onPress={() => blurDescRef.current?.()}
                   modifiers={[
                     buttonStyle('plain'),
-                    frame({ width: 40, height: 40 }),
-                    // Same blue interactive-glass save tick as GlobalTaskSheet's circleBlue
-                    // (springs on press, fills edge-to-edge) — not a flat fill.
+                    // 36pt (not 40) so the circle isn't clipped by the nav bar's ~44pt
+                    // content height — same size as HeaderGlassButton, which renders
+                    // cleanly in this same bar.
+                    frame({ width: 36, height: 36 }),
+                    // The screen sets headerTintColor to the project color, which would
+                    // tint the bar item's press; force the local accent back to blue so
+                    // the interactive glass presses blue, not the project color.
+                    tint(ICON_BLUE),
                     glassEffect({
                       glass: { variant: 'regular', interactive: true, tint: ICON_BLUE },
                       shape: 'circle',
                     }),
                   ]}>
-                  <Image systemName="checkmark" size={18} color="#FFFFFF" />
+                  <Image systemName="checkmark" size={17} color="#FFFFFF" />
                 </Button>
               </Host>
             ) : (
