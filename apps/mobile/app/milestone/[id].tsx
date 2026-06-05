@@ -18,6 +18,8 @@ import {
 import {
   tint,
   buttonStyle,
+  background,
+  shapes,
   padding,
   listStyle,
   listRowSeparator,
@@ -223,10 +225,11 @@ export default function MilestoneScreen() {
                 <Button
                   onPress={() => blurDescRef.current?.()}
                   modifiers={[
-                    buttonStyle('glassProminent'),
-                    ...(project?.color ? [tint(project.color)] : []),
+                    buttonStyle('plain'),
+                    frame({ width: 36, height: 36 }),
+                    background(project?.color ?? '#0A84FF', shapes.circle()),
                   ]}>
-                  <Image systemName="checkmark" size={18} color="#FFFFFF" />
+                  <Image systemName="checkmark" size={16} color="#FFFFFF" />
                 </Button>
               </Host>
             ) : (

@@ -22,6 +22,7 @@ import {
   presentationDragIndicator,
   buttonStyle,
   glassEffect,
+  background,
   textFieldStyle,
   font,
   listStyle,
@@ -172,6 +173,15 @@ export function GlobalProjectSheet() {
     glassEffect({ glass: { variant: 'regular', interactive: true }, shape: 'circle' }),
   ];
 
+  // Solid blue circle for the "save" affordance while editing — `.background(color, in:
+  // Circle())` fills the 40×40 frame edge-to-edge (the prominent button styles hug the
+  // glyph and stay a capsule). Same footprint as the close button it replaces.
+  const circleBlue = [
+    buttonStyle('plain'),
+    frame({ width: 40, height: 40 }),
+    background(ICON_BLUE, shapes.circle()),
+  ];
+
   return (
     <Host style={{ position: 'absolute' }} pointerEvents="none" colorScheme={scheme}>
       <BottomSheet
@@ -192,12 +202,8 @@ export function GlobalProjectSheet() {
             <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
               <Spacer />
               {isEditingText ? (
-                // Prominent blue-filled circle (glassProminent) with a white tick — the
-                // blue background reads as a clear "save" affordance. Same 40×40 footprint
-                // as the close button so the top bar stays aligned when editing begins.
-                <Button
-                  onPress={() => blurFieldRef.current?.()}
-                  modifiers={[buttonStyle('glassProminent'), frame({ width: 40, height: 40 })]}>
+                // Solid blue circle with a white tick — a clear "save" affordance.
+                <Button onPress={() => blurFieldRef.current?.()} modifiers={circleBlue}>
                   <Image systemName="checkmark" size={18} color="#FFFFFF" />
                 </Button>
               ) : (

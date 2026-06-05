@@ -25,6 +25,8 @@ import {
   presentationDragIndicator,
   buttonStyle,
   glassEffect,
+  hidden,
+  background,
   disabled,
   datePickerStyle,
   labelsHidden,
@@ -764,6 +766,18 @@ function TaskSheetLevel({ depth }: { depth: number }) {
     }),
   ];
 
+  // The "save" affordance shown while editing: a solid blue circle. Same recipe as
+  // circleGlass (plain + 40×40 frame + circular fill) but an opaque blue background via
+  // SwiftUI's `.background(color, in: Circle())`, which fills the frame edge-to-edge.
+  // (The `*Prominent` button styles hug the glyph and stay a capsule — hence the earlier
+  // non-circular button and the gap between fill and edge.) Same 40×40 footprint as the
+  // close button so the status pill stays centered.
+  const circleBlue = [
+    buttonStyle('plain'),
+    frame({ width: 40, height: 40 }),
+    background(ICON_BLUE, shapes.circle()),
+  ];
+
   // Shared group modifiers applied to each sheet level (root sheet + the stacked child
   // sheet) so both present identically.
   const sheetGroupModifiers = [
@@ -783,10 +797,20 @@ function TaskSheetLevel({ depth }: { depth: number }) {
           sheet is dismissed by swiping it down or its close button. Refresh hides while
           editing text (avoid refetching mid-edit). */}
       <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
-        {task && !isEditingText ? (
+        {/* Refresh stays mounted at its 40×40 size even while editing (just hidden +
+            non-interactive then) so it remains the left counterweight to the right-side
+            close/tick button — the two flanking Spacers only center the status pill when
+            both flanks are equal width. */}
+        {task ? (
           <Button
             onPress={handleRefresh}
-            modifiers={isRefreshing ? [...circleGlass, disabled(true)] : circleGlass}>
+            modifiers={
+              isEditingText
+                ? [...circleGlass, hidden(true)]
+                : isRefreshing
+                  ? [...circleGlass, disabled(true)]
+                  : circleGlass
+            }>
             <Image
               systemName="arrow.clockwise"
               size={18}
@@ -808,12 +832,8 @@ function TaskSheetLevel({ depth }: { depth: number }) {
         ) : null}
         <Spacer />
         {isEditingText ? (
-          // Prominent blue-filled circle (glassProminent) with a white tick — the blue
-          // background reads as a clear "save" affordance. Same 40×40 footprint as the
-          // close button so the status pill stays centered when editing begins.
-          <Button
-            onPress={() => blurFieldRef.current?.()}
-            modifiers={[buttonStyle('glassProminent'), frame({ width: 40, height: 40 })]}>
+          // Solid blue circle with a white tick — a clear "save" affordance.
+          <Button onPress={() => blurFieldRef.current?.()} modifiers={circleBlue}>
             <Image systemName="checkmark" size={18} color="#FFFFFF" />
           </Button>
         ) : (
