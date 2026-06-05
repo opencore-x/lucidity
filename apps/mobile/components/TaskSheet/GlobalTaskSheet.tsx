@@ -25,7 +25,6 @@ import {
   presentationDragIndicator,
   buttonStyle,
   glassEffect,
-  hidden,
   disabled,
   datePickerStyle,
   labelsHidden,
@@ -291,7 +290,7 @@ function SubtaskRow({
     ...(completed ? [foregroundStyle(MENU_VALUE_GRAY)] : []),
   ];
   return (
-    <HStack spacing={12} modifiers={[onTapGesture(onOpen)]}>
+    <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onOpen)]}>
       <Image
         systemName={completed ? 'checkmark.circle.fill' : 'circle'}
         size={22}
@@ -616,9 +615,12 @@ function TaskSheetLevel({ depth }: { depth: number }) {
   const task = depth < taskStack.length ? taskStack[depth] : null;
   // This level's sheet is presented once the stack has reached (or passed) it.
   const presented = isPresented && taskStack.length > depth;
-  const canGoBack = depth > 0;
-  // Back button / interactive dismissal of THIS level pops it (and anything above it).
-  const popThisLevel = React.useCallback(() => popToDepth(depth), [popToDepth, depth]);
+  // Closing this level: the root sheet closes the whole stack, while a stacked subtask
+  // sheet just pops itself back to its parent (so it doesn't tear the parent down too).
+  const handleClose = React.useCallback(
+    () => (depth === 0 ? closeSheet() : popToDepth(depth)),
+    [depth, closeSheet, popToDepth]
+  );
 
   const queryClient = useQueryClient();
 
@@ -775,16 +777,11 @@ function TaskSheetLevel({ depth }: { depth: number }) {
   // current task always sits on the topmost sheet (its top bar keeps the back/close).
   const fullContent = (
     <VStack spacing={12}>
-      {/* Top bar: [back?][refresh] / status / [back-placeholder?][close|Done]. Refresh
-                (left) balances close (right); a hidden placeholder (right) balances Back
-                (left) so the status pill stays centered at root AND when drilled into a
-                subtask. Refresh hides while editing text (avoid refetching mid-edit). */}
+      {/* Top bar: [refresh] / status / [close|Done]. Refresh (left) balances close
+          (right) so the status pill stays centered. No back button — a stacked subtask
+          sheet is dismissed by swiping it down or its close button. Refresh hides while
+          editing text (avoid refetching mid-edit). */}
       <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
-        {canGoBack ? (
-          <Button onPress={popThisLevel} modifiers={circleGlass}>
-            <Image systemName="chevron.left" size={18} />
-          </Button>
-        ) : null}
         {task && !isEditingText ? (
           <Button
             onPress={handleRefresh}
@@ -809,12 +806,6 @@ function TaskSheetLevel({ depth }: { depth: number }) {
           />
         ) : null}
         <Spacer />
-        {/* Invisible 40×40 placeholder so Back (left) has a counterweight (right). */}
-        {canGoBack ? (
-          <Button onPress={() => {}} modifiers={[...circleGlass, hidden(true)]}>
-            <Image systemName="chevron.left" size={18} />
-          </Button>
-        ) : null}
         {isEditingText ? (
           // Same-size circular glass tick as the close button it replaces, so the
           // status pill stays centered instead of shifting when editing begins.
@@ -822,7 +813,7 @@ function TaskSheetLevel({ depth }: { depth: number }) {
             <Image systemName="checkmark" size={18} color={ICON_BLUE} />
           </Button>
         ) : (
-          <Button onPress={closeSheet} modifiers={circleGlass}>
+          <Button onPress={handleClose} modifiers={circleGlass}>
             <Image systemName="xmark" size={18} />
           </Button>
         )}
