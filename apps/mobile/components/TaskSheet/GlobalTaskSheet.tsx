@@ -490,7 +490,10 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
           collapsible Section, which is sidebar-only). */}
       <HStack
         spacing={6}
-        modifiers={[padding({ leading: 4, top: 4 }), onTapGesture(() => setExpanded((e) => !e))]}>
+        modifiers={[
+          padding({ leading: 4, top: 4, bottom: 10 }),
+          onTapGesture(() => setExpanded((e) => !e)),
+        ]}>
         <Image systemName="bubble.left" size={ICON_SIZE - 4} color={MENU_VALUE_GRAY} />
         <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>
           {list.length > 0 ? `Comments (${list.length})` : 'Comments'}
