@@ -33,7 +33,8 @@ export default function NotesScreen() {
 
   const openNote = React.useCallback(
     // The /note/[id] route is real; expo-router regenerates typed-route defs on dev start.
-    (path: string) => router.push({ pathname: '/note/[id]', params: { id: path } } as unknown as Href),
+    (path: string) =>
+      router.push({ pathname: '/note/[id]', params: { id: path } } as unknown as Href),
     [router]
   );
 
@@ -45,7 +46,10 @@ export default function NotesScreen() {
       const title = fileName.replace(/\.md$/i, '');
       try {
         await writeNote.mutateAsync({ path: fileName, content: `# ${title}\n\n`, mode: 'create' });
-        router.push({ pathname: '/note/[id]', params: { id: fileName, edit: '1' } } as unknown as Href);
+        router.push({
+          pathname: '/note/[id]',
+          params: { id: fileName, edit: '1' },
+        } as unknown as Href);
       } catch (e) {
         Alert.alert('Could not create note', e instanceof Error ? e.message : String(e));
       }
@@ -54,7 +58,7 @@ export default function NotesScreen() {
 
   const headerRight = React.useCallback(
     () => (
-      <View style={layout.row}>
+      <View style={layout.headerActions}>
         <HeaderGlassButton systemImage="plus" onPress={handleCreate} />
         <UserMenu />
       </View>

@@ -140,7 +140,7 @@ export default function ProjectsScreen() {
 
   const headerRight = React.useCallback(
     () => (
-      <View style={layout.row}>
+      <View style={layout.headerActions}>
         <HeaderGlassButton systemImage="plus" onPress={handleCreateProject} />
         <UserMenu />
       </View>

@@ -153,7 +153,7 @@ export default function SearchScreen() {
 
   const headerRight = React.useCallback(
     () => (
-      <View style={layout.row}>
+      <View style={layout.headerActions}>
         <HeaderGlassButton systemImage="plus" onPress={handleCreateTask} />
         <UserMenu />
       </View>

@@ -176,7 +176,7 @@ export default function ProjectScreen() {
           title: project.name,
           headerTintColor: project.color ?? undefined,
           headerRight: () => (
-            <View style={layout.row}>
+            <View style={layout.headerActions}>
               {!isInbox ? (
                 <HeaderGlassButton systemImage="pencil" onPress={() => openProjectSheet(project)} />
               ) : null}
