@@ -438,7 +438,9 @@ function CommentRow({
       spacing={4}
       alignment="leading"
       modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
-      <HStack spacing={6}>
+      {/* Top padding gives each comment's header row (avatar · @user · time) breathing
+          room above it, separating one comment from the previous row. */}
+      <HStack spacing={6} modifiers={[padding({ top: 8 })]}>
         {isClaude && claudeLogoUri ? (
           <Image
             uiImage={claudeLogoUri}
@@ -492,7 +494,7 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
         spacing={6}
         modifiers={[
           contentShape(shapes.rectangle()),
-          padding({ leading: 4, top: 4, bottom: 10 }),
+          padding({ leading: 4, top: 4 }),
           onTapGesture(() => setExpanded((e) => !e)),
         ]}>
         <Image systemName="bubble.left" size={ICON_SIZE - 4} color={MENU_VALUE_GRAY} />
