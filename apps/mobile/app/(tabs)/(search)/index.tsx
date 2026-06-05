@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import {
   Host,
   ZStack,
@@ -92,6 +92,16 @@ export default function SearchScreen() {
   const searchRef = React.useRef<TextFieldRef>(null);
   const [query, setQuery] = React.useState('');
   const [composing, setComposing] = React.useState(false);
+
+  // Tapping the Search tab should drop you straight into typing — focus the field
+  // (which pops the keyboard) every time the screen gains focus. The small delay
+  // lets the native field finish mounting/laying out before focus() lands.
+  useFocusEffect(
+    React.useCallback(() => {
+      const timer = setTimeout(() => searchRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
+    }, [])
+  );
 
   const onRefresh = React.useCallback(async () => {
     await Promise.all([refetchTasks(), refetchProjects()]);
