@@ -212,6 +212,7 @@ export default function ProjectsScreen() {
                 placeholder="Add project…"
                 onSubmit={handleSubmitProject}
                 onClose={() => setComposing(false)}
+                surface
               />
             ) : null}
           </ZStack>

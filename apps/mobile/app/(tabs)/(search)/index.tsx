@@ -1,17 +1,12 @@
 import * as React from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
 import {
-  Host,
-  ZStack,
-  List,
-  Section,
-  HStack,
-  Image,
-  TextField,
-  Text as UIText,
-  type TextFieldRef,
-} from '@expo/ui/swift-ui';
+  View,
+  ActivityIndicator,
+  type NativeSyntheticEvent,
+  type TextInputChangeEventData,
+} from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { Host, ZStack, List, Section, HStack, Image, Text as UIText } from '@expo/ui/swift-ui';
 import {
   listStyle,
   refreshable,
@@ -22,8 +17,6 @@ import {
   shapes,
   onTapGesture,
   lineLimit,
-  textFieldStyle,
-  listRowSeparator,
   scrollDismissesKeyboard,
   padding,
 } from '@expo/ui/swift-ui/modifiers';
@@ -89,7 +82,6 @@ export default function SearchScreen() {
   const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
   const isLoading = tasksLoading || projectsLoading;
 
-  const searchRef = React.useRef<TextFieldRef>(null);
   const [query, setQuery] = React.useState('');
   const [composing, setComposing] = React.useState(false);
 
@@ -138,10 +130,20 @@ export default function SearchScreen() {
     (taskId: string) => toggleTask.mutate(taskId),
     [toggleTask]
   );
-  const handleClear = React.useCallback(() => {
-    searchRef.current?.clear();
-    setQuery('');
-  }, []);
+  // Native iOS search bar (UISearchController) rendered in the nav area via the Stack
+  // header. autoFocus makes iOS focus it and open the keyboard when the screen appears —
+  // reliable where a custom TextField in a List under a native search-role tab was not.
+  const searchBarOptions = React.useMemo(
+    () => ({
+      placeholder: 'Search ...',
+      autoFocus: true,
+      hideWhenScrolling: false,
+      onChangeText: (e: NativeSyntheticEvent<TextInputChangeEventData>) =>
+        setQuery(e.nativeEvent.text),
+      onCancelButtonPress: () => setQuery(''),
+    }),
+    []
+  );
 
   const handleCreateTask = React.useCallback(() => setComposing(true), []);
   const handleSubmitTask = React.useCallback(
@@ -172,7 +174,9 @@ export default function SearchScreen() {
   if (isLoading) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Search', headerRight }} />
+        <Stack.Screen
+          options={{ title: 'Search', headerRight, headerSearchBarOptions: searchBarOptions }}
+        />
         <View style={[layout.center, { backgroundColor: COLORS[scheme].background }]}>
           <ActivityIndicator size="large" />
         </View>
@@ -197,25 +201,6 @@ export default function SearchScreen() {
                 refreshable(onRefresh),
                 scrollDismissesKeyboard('interactively'),
               ]}>
-              {/* Search field as the first row (scrolls with content, like before). */}
-              <HStack spacing={8} modifiers={[listRowSeparator('hidden')]}>
-                <Image systemName="magnifyingglass" size={17} color={MUTED_GRAY} />
-                <TextField
-                  ref={searchRef}
-                  placeholder="Search tasks and projects…"
-                  onTextChange={setQuery}
-                  modifiers={[textFieldStyle('plain'), frame({ maxWidth: Infinity })]}
-                />
-                {hasQuery ? (
-                  <Image
-                    systemName="xmark.circle.fill"
-                    size={17}
-                    color={MUTED_GRAY}
-                    onPress={handleClear}
-                  />
-                ) : null}
-              </HStack>
-
               {hasQuery ? (
                 <>
                   {filteredProjects.length > 0 ? (
@@ -271,6 +256,7 @@ export default function SearchScreen() {
                 placeholder="Add task…"
                 onSubmit={handleSubmitTask}
                 onClose={() => setComposing(false)}
+                surface
               />
             ) : null}
           </ZStack>

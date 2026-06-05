@@ -291,7 +291,7 @@ function SubtaskRow({
     ...(completed ? [foregroundStyle(MENU_VALUE_GRAY)] : []),
   ];
   return (
-    <HStack spacing={12} modifiers={[onTapGesture(onOpen)]}>
+    <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onOpen)]}>
       <Image
         systemName={completed ? 'checkmark.circle.fill' : 'circle'}
         size={22}
@@ -380,7 +380,7 @@ const SubtaskSection = React.memo(function SubtaskSection({
         </>
       ) : null}
 
-      <HStack spacing={12} modifiers={[onTapGesture(onAdd)]}>
+      <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onAdd)]}>
         <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
         <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Subtask</Text>
         <Spacer />
@@ -438,16 +438,18 @@ function CommentRow({
       spacing={4}
       alignment="leading"
       modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
-      <HStack spacing={6}>
+      {/* Top padding gives each comment's header row (avatar · @user · time) breathing
+          room above it, separating one comment from the previous row. */}
+      <HStack spacing={6} modifiers={[padding({ bottom: 8 })]}>
         {isClaude && claudeLogoUri ? (
           <Image
             uiImage={claudeLogoUri}
-            modifiers={[resizable(), frame({ width: 16, height: 16 }), clipShape('circle')]}
+            modifiers={[resizable(), frame({ width: 20, height: 20 }), clipShape('circle')]}
           />
         ) : !isClaude && avatarLocalUri ? (
           <Image
             uiImage={avatarLocalUri}
-            modifiers={[resizable(), frame({ width: 16, height: 16 }), clipShape('circle')]}
+            modifiers={[resizable(), frame({ width: 20, height: 20 }), clipShape('circle')]}
           />
         ) : (
           <Image
@@ -456,8 +458,8 @@ function CommentRow({
             color={isClaude ? CLAUDE_PURPLE : MENU_VALUE_GRAY}
           />
         )}
-        <Text>{`@${displayName}`}</Text>
-        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY), font({ size: 13 })]}>
+        <Text modifiers={[font({ size: 16, weight: 'medium' })]}>{`@${displayName}`}</Text>
+        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY), font({ size: 14 })]}>
           {formatRelativeTime(comment.createdAt)}
         </Text>
       </HStack>
@@ -490,7 +492,11 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
           collapsible Section, which is sidebar-only). */}
       <HStack
         spacing={6}
-        modifiers={[padding({ leading: 4, top: 4 }), onTapGesture(() => setExpanded((e) => !e))]}>
+        modifiers={[
+          contentShape(shapes.rectangle()),
+          padding({ leading: 4, top: 2, bottom: 2 }),
+          onTapGesture(() => setExpanded((e) => !e)),
+        ]}>
         <Image systemName="bubble.left" size={ICON_SIZE - 4} color={MENU_VALUE_GRAY} />
         <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY)]}>
           {list.length > 0 ? `Comments (${list.length})` : 'Comments'}
@@ -525,7 +531,7 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
             </List.ForEach>
           ) : null}
 
-          <HStack spacing={12} modifiers={[onTapGesture(onAdd)]}>
+          <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onAdd)]}>
             <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
             <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Comment</Text>
             <Spacer />
@@ -590,7 +596,15 @@ const PARENT_NONE = '__noparent__';
  * absolute Host, and the content Group MUST carry `frame({ maxWidth: Infinity })`
  * or the SwiftUI content collapses and the sheet presents invisibly.
  */
-export function GlobalTaskSheet() {
+/**
+ * One level of the stacked task sheet. Renders the BottomSheet for `taskStack[depth]`
+ * with that task's full content, then recursively renders the next level *inside* its
+ * own content so SwiftUI presents each drilled-in subtask as a real sheet stacked on
+ * its parent (with the native scale-back / peeking edge). Recursion stops once there's
+ * no task at this depth, so exactly `taskStack.length` levels render (plus one pre-
+ * mounted look-ahead so the next drill animates in).
+ */
+function TaskSheetLevel({ depth }: { depth: number }) {
   const { colorScheme } = useColorScheme();
   const scheme = colorScheme === 'dark' ? 'dark' : 'light';
 
@@ -598,12 +612,19 @@ export function GlobalTaskSheet() {
   const taskStack = useSheetStore((s) => s.taskStack);
   const closeSheet = useSheetStore((s) => s.closeSheet);
   const onDismissed = useSheetStore((s) => s.onDismissed);
-  const goBack = useSheetStore((s) => s.goBack);
   const drillDown = useSheetStore((s) => s.drillDown);
-  const updateCurrentTask = useSheetStore((s) => s.updateCurrentTask);
+  const updateTaskAt = useSheetStore((s) => s.updateTaskAt);
+  const popToDepth = useSheetStore((s) => s.popToDepth);
 
-  const task = taskStack.length > 0 ? taskStack[taskStack.length - 1] : null;
-  const canGoBack = taskStack.length > 1;
+  const task = depth < taskStack.length ? taskStack[depth] : null;
+  // This level's sheet is presented once the stack has reached (or passed) it.
+  const presented = isPresented && taskStack.length > depth;
+  // Closing this level: the root sheet closes the whole stack, while a stacked subtask
+  // sheet just pops itself back to its parent (so it doesn't tear the parent down too).
+  const handleClose = React.useCallback(
+    () => (depth === 0 ? closeSheet() : popToDepth(depth)),
+    [depth, closeSheet, popToDepth]
+  );
 
   const queryClient = useQueryClient();
 
@@ -623,9 +644,12 @@ export function GlobalTaskSheet() {
 
   React.useEffect(() => {
     if (task && !allTasks.find((t) => t.id === task.id)) {
-      closeSheet();
+      // The task at this level vanished (deleted here or elsewhere): pop this level
+      // back to its parent, or close the whole sheet if this is the root.
+      if (depth === 0) closeSheet();
+      else popToDepth(depth);
     }
-  }, [task, allTasks, closeSheet]);
+  }, [task, allTasks, depth, closeSheet, popToDepth]);
 
   // While a title/description field is focused, the top-bar close button becomes a
   // "Done" button that blurs the field (the explicit save affordance for the
@@ -680,13 +704,13 @@ export function GlobalTaskSheet() {
       // Reflect the change in the open sheet immediately (optimistic) so the UI
       // doesn't wait for the server round-trip; the mutation also updates the
       // query cache and re-syncs the authoritative task on success.
-      updateCurrentTask({ ...task, ...data } as Task);
+      updateTaskAt(depth, { ...task, ...data } as Task);
       updateTask.mutate(
         { id: task.id, data },
-        { onSuccess: (updatedTask) => updateCurrentTask(updatedTask) }
+        { onSuccess: (updatedTask) => updateTaskAt(depth, updatedTask) }
       );
     },
-    [task, updateTask, updateCurrentTask]
+    [task, depth, updateTask, updateTaskAt]
   );
 
   const handleParentChange = React.useCallback(
@@ -727,11 +751,11 @@ export function GlobalTaskSheet() {
         queryClient.invalidateQueries({ queryKey: ['comments', id] }),
       ]);
       const fresh = queryClient.getQueryData<Task[]>(['tasks'])?.find((t) => t.id === id);
-      if (fresh) updateCurrentTask(fresh);
+      if (fresh) updateTaskAt(depth, fresh);
     } finally {
       setIsRefreshing(false);
     }
-  }, [task, isRefreshing, queryClient, updateCurrentTask]);
+  }, [task, depth, isRefreshing, queryClient, updateTaskAt]);
 
   // A circular Liquid Glass icon button (back / close).
   const circleGlass = [
@@ -743,360 +767,418 @@ export function GlobalTaskSheet() {
     }),
   ];
 
-  return (
-    <Host style={{ position: 'absolute' }} pointerEvents="none" colorScheme={scheme}>
-      <BottomSheet
-        isPresented={isPresented}
-        onIsPresentedChange={(presented) => {
-          if (!presented) closeSheet();
-        }}
-        onDismiss={onDismissed}>
-        <Group
-          modifiers={[
-            frame({
-              maxWidth: Infinity,
-              maxHeight: Infinity,
-              alignment: 'topLeading',
-            }),
-            padding({ top: 28, leading: 8, trailing: 8 }),
-            presentationDetents(['medium', 'large']),
-            presentationDragIndicator('visible'),
-          ]}>
-          <VStack spacing={12}>
-            {/* Top bar: [back?][refresh] / status / [back-placeholder?][close|Done]. Refresh
-                (left) balances close (right); a hidden placeholder (right) balances Back
-                (left) so the status pill stays centered at root AND when drilled into a
-                subtask. Refresh hides while editing text (avoid refetching mid-edit). */}
-            <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
-              {canGoBack ? (
-                <Button onPress={goBack} modifiers={circleGlass}>
-                  <Image systemName="chevron.left" size={18} />
-                </Button>
-              ) : null}
-              {task && !isEditingText ? (
-                <Button
-                  onPress={handleRefresh}
-                  modifiers={isRefreshing ? [...circleGlass, disabled(true)] : circleGlass}>
-                  <Image
-                    systemName="arrow.clockwise"
-                    size={18}
-                    modifiers={[
-                      symbolEffect(
-                        { effect: 'rotate' },
-                        { isActive: refreshingState, options: { speed: 2.5, repeat: 'continuous' } }
-                      ),
-                    ]}
-                  />
-                </Button>
-              ) : null}
-              <Spacer />
-              {task ? (
-                <StatusPill
-                  status={task.status}
-                  onStatusChange={(status) => handleUpdateField({ status })}
-                />
-              ) : null}
-              <Spacer />
-              {/* Invisible 40×40 placeholder so Back (left) has a counterweight (right). */}
-              {canGoBack ? (
-                <Button onPress={() => {}} modifiers={[...circleGlass, hidden(true)]}>
-                  <Image systemName="chevron.left" size={18} />
-                </Button>
-              ) : null}
-              {isEditingText ? (
-                <Button
-                  label="Done"
-                  onPress={() => blurFieldRef.current?.()}
-                  modifiers={[buttonStyle('glassProminent')]}
-                />
-              ) : (
-                <Button onPress={closeSheet} modifiers={circleGlass}>
-                  <Image systemName="xmark" size={18} />
-                </Button>
-              )}
-            </HStack>
+  // The prominent "save"/confirm affordance: a blue-tinted INTERACTIVE-GLASS circle.
+  //
+  // IMPORTANT — for a colored icon button, use interactive glass, NOT a flat
+  // `background(color)` fill or a `*Prominent` button style:
+  //   • A flat background fill has no material, so it loses the Liquid Glass press
+  //     spring/bounce/shimmer and feels dead.
+  //   • `glass`/`glassProminent` button styles hug the glyph and stay a capsule, leaving
+  //     a gap between the fill and the frame edge (and a non-circular shape).
+  // `glassEffect({ interactive: true, tint }, shape: 'circle')` keeps the native press
+  // feel AND fills the circle edge-to-edge — the same recipe as circleGlass, just tinted.
+  // Same 40×40 footprint as the close button so the status pill stays centered.
+  const circleBlue = [
+    buttonStyle('plain'),
+    frame({ width: 40, height: 40 }),
+    glassEffect({
+      glass: { variant: 'regular', interactive: true, tint: ICON_BLUE },
+      shape: 'circle',
+    }),
+  ];
 
-            {task ? (
-              editingTitle ? (
-                <EditableField
-                  key={`title-${task.id}`}
-                  value={task.title}
-                  onCommit={(t) => handleUpdateField({ title: t })}
-                  onFocusEnter={handleFieldFocus}
-                  onFocusLeave={() => {
-                    handleFieldBlur();
-                    setEditingTitle(false);
-                  }}
-                  autoFocus
-                  multiline
-                  modifiers={[
-                    textFieldStyle('plain'),
-                    font({ size: 22, weight: 'semibold' }),
-                    multilineTextAlignment('leading'),
-                    frame({ maxWidth: Infinity, alignment: 'leading' }),
-                    // Negative bottom padding pulls the Notes card up to tighten the gap.
-                    padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
-                  ]}
-                />
-              ) : (
-                // Read-only display: the title with the task number concatenated inline
-                // after the text (muted, smaller). Tap anywhere to edit.
-                <Text
-                  modifiers={[
-                    font({ size: 22, weight: 'semibold' }),
-                    multilineTextAlignment('leading'),
-                    frame({ maxWidth: Infinity, alignment: 'leading' }),
-                    padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
-                    onTapGesture(() => setEditingTitle(true)),
-                  ]}>
-                  <Text>{task.title}</Text>
-                  {task.taskNumber != null ? (
-                    <Text
-                      modifiers={[
-                        foregroundStyle(MENU_VALUE_GRAY),
-                        font({ size: 15, weight: 'regular' }),
-                      ]}>
-                      {`  #${task.taskNumber}`}
-                    </Text>
-                  ) : null}
-                </Text>
-              )
+  // Shared group modifiers applied to each sheet level (root sheet + the stacked child
+  // sheet) so both present identically.
+  const sheetGroupModifiers = [
+    frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'topLeading' }),
+    padding({ top: 28, leading: 8, trailing: 8 }),
+    presentationDetents(['medium', 'large']),
+    presentationDragIndicator('visible'),
+  ];
+
+  // The full, interactive content for the top-of-stack task. It lives in the root sheet
+  // until a subtask is drilled into, then moves onto the stacked child sheet so the
+  // current task always sits on the topmost sheet (its top bar keeps the back/close).
+  const fullContent = (
+    <VStack spacing={12}>
+      {/* Top bar: [refresh] / status / [close|Done]. Refresh (left) balances close
+          (right) so the status pill stays centered. No back button — a stacked subtask
+          sheet is dismissed by swiping it down or its close button. Refresh hides while
+          editing text (avoid refetching mid-edit). */}
+      <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
+        {/* Refresh stays mounted at its 40×40 size even while editing (just hidden +
+            non-interactive then) so it remains the left counterweight to the right-side
+            close/tick button — the two flanking Spacers only center the status pill when
+            both flanks are equal width. */}
+        {task ? (
+          <Button
+            onPress={handleRefresh}
+            modifiers={
+              isEditingText
+                ? [...circleGlass, hidden(true)]
+                : isRefreshing
+                  ? [...circleGlass, disabled(true)]
+                  : circleGlass
+            }>
+            <Image
+              systemName="arrow.clockwise"
+              size={18}
+              modifiers={[
+                symbolEffect(
+                  { effect: 'rotate' },
+                  { isActive: refreshingState, options: { speed: 2.5, repeat: 'continuous' } }
+                ),
+              ]}
+            />
+          </Button>
+        ) : null}
+        <Spacer />
+        {task ? (
+          <StatusPill
+            status={task.status}
+            onStatusChange={(status) => handleUpdateField({ status })}
+          />
+        ) : null}
+        <Spacer />
+        {isEditingText ? (
+          // Blue interactive-glass tick (springs like the close button) — a clear "save"
+          // affordance. See circleBlue above for why it's glass, not a flat fill.
+          <Button onPress={() => blurFieldRef.current?.()} modifiers={circleBlue}>
+            <Image systemName="checkmark" size={18} color="#FFFFFF" />
+          </Button>
+        ) : (
+          <Button onPress={handleClose} modifiers={circleGlass}>
+            <Image systemName="xmark" size={18} />
+          </Button>
+        )}
+      </HStack>
+
+      {task ? (
+        editingTitle ? (
+          <EditableField
+            key={`title-${task.id}`}
+            value={task.title}
+            onCommit={(t) => handleUpdateField({ title: t })}
+            onFocusEnter={handleFieldFocus}
+            onFocusLeave={() => {
+              handleFieldBlur();
+              setEditingTitle(false);
+            }}
+            autoFocus
+            multiline
+            modifiers={[
+              textFieldStyle('plain'),
+              font({ size: 22, weight: 'semibold' }),
+              multilineTextAlignment('leading'),
+              frame({ maxWidth: Infinity, alignment: 'leading' }),
+              // Negative bottom padding pulls the Notes card up to tighten the gap.
+              padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
+            ]}
+          />
+        ) : (
+          // Read-only display: the title with the task number concatenated inline
+          // after the text (muted, smaller). Tap anywhere to edit.
+          <Text
+            modifiers={[
+              font({ size: 22, weight: 'semibold' }),
+              multilineTextAlignment('leading'),
+              frame({ maxWidth: Infinity, alignment: 'leading' }),
+              padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
+              contentShape(shapes.rectangle()),
+              onTapGesture(() => setEditingTitle(true)),
+            ]}>
+            <Text>{task.title}</Text>
+            {task.taskNumber != null ? (
+              <Text
+                modifiers={[
+                  foregroundStyle(MENU_VALUE_GRAY),
+                  font({ size: 15, weight: 'regular' }),
+                ]}>
+                {`  #${task.taskNumber}`}
+              </Text>
             ) : null}
+          </Text>
+        )
+      ) : null}
 
-            {task ? (
-              <List
-                modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
-                {/* Description lives in the scrollable list (not pinned) so a long note
+      {task ? (
+        <List modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
+          {/* Description lives in the scrollable list (not pinned) so a long note
                     scrolls away instead of hogging the top of the sheet. Tap-to-edit: the
                     rendered markdown shows read-only; tapping swaps in a monospaced field
                     that edits the raw markdown source (saved via the top-bar Done). */}
-                {editingDesc ? (
-                  <EditableField
-                    key={`desc-${task.id}`}
-                    value={task.description ?? ''}
-                    onCommit={(t) => handleUpdateField({ description: t || null })}
-                    onFocusEnter={handleFieldFocus}
-                    onFocusLeave={() => {
-                      handleFieldBlur();
-                      setEditingDesc(false);
-                    }}
-                    allowEmpty
-                    multiline
-                    autoFocus
-                    placeholder="Description…"
-                    modifiers={[textFieldStyle('plain'), font({ design: 'monospaced', size: 14 })]}
-                  />
-                ) : task.description ? (
-                  <VStack
-                    alignment="leading"
-                    modifiers={[
-                      frame({ maxWidth: Infinity, alignment: 'leading' }),
-                      contentShape(shapes.rectangle()),
-                      onTapGesture(() => setEditingDesc(true)),
-                    ]}>
-                    <MarkdownView content={task.description} dark={colorScheme === 'dark'} />
-                  </VStack>
-                ) : (
-                  <Text
-                    modifiers={[
-                      foregroundStyle(MENU_VALUE_GRAY),
-                      frame({ maxWidth: Infinity, alignment: 'leading' }),
-                      onTapGesture(() => setEditingDesc(true)),
-                    ]}>
-                    Description…
-                  </Text>
-                )}
+          {editingDesc ? (
+            <EditableField
+              key={`desc-${task.id}`}
+              value={task.description ?? ''}
+              onCommit={(t) => handleUpdateField({ description: t || null })}
+              onFocusEnter={handleFieldFocus}
+              onFocusLeave={() => {
+                handleFieldBlur();
+                setEditingDesc(false);
+              }}
+              allowEmpty
+              multiline
+              autoFocus
+              placeholder="Description…"
+              modifiers={[textFieldStyle('plain'), font({ design: 'monospaced', size: 14 })]}
+            />
+          ) : task.description ? (
+            <VStack
+              alignment="leading"
+              modifiers={[
+                frame({ maxWidth: Infinity, alignment: 'leading' }),
+                contentShape(shapes.rectangle()),
+                onTapGesture(() => setEditingDesc(true)),
+              ]}>
+              <MarkdownView content={task.description} dark={colorScheme === 'dark'} />
+            </VStack>
+          ) : (
+            <Text
+              modifiers={[
+                foregroundStyle(MENU_VALUE_GRAY),
+                frame({ maxWidth: Infinity, alignment: 'leading' }),
+                contentShape(shapes.rectangle()),
+                onTapGesture(() => setEditingDesc(true)),
+              ]}>
+              Description…
+            </Text>
+          )}
 
-                <CommentsSection taskId={task.id} onAdd={addComment} />
+          <CommentsSection taskId={task.id} onAdd={addComment} />
 
-                <SubtaskSection
-                  subtasks={subtasks}
-                  allTasks={allTasks}
-                  onOpen={drillDown}
-                  onAdd={addSubtask}
+          <SubtaskSection
+            subtasks={subtasks}
+            allTasks={allTasks}
+            onOpen={drillDown}
+            onAdd={addSubtask}
+          />
+
+          {/* Placement — where the task lives (project / milestone / parent) */}
+          <Section>
+            <MenuRow
+              icon="folder"
+              label="Project"
+              value={
+                task.projectId
+                  ? (allProjects.find((p) => p.id === task.projectId)?.name ?? 'None')
+                  : 'None'
+              }
+              selection={task.projectId ?? INBOX_PROJECT_ID}
+              options={[
+                { value: INBOX_PROJECT_ID, label: 'None' },
+                ...projects.map((p) => ({ value: p.id, label: p.name })),
+              ]}
+              onSelect={(value) => {
+                const projectId = value === INBOX_PROJECT_ID ? null : value;
+                if (projectId !== task.projectId) {
+                  handleUpdateField({ projectId, milestoneId: null });
+                }
+              }}
+            />
+
+            {task.projectId ? (
+              <MenuRow
+                icon="flag"
+                label="Milestone"
+                value={
+                  task.milestoneId
+                    ? (milestones.find((m) => m.id === task.milestoneId)?.name ?? 'None')
+                    : 'None'
+                }
+                selection={task.milestoneId ?? MILESTONE_NONE}
+                options={[
+                  { value: MILESTONE_NONE, label: 'None' },
+                  ...milestones.map((m) => ({ value: m.id, label: m.name })),
+                ]}
+                onSelect={(value) => {
+                  const milestoneId = value === MILESTONE_NONE ? null : value;
+                  if (milestoneId !== task.milestoneId) {
+                    handleUpdateField({ milestoneId });
+                  }
+                }}
+              />
+            ) : null}
+
+            {/* Parent task — native Menu (lists valid parents; None detaches) */}
+            <MenuRow
+              icon="arrow.up.left"
+              label="Parent"
+              value={allTasks.find((t) => t.id === task.parentTaskId)?.title ?? 'None'}
+              selection={task.parentTaskId ?? PARENT_NONE}
+              options={parentOptions}
+              onSelect={(value) => handleParentChange(value === PARENT_NONE ? null : value)}
+            />
+          </Section>
+
+          {/* Scheduling — when/how the task is due */}
+          <Section>
+            {/* Due date — single row: Add when empty, picker + clear when set */}
+            {task.dueDate ? (
+              <HStack spacing={8}>
+                <Image
+                  systemName="calendar"
+                  size={ICON_SIZE}
+                  color={ICON_BLUE}
+                  modifiers={[frame({ width: ICON_COL })]}
                 />
+                <Text>Due</Text>
+                <Spacer />
+                <DatePicker
+                  selection={new Date(task.dueDate)}
+                  displayedComponents={['date']}
+                  onDateChange={(d) => handleUpdateField({ dueDate: d })}
+                  modifiers={[datePickerStyle('compact'), labelsHidden()]}
+                />
+                <Image
+                  systemName="xmark.circle.fill"
+                  size={18}
+                  color="#9CA3AF"
+                  onPress={() => handleUpdateField({ dueDate: null })}
+                />
+              </HStack>
+            ) : (
+              <HStack spacing={8}>
+                <Image
+                  systemName="calendar"
+                  size={ICON_SIZE}
+                  color={ICON_BLUE}
+                  modifiers={[frame({ width: ICON_COL })]}
+                />
+                <Text>Due Date</Text>
+                <Spacer />
+                <Button
+                  label="Add"
+                  onPress={() => handleUpdateField({ dueDate: new Date() })}
+                  modifiers={[buttonStyle('borderless')]}
+                />
+              </HStack>
+            )}
 
-                {/* Placement — where the task lives (project / milestone / parent) */}
-                <Section>
-                  <MenuRow
-                    icon="folder"
-                    label="Project"
-                    value={
-                      task.projectId
-                        ? (allProjects.find((p) => p.id === task.projectId)?.name ?? 'None')
-                        : 'None'
-                    }
-                    selection={task.projectId ?? INBOX_PROJECT_ID}
-                    options={[
-                      { value: INBOX_PROJECT_ID, label: 'None' },
-                      ...projects.map((p) => ({ value: p.id, label: p.name })),
-                    ]}
-                    onSelect={(value) => {
-                      const projectId = value === INBOX_PROJECT_ID ? null : value;
-                      if (projectId !== task.projectId) {
-                        handleUpdateField({ projectId, milestoneId: null });
-                      }
-                    }}
-                  />
+            {task.dueDate ? (
+              <MenuRow
+                icon="repeat"
+                label="Repeat"
+                value={
+                  REPEAT_OPTIONS.find((r) => r.value === task.recurringFrequency)?.label ?? 'Never'
+                }
+                selection={task.recurringFrequency ?? REPEAT_NONE}
+                options={[
+                  { value: REPEAT_NONE, label: 'Never' },
+                  ...REPEAT_OPTIONS.map((r) => ({ value: r.value, label: r.label })),
+                ]}
+                onSelect={(value) => {
+                  const rf =
+                    value === REPEAT_NONE
+                      ? null
+                      : (value as 'daily' | 'weekly' | 'monthly' | 'yearly');
+                  if (rf !== task.recurringFrequency) {
+                    handleUpdateField({ recurringFrequency: rf });
+                  }
+                }}
+              />
+            ) : null}
 
-                  {task.projectId ? (
-                    <MenuRow
-                      icon="flag"
-                      label="Milestone"
-                      value={
-                        task.milestoneId
-                          ? (milestones.find((m) => m.id === task.milestoneId)?.name ?? 'None')
-                          : 'None'
-                      }
-                      selection={task.milestoneId ?? MILESTONE_NONE}
-                      options={[
-                        { value: MILESTONE_NONE, label: 'None' },
-                        ...milestones.map((m) => ({ value: m.id, label: m.name })),
-                      ]}
-                      onSelect={(value) => {
-                        const milestoneId = value === MILESTONE_NONE ? null : value;
-                        if (milestoneId !== task.milestoneId) {
-                          handleUpdateField({ milestoneId });
-                        }
-                      }}
-                    />
-                  ) : null}
+            <PriorityRow
+              priority={task.priority}
+              onCommit={(priority) => handleUpdateField({ priority })}
+            />
 
-                  {/* Parent task — native Menu (lists valid parents; None detaches) */}
-                  <MenuRow
-                    icon="arrow.up.left"
-                    label="Parent"
-                    value={allTasks.find((t) => t.id === task.parentTaskId)?.title ?? 'None'}
-                    selection={task.parentTaskId ?? PARENT_NONE}
-                    options={parentOptions}
-                    onSelect={(value) => handleParentChange(value === PARENT_NONE ? null : value)}
-                  />
-                </Section>
-
-                {/* Scheduling — when/how the task is due */}
-                <Section>
-                  {/* Due date — single row: Add when empty, picker + clear when set */}
-                  {task.dueDate ? (
-                    <HStack spacing={8}>
-                      <Image
-                        systemName="calendar"
-                        size={ICON_SIZE}
-                        color={ICON_BLUE}
-                        modifiers={[frame({ width: ICON_COL })]}
-                      />
-                      <Text>Due</Text>
-                      <Spacer />
-                      <DatePicker
-                        selection={new Date(task.dueDate)}
-                        displayedComponents={['date']}
-                        onDateChange={(d) => handleUpdateField({ dueDate: d })}
-                        modifiers={[datePickerStyle('compact'), labelsHidden()]}
-                      />
-                      <Image
-                        systemName="xmark.circle.fill"
-                        size={18}
-                        color="#9CA3AF"
-                        onPress={() => handleUpdateField({ dueDate: null })}
-                      />
-                    </HStack>
-                  ) : (
-                    <HStack spacing={8}>
-                      <Image
-                        systemName="calendar"
-                        size={ICON_SIZE}
-                        color={ICON_BLUE}
-                        modifiers={[frame({ width: ICON_COL })]}
-                      />
-                      <Text>Due Date</Text>
-                      <Spacer />
-                      <Button
-                        label="Add"
-                        onPress={() => handleUpdateField({ dueDate: new Date() })}
-                        modifiers={[buttonStyle('borderless')]}
-                      />
-                    </HStack>
-                  )}
-
-                  {task.dueDate ? (
-                    <MenuRow
-                      icon="repeat"
-                      label="Repeat"
-                      value={
-                        REPEAT_OPTIONS.find((r) => r.value === task.recurringFrequency)?.label ??
-                        'Never'
-                      }
-                      selection={task.recurringFrequency ?? REPEAT_NONE}
-                      options={[
-                        { value: REPEAT_NONE, label: 'Never' },
-                        ...REPEAT_OPTIONS.map((r) => ({ value: r.value, label: r.label })),
-                      ]}
-                      onSelect={(value) => {
-                        const rf =
-                          value === REPEAT_NONE
-                            ? null
-                            : (value as 'daily' | 'weekly' | 'monthly' | 'yearly');
-                        if (rf !== task.recurringFrequency) {
-                          handleUpdateField({ recurringFrequency: rf });
-                        }
-                      }}
-                    />
-                  ) : null}
-
-                  <PriorityRow
-                    priority={task.priority}
-                    onCommit={(priority) => handleUpdateField({ priority })}
-                  />
-
-                  {/* Reminder — kept LAST because the revealed graphical calendar
+            {/* Reminder — kept LAST because the revealed graphical calendar
                     is tall; placing it at the end keeps the other rows compact. */}
-                  <HStack spacing={8}>
-                    <Image
-                      systemName="bell"
-                      size={ICON_SIZE}
-                      color={ICON_BLUE}
-                      modifiers={[frame({ width: ICON_COL })]}
-                    />
-                    <Text>Reminder</Text>
-                    <Spacer />
-                    <Toggle
-                      isOn={!!task.reminderAt}
-                      onIsOnChange={(on) =>
-                        handleUpdateField({
-                          reminderAt: on ? new Date(Date.now() + 60 * 60 * 1000) : null,
-                        })
-                      }
-                      modifiers={[labelsHidden()]}
-                    />
-                  </HStack>
-                  {task.reminderAt ? (
-                    <DatePicker
-                      selection={new Date(task.reminderAt)}
-                      displayedComponents={['date', 'hourAndMinute']}
-                      onDateChange={(d) => handleUpdateField({ reminderAt: d })}
-                      modifiers={[datePickerStyle('graphical'), labelsHidden()]}
-                    />
-                  ) : null}
-                </Section>
-
-                {/* Destructive delete — its own card at the end, centered red text */}
-                <Section>
-                  <HStack modifiers={[onTapGesture(handleDeleteTask)]}>
-                    <Spacer />
-                    <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED)]}>Delete Task</Text>
-                    <Spacer />
-                  </HStack>
-                </Section>
-              </List>
+            <HStack spacing={8}>
+              <Image
+                systemName="bell"
+                size={ICON_SIZE}
+                color={ICON_BLUE}
+                modifiers={[frame({ width: ICON_COL })]}
+              />
+              <Text>Reminder</Text>
+              <Spacer />
+              <Toggle
+                isOn={!!task.reminderAt}
+                onIsOnChange={(on) =>
+                  handleUpdateField({
+                    reminderAt: on ? new Date(Date.now() + 60 * 60 * 1000) : null,
+                  })
+                }
+                modifiers={[labelsHidden()]}
+              />
+            </HStack>
+            {task.reminderAt ? (
+              <DatePicker
+                selection={new Date(task.reminderAt)}
+                displayedComponents={['date', 'hourAndMinute']}
+                onDateChange={(d) => handleUpdateField({ reminderAt: d })}
+                modifiers={[datePickerStyle('graphical'), labelsHidden()]}
+              />
             ) : null}
+          </Section>
 
-            <NativeUndoBar />
+          {/* Destructive delete — its own card at the end, centered red text */}
+          <Section>
+            <HStack modifiers={[contentShape(shapes.rectangle()), onTapGesture(handleDeleteTask)]}>
+              <Spacer />
+              <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED)]}>Delete Task</Text>
+              <Spacer />
+            </HStack>
+          </Section>
+        </List>
+      ) : null}
 
-            {task && composeMode ? (
-              <Composer key={composeMode} mode={composeMode} task={task} onClose={closeComposer} />
-            ) : null}
-          </VStack>
-        </Group>
-      </BottomSheet>
+      <NativeUndoBar />
+
+      {task && composeMode ? (
+        <Composer key={composeMode} mode={composeMode} task={task} onClose={closeComposer} />
+      ) : null}
+    </VStack>
+  );
+
+  // Each level renders its own task's full content, then nests the next level inside so
+  // SwiftUI stacks it as a real sheet on top (native scale-back / peek). A level with no
+  // task is the recursion base: an unpresented sheet that renders nothing further.
+  return (
+    <BottomSheet
+      isPresented={presented}
+      onIsPresentedChange={(isOpen) => {
+        if (isOpen) return;
+        // Fires only on an interactive (swipe-down) dismiss — programmatic pops don't
+        // re-enter here, since the native view guards prop/state equality, so there's no
+        // double-pop. Root closes the whole sheet; a deeper level pops to its parent.
+        if (depth === 0) closeSheet();
+        else popToDepth(depth);
+      }}
+      onDismiss={depth === 0 ? onDismissed : undefined}>
+      <Group modifiers={sheetGroupModifiers}>
+        <VStack spacing={12}>
+          {task ? fullContent : null}
+
+          {/* Recurse: the next stack entry presents as a sheet on top of this one.
+              Wrapped 0-height so its hidden anchor view doesn't consume layout space in
+              this sheet. Only mounted when this level has a task (recursion base case). */}
+          {task ? (
+            <HStack modifiers={[frame({ height: 0 })]}>
+              <TaskSheetLevel depth={depth + 1} />
+            </HStack>
+          ) : null}
+        </VStack>
+      </Group>
+    </BottomSheet>
+  );
+}
+
+/**
+ * The global, drill-down task sheet. Mounted once at the signed-in app root and driven
+ * by `sheetStore`. A single `Host` hosts a recursive stack of `TaskSheetLevel` sheets —
+ * one per `taskStack` entry — so opening a subtask stacks a new native sheet on top of
+ * its parent rather than swapping content in place.
+ */
+export function GlobalTaskSheet() {
+  const { colorScheme } = useColorScheme();
+  const scheme = colorScheme === 'dark' ? 'dark' : 'light';
+  return (
+    <Host style={{ position: 'absolute' }} pointerEvents="none" colorScheme={scheme}>
+      <TaskSheetLevel depth={0} />
     </Host>
   );
 }

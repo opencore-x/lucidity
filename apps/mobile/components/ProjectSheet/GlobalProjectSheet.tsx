@@ -50,9 +50,18 @@ const DESTRUCTIVE_RED = '#FF3B30';
 // The same 12 swatches the old @gorhom ProjectSheet offered (uppercase #RRGGBB so
 // they compare cleanly against the stored color).
 const PRESET_COLORS = [
-  '#EF4444', '#F97316', '#F59E0B', '#EAB308',
-  '#84CC16', '#22C55E', '#14B8A6', '#06B6D4',
-  '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899',
+  '#EF4444',
+  '#F97316',
+  '#F59E0B',
+  '#EAB308',
+  '#84CC16',
+  '#22C55E',
+  '#14B8A6',
+  '#06B6D4',
+  '#3B82F6',
+  '#6366F1',
+  '#8B5CF6',
+  '#EC4899',
 ];
 
 // The schema stores color as exactly 7 chars (#RRGGBB), so strip any alpha the
@@ -73,7 +82,11 @@ function ColorSwatch({
 }) {
   return (
     <ZStack
-      modifiers={[frame({ width: 32, height: 32 }), contentShape(shapes.circle()), onTapGesture(onPress)]}>
+      modifiers={[
+        frame({ width: 32, height: 32 }),
+        contentShape(shapes.circle()),
+        onTapGesture(onPress),
+      ]}>
       <Image systemName="circle.fill" size={28} color={color} />
       {selected ? <Image systemName="checkmark" size={13} color="#FFFFFF" /> : null}
     </ZStack>
@@ -112,7 +125,10 @@ export function GlobalProjectSheet() {
     (data: UpdateProject) => {
       if (!project) return;
       setProject({ ...project, ...data } as Project);
-      updateProject.mutate({ id: project.id, data }, { onSuccess: (updated) => setProject(updated) });
+      updateProject.mutate(
+        { id: project.id, data },
+        { onSuccess: (updated) => setProject(updated) }
+      );
     },
     [project, updateProject, setProject]
   );
@@ -156,6 +172,18 @@ export function GlobalProjectSheet() {
     glassEffect({ glass: { variant: 'regular', interactive: true }, shape: 'circle' }),
   ];
 
+  // Blue-tinted interactive-glass "save" circle. Use interactive glass (not a flat
+  // background fill or a *Prominent style) so it keeps the Liquid Glass press spring and
+  // fills the circle edge-to-edge — see GlobalTaskSheet's circleBlue for the full why.
+  const circleBlue = [
+    buttonStyle('plain'),
+    frame({ width: 40, height: 40 }),
+    glassEffect({
+      glass: { variant: 'regular', interactive: true, tint: ICON_BLUE },
+      shape: 'circle',
+    }),
+  ];
+
   return (
     <Host style={{ position: 'absolute' }} pointerEvents="none" colorScheme={scheme}>
       <BottomSheet
@@ -176,11 +204,10 @@ export function GlobalProjectSheet() {
             <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
               <Spacer />
               {isEditingText ? (
-                <Button
-                  label="Done"
-                  onPress={() => blurFieldRef.current?.()}
-                  modifiers={[buttonStyle('glassProminent')]}
-                />
+                // Solid blue circle with a white tick — a clear "save" affordance.
+                <Button onPress={() => blurFieldRef.current?.()} modifiers={circleBlue}>
+                  <Image systemName="checkmark" size={18} color="#FFFFFF" />
+                </Button>
               ) : (
                 <Button onPress={closeSheet} modifiers={circleGlass}>
                   <Image systemName="xmark" size={18} />
@@ -204,7 +231,8 @@ export function GlobalProjectSheet() {
             ) : null}
 
             {project ? (
-              <List modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
+              <List
+                modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
                 <EditableField
                   key={`pdesc-${project.id}`}
                   value={project.description ?? ''}
@@ -269,7 +297,8 @@ export function GlobalProjectSheet() {
 
                 {/* Destructive delete — its own card, centered red text */}
                 <Section>
-                  <HStack modifiers={[onTapGesture(handleDelete)]}>
+                  <HStack
+                    modifiers={[contentShape(shapes.rectangle()), onTapGesture(handleDelete)]}>
                     <Spacer />
                     <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED)]}>Delete Project</Text>
                     <Spacer />

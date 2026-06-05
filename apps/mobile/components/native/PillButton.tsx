@@ -1,6 +1,14 @@
 import * as React from 'react';
 import { Text } from '@expo/ui/swift-ui';
-import { font, foregroundStyle, padding, glassEffect, onTapGesture } from '@expo/ui/swift-ui/modifiers';
+import {
+  font,
+  foregroundStyle,
+  padding,
+  glassEffect,
+  contentShape,
+  shapes,
+  onTapGesture,
+} from '@expo/ui/swift-ui/modifiers';
 
 /**
  * A small tappable glass-capsule pill with a text label (no icon) — the interactive
@@ -23,6 +31,7 @@ export function PillButton({
         ...(color ? [foregroundStyle(color)] : []),
         padding({ horizontal: 12, vertical: 6 }),
         glassEffect({ glass: { variant: 'regular', interactive: true }, shape: 'capsule' }),
+        contentShape(shapes.capsule()),
         onTapGesture(onPress),
       ]}>
       {label}

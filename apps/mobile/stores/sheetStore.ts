@@ -18,6 +18,9 @@ interface SheetState {
   drillDown: (task: Task) => void;
   goBack: () => void;
   updateCurrentTask: (task: Task) => void;
+  // Stacked-sheet helpers: each sheet level is identified by its index in taskStack.
+  updateTaskAt: (depth: number, task: Task) => void;
+  popToDepth: (depth: number) => void;
 }
 
 export const useSheetStore = create<SheetState>((set, get) => ({
@@ -62,5 +65,19 @@ export const useSheetStore = create<SheetState>((set, get) => ({
   updateCurrentTask: (task) =>
     set((state) => ({
       taskStack: [...state.taskStack.slice(0, -1), task],
+    })),
+
+  // Replace the task at a specific stack depth (used by each stacked sheet level to
+  // sync its own task after an edit/refetch, instead of always touching the top).
+  updateTaskAt: (depth, task) =>
+    set((state) => ({
+      taskStack: state.taskStack.map((t, i) => (i === depth ? task : t)),
+    })),
+
+  // Truncate the stack to `depth`, dismissing that level and everything above it.
+  // popToDepth(n) leaves levels [0, n); the back button at level n calls popToDepth(n).
+  popToDepth: (depth) =>
+    set((state) => ({
+      taskStack: state.taskStack.slice(0, depth),
     })),
 }));

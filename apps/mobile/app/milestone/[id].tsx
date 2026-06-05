@@ -8,6 +8,7 @@ import {
   HStack,
   ScrollView,
   Button,
+  Image,
   List,
   Section,
   SwipeActions,
@@ -16,6 +17,8 @@ import {
 } from '@expo/ui/swift-ui';
 import {
   tint,
+  buttonStyle,
+  glassEffect,
   padding,
   listStyle,
   listRowSeparator,
@@ -53,6 +56,7 @@ import { getSubtaskProgress } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
 
 const MUTED_GRAY = '#8E8E93';
+const ICON_BLUE = '#0A84FF'; // iOS system blue — matches GlobalTaskSheet's save tick
 const TODAY_AMBER = '#F59E0B';
 const PROGRESS_BLUE = '#3B82F6';
 const DONE_GREEN = '#22C55E';
@@ -100,9 +104,7 @@ export default function MilestoneScreen() {
   // doesn't pop the keyboard. While editing, the nav bar shows a "Done" button that blurs
   // the field (its save affordance, since a multiline field can't submit on Enter);
   // blurDescRef holds that blur fn.
-  const [descMode, setDescMode] = React.useState<'collapsed' | 'expanded' | 'editing'>(
-    'collapsed'
-  );
+  const [descMode, setDescMode] = React.useState<'collapsed' | 'expanded' | 'editing'>('collapsed');
   const blurDescRef = React.useRef<(() => void) | null>(null);
   const handleDescFocus = React.useCallback((blur: () => void) => {
     blurDescRef.current = blur;
@@ -220,11 +222,37 @@ export default function MilestoneScreen() {
           headerRight: () =>
             descMode === 'editing' ? (
               <Host matchContents colorScheme={scheme}>
+                {/* KNOWN ISSUE (tracked on Lucidity task #203 — left open): this is the
+                    SAME blue interactive-glass save tick as GlobalTaskSheet's circleBlue
+                    (identical modifiers), but rendered as a nav-bar headerRight item it
+                    shows a faint "button in button" glass edge — the tinted circle doesn't
+                    read edge-to-edge the way it does inside the sheet. The difference is the
+                    surface, not the button: the nav bar appears to wrap the bar item in its
+                    own (clear) glass, so a tinted glass nested inside reveals an outer ring.
+                    Already fixed: vertical clipping (36pt) and the project-color press
+                    (tint override below). The residual double-glass is unresolved — next
+                    things to try: a borderless/non-glass icon here, or move the "Done"
+                    affordance off the nav bar so it can be a plain sheet-style glass button.
+                    Do NOT try to fix this by chasing padding/insets — it's the bar item. */}
                 <Button
-                  label="Done"
                   onPress={() => blurDescRef.current?.()}
-                  modifiers={project?.color ? [tint(project.color)] : []}
-                />
+                  modifiers={[
+                    buttonStyle('plain'),
+                    // 36pt (not 40) so the circle isn't clipped by the nav bar's ~44pt
+                    // content height — same size as HeaderGlassButton, which renders
+                    // cleanly in this same bar.
+                    frame({ width: 36, height: 36 }),
+                    // The screen sets headerTintColor to the project color, which would
+                    // tint the bar item's press; force the local accent back to blue so
+                    // the interactive glass presses blue, not the project color.
+                    tint(ICON_BLUE),
+                    glassEffect({
+                      glass: { variant: 'regular', interactive: true, tint: ICON_BLUE },
+                      shape: 'circle',
+                    }),
+                  ]}>
+                  <Image systemName="checkmark" size={17} color="#FFFFFF" />
+                </Button>
               </Host>
             ) : (
               <View style={layout.row}>
