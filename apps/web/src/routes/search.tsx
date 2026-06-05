@@ -1,20 +1,20 @@
-import * as React from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
-import { Search, FolderOpen } from 'lucide-react'
-import { apiClient } from '~/api/client'
-import { useAuthReady } from '~/providers/ApiProvider'
-import { useTasks, useToggleTask } from '~/hooks/useTasks'
-import { TaskItem } from '~/components/task-item'
-import { TaskPanel } from '~/components/task-panel'
-import type { Task, Project } from '@lucidity/shared'
+import * as React from 'react';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
+import { Search, FolderOpen } from 'lucide-react';
+import { apiClient } from '~/api/client';
+import { useAuthReady } from '~/providers/ApiProvider';
+import { useTasks, useToggleTask } from '~/hooks/useTasks';
+import { TaskItem } from '~/components/task-item';
+import { TaskPanel } from '~/components/task-panel';
+import type { Task, Project } from '@lucidity/shared';
 
 export const Route = createFileRoute('/search')({
   component: SearchPage,
-})
+});
 
 function useSearch(query: string) {
-  const authReady = useAuthReady()
+  const authReady = useAuthReady();
   return useQuery({
     queryKey: ['search', query],
     queryFn: () =>
@@ -23,37 +23,39 @@ function useSearch(query: string) {
       ),
     enabled: authReady && query.length >= 2,
     placeholderData: (prev) => prev,
-  })
+  });
 }
 
 function useDebounce<T>(value: T, ms: number): T {
-  const [debounced, setDebounced] = React.useState(value)
+  const [debounced, setDebounced] = React.useState(value);
   React.useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), ms)
-    return () => clearTimeout(timer)
-  }, [value, ms])
-  return debounced
+    const timer = setTimeout(() => setDebounced(value), ms);
+    return () => clearTimeout(timer);
+  }, [value, ms]);
+  return debounced;
 }
 
 function SearchPage() {
-  const [query, setQuery] = React.useState('')
-  const debouncedQuery = useDebounce(query.trim(), 300)
-  const searchQuery = useSearch(debouncedQuery)
-  const tasksQuery = useTasks()
-  const toggleTask = useToggleTask()
-  const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(null)
-  const inputRef = React.useRef<HTMLInputElement>(null)
+  const [query, setQuery] = React.useState('');
+  const debouncedQuery = useDebounce(query.trim(), 300);
+  const searchQuery = useSearch(debouncedQuery);
+  const tasksQuery = useTasks();
+  const toggleTask = useToggleTask();
+  const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(
+    null,
+  );
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
-  const allTasks = tasksQuery.data ?? []
-  const results = searchQuery.data
-  const tasks = results?.tasks ?? []
-  const projects = results?.projects ?? []
-  const hasQuery = debouncedQuery.length >= 2
-  const isSearching = searchQuery.isFetching
+  const allTasks = tasksQuery.data ?? [];
+  const results = searchQuery.data;
+  const tasks = results?.tasks ?? [];
+  const projects = results?.projects ?? [];
+  const hasQuery = debouncedQuery.length >= 2;
+  const isSearching = searchQuery.isFetching;
 
   React.useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
+    inputRef.current?.focus();
+  }, []);
 
   return (
     <div className="p-6">
@@ -66,7 +68,7 @@ function SearchPage() {
           ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search tasks and projects..."
+          placeholder="Search ..."
           className="h-10 w-full rounded-md border bg-transparent pl-10 pr-4 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         />
       </div>
@@ -79,11 +81,14 @@ function SearchPage() {
           </p>
         )}
 
-        {hasQuery && !isSearching && tasks.length === 0 && projects.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No results for "{debouncedQuery}".
-          </p>
-        )}
+        {hasQuery &&
+          !isSearching &&
+          tasks.length === 0 &&
+          projects.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No results for "{debouncedQuery}".
+            </p>
+          )}
 
         {/* Project results */}
         {projects.length > 0 && (
@@ -146,5 +151,5 @@ function SearchPage() {
         allTasks={allTasks}
       />
     </div>
-  )
+  );
 }
