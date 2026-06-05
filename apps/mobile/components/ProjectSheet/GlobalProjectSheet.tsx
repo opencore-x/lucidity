@@ -176,11 +176,11 @@ export function GlobalProjectSheet() {
             <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
               <Spacer />
               {isEditingText ? (
-                <Button
-                  label="Done"
-                  onPress={() => blurFieldRef.current?.()}
-                  modifiers={[buttonStyle('glassProminent')]}
-                />
+                // Same-size circular glass tick as the close button it replaces, keeping
+                // the top bar aligned instead of shifting when editing begins.
+                <Button onPress={() => blurFieldRef.current?.()} modifiers={circleGlass}>
+                  <Image systemName="checkmark" size={18} color={ICON_BLUE} />
+                </Button>
               ) : (
                 <Button onPress={closeSheet} modifiers={circleGlass}>
                   <Image systemName="xmark" size={18} />

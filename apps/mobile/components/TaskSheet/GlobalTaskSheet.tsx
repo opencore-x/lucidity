@@ -804,11 +804,11 @@ export function GlobalTaskSheet() {
                 </Button>
               ) : null}
               {isEditingText ? (
-                <Button
-                  label="Done"
-                  onPress={() => blurFieldRef.current?.()}
-                  modifiers={[buttonStyle('glassProminent')]}
-                />
+                // Same-size circular glass tick as the close button it replaces, so the
+                // status pill stays centered instead of shifting when editing begins.
+                <Button onPress={() => blurFieldRef.current?.()} modifiers={circleGlass}>
+                  <Image systemName="checkmark" size={18} color={ICON_BLUE} />
+                </Button>
               ) : (
                 <Button onPress={closeSheet} modifiers={circleGlass}>
                   <Image systemName="xmark" size={18} />
