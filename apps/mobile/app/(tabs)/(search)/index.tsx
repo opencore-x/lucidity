@@ -212,6 +212,7 @@ export default function SearchScreen() {
                 <Image systemName="magnifyingglass" size={17} color={MUTED_GRAY} />
                 <TextField
                   ref={searchRef}
+                  autoFocus
                   placeholder="Search tasks and projects…"
                   onTextChange={setQuery}
                   modifiers={[textFieldStyle('plain'), frame({ maxWidth: Infinity })]}
