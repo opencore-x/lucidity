@@ -224,6 +224,7 @@ export default function TodayScreen() {
                 placeholder="Add task…"
                 onSubmit={handleSubmitTask}
                 onClose={() => setComposing(false)}
+                surface
               />
             ) : null}
           </ZStack>

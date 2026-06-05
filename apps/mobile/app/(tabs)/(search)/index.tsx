@@ -281,6 +281,7 @@ export default function SearchScreen() {
                 placeholder="Add task…"
                 onSubmit={handleSubmitTask}
                 onClose={() => setComposing(false)}
+                surface
               />
             ) : null}
           </ZStack>

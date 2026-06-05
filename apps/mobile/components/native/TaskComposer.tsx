@@ -6,10 +6,16 @@ import {
   glassEffect,
   buttonStyle,
   textFieldStyle,
+  background,
+  shapes,
 } from '@expo/ui/swift-ui/modifiers';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 const MUTED_GRAY = '#8E8E93';
 const ICON_BLUE = '#0A84FF';
+// Opaque card drawn behind the glass for the inline composers, which float over a
+// transparent list host (the in-sheet composer sits on the opaque sheet, so it opts out).
+const COMPOSER_SURFACE = { light: '#FFFFFF', dark: '#1C1C1E' } as const;
 
 /**
  * Shared floating glass composer (✕ / multiline TextField / ▲). Pinned at the bottom
@@ -26,11 +32,15 @@ export function TaskComposer({
   placeholder,
   onSubmit,
   onClose,
+  surface = false,
 }: {
   placeholder: string;
   onSubmit: (text: string) => void;
   onClose: () => void;
+  surface?: boolean;
 }) {
+  const { colorScheme } = useColorScheme();
+  const scheme = colorScheme === 'dark' ? 'dark' : 'light';
   const textState = useNativeState('');
   const valueRef = React.useRef('');
 
@@ -47,6 +57,12 @@ export function TaskComposer({
       modifiers={[
         frame({ maxWidth: Infinity }),
         padding({ horizontal: 16, vertical: 12 }),
+        // Inline composers float over a transparent list host, so the glass has nothing
+        // opaque behind it and reads as "no background". An explicit surface gives it a
+        // visible card; in the task sheet the opaque sheet already does this (surface off).
+        ...(surface
+          ? [background(COMPOSER_SURFACE[scheme], shapes.roundedRectangle({ cornerRadius: 22 }))]
+          : []),
         // Rounded rectangle (not capsule) so multi-line text doesn't bleed past the
         // rounded ends; cornerRadius keeps it soft for a single line too.
         glassEffect({ glass: { variant: 'regular' }, shape: 'roundedRectangle', cornerRadius: 22 }),
