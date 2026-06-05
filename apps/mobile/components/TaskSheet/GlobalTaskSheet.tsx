@@ -607,6 +607,8 @@ export function GlobalTaskSheet() {
 
   const task = taskStack.length > 0 ? taskStack[taskStack.length - 1] : null;
   const canGoBack = taskStack.length > 1;
+  // The task one level down the stack — peeked behind the stacked child sheet.
+  const parentTask = taskStack.length > 1 ? taskStack[taskStack.length - 2] : null;
 
   const queryClient = useQueryClient();
 
@@ -746,6 +748,374 @@ export function GlobalTaskSheet() {
     }),
   ];
 
+  // Shared group modifiers applied to each sheet level (root sheet + the stacked child
+  // sheet) so both present identically.
+  const sheetGroupModifiers = [
+    frame({ maxWidth: Infinity, maxHeight: Infinity, alignment: 'topLeading' }),
+    padding({ top: 28, leading: 8, trailing: 8 }),
+    presentationDetents(['medium', 'large']),
+    presentationDragIndicator('visible'),
+  ];
+
+  // The full, interactive content for the top-of-stack task. It lives in the root sheet
+  // until a subtask is drilled into, then moves onto the stacked child sheet so the
+  // current task always sits on the topmost sheet (its top bar keeps the back/close).
+  const fullContent = (
+    <VStack spacing={12}>
+      {/* Top bar: [back?][refresh] / status / [back-placeholder?][close|Done]. Refresh
+                (left) balances close (right); a hidden placeholder (right) balances Back
+                (left) so the status pill stays centered at root AND when drilled into a
+                subtask. Refresh hides while editing text (avoid refetching mid-edit). */}
+      <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
+        {canGoBack ? (
+          <Button onPress={goBack} modifiers={circleGlass}>
+            <Image systemName="chevron.left" size={18} />
+          </Button>
+        ) : null}
+        {task && !isEditingText ? (
+          <Button
+            onPress={handleRefresh}
+            modifiers={isRefreshing ? [...circleGlass, disabled(true)] : circleGlass}>
+            <Image
+              systemName="arrow.clockwise"
+              size={18}
+              modifiers={[
+                symbolEffect(
+                  { effect: 'rotate' },
+                  { isActive: refreshingState, options: { speed: 2.5, repeat: 'continuous' } }
+                ),
+              ]}
+            />
+          </Button>
+        ) : null}
+        <Spacer />
+        {task ? (
+          <StatusPill
+            status={task.status}
+            onStatusChange={(status) => handleUpdateField({ status })}
+          />
+        ) : null}
+        <Spacer />
+        {/* Invisible 40×40 placeholder so Back (left) has a counterweight (right). */}
+        {canGoBack ? (
+          <Button onPress={() => {}} modifiers={[...circleGlass, hidden(true)]}>
+            <Image systemName="chevron.left" size={18} />
+          </Button>
+        ) : null}
+        {isEditingText ? (
+          // Same-size circular glass tick as the close button it replaces, so the
+          // status pill stays centered instead of shifting when editing begins.
+          <Button onPress={() => blurFieldRef.current?.()} modifiers={circleGlass}>
+            <Image systemName="checkmark" size={18} color={ICON_BLUE} />
+          </Button>
+        ) : (
+          <Button onPress={closeSheet} modifiers={circleGlass}>
+            <Image systemName="xmark" size={18} />
+          </Button>
+        )}
+      </HStack>
+
+      {task ? (
+        editingTitle ? (
+          <EditableField
+            key={`title-${task.id}`}
+            value={task.title}
+            onCommit={(t) => handleUpdateField({ title: t })}
+            onFocusEnter={handleFieldFocus}
+            onFocusLeave={() => {
+              handleFieldBlur();
+              setEditingTitle(false);
+            }}
+            autoFocus
+            multiline
+            modifiers={[
+              textFieldStyle('plain'),
+              font({ size: 22, weight: 'semibold' }),
+              multilineTextAlignment('leading'),
+              frame({ maxWidth: Infinity, alignment: 'leading' }),
+              // Negative bottom padding pulls the Notes card up to tighten the gap.
+              padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
+            ]}
+          />
+        ) : (
+          // Read-only display: the title with the task number concatenated inline
+          // after the text (muted, smaller). Tap anywhere to edit.
+          <Text
+            modifiers={[
+              font({ size: 22, weight: 'semibold' }),
+              multilineTextAlignment('leading'),
+              frame({ maxWidth: Infinity, alignment: 'leading' }),
+              padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
+              onTapGesture(() => setEditingTitle(true)),
+            ]}>
+            <Text>{task.title}</Text>
+            {task.taskNumber != null ? (
+              <Text
+                modifiers={[
+                  foregroundStyle(MENU_VALUE_GRAY),
+                  font({ size: 15, weight: 'regular' }),
+                ]}>
+                {`  #${task.taskNumber}`}
+              </Text>
+            ) : null}
+          </Text>
+        )
+      ) : null}
+
+      {task ? (
+        <List modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
+          {/* Description lives in the scrollable list (not pinned) so a long note
+                    scrolls away instead of hogging the top of the sheet. Tap-to-edit: the
+                    rendered markdown shows read-only; tapping swaps in a monospaced field
+                    that edits the raw markdown source (saved via the top-bar Done). */}
+          {editingDesc ? (
+            <EditableField
+              key={`desc-${task.id}`}
+              value={task.description ?? ''}
+              onCommit={(t) => handleUpdateField({ description: t || null })}
+              onFocusEnter={handleFieldFocus}
+              onFocusLeave={() => {
+                handleFieldBlur();
+                setEditingDesc(false);
+              }}
+              allowEmpty
+              multiline
+              autoFocus
+              placeholder="Description…"
+              modifiers={[textFieldStyle('plain'), font({ design: 'monospaced', size: 14 })]}
+            />
+          ) : task.description ? (
+            <VStack
+              alignment="leading"
+              modifiers={[
+                frame({ maxWidth: Infinity, alignment: 'leading' }),
+                contentShape(shapes.rectangle()),
+                onTapGesture(() => setEditingDesc(true)),
+              ]}>
+              <MarkdownView content={task.description} dark={colorScheme === 'dark'} />
+            </VStack>
+          ) : (
+            <Text
+              modifiers={[
+                foregroundStyle(MENU_VALUE_GRAY),
+                frame({ maxWidth: Infinity, alignment: 'leading' }),
+                onTapGesture(() => setEditingDesc(true)),
+              ]}>
+              Description…
+            </Text>
+          )}
+
+          <CommentsSection taskId={task.id} onAdd={addComment} />
+
+          <SubtaskSection
+            subtasks={subtasks}
+            allTasks={allTasks}
+            onOpen={drillDown}
+            onAdd={addSubtask}
+          />
+
+          {/* Placement — where the task lives (project / milestone / parent) */}
+          <Section>
+            <MenuRow
+              icon="folder"
+              label="Project"
+              value={
+                task.projectId
+                  ? (allProjects.find((p) => p.id === task.projectId)?.name ?? 'None')
+                  : 'None'
+              }
+              selection={task.projectId ?? INBOX_PROJECT_ID}
+              options={[
+                { value: INBOX_PROJECT_ID, label: 'None' },
+                ...projects.map((p) => ({ value: p.id, label: p.name })),
+              ]}
+              onSelect={(value) => {
+                const projectId = value === INBOX_PROJECT_ID ? null : value;
+                if (projectId !== task.projectId) {
+                  handleUpdateField({ projectId, milestoneId: null });
+                }
+              }}
+            />
+
+            {task.projectId ? (
+              <MenuRow
+                icon="flag"
+                label="Milestone"
+                value={
+                  task.milestoneId
+                    ? (milestones.find((m) => m.id === task.milestoneId)?.name ?? 'None')
+                    : 'None'
+                }
+                selection={task.milestoneId ?? MILESTONE_NONE}
+                options={[
+                  { value: MILESTONE_NONE, label: 'None' },
+                  ...milestones.map((m) => ({ value: m.id, label: m.name })),
+                ]}
+                onSelect={(value) => {
+                  const milestoneId = value === MILESTONE_NONE ? null : value;
+                  if (milestoneId !== task.milestoneId) {
+                    handleUpdateField({ milestoneId });
+                  }
+                }}
+              />
+            ) : null}
+
+            {/* Parent task — native Menu (lists valid parents; None detaches) */}
+            <MenuRow
+              icon="arrow.up.left"
+              label="Parent"
+              value={allTasks.find((t) => t.id === task.parentTaskId)?.title ?? 'None'}
+              selection={task.parentTaskId ?? PARENT_NONE}
+              options={parentOptions}
+              onSelect={(value) => handleParentChange(value === PARENT_NONE ? null : value)}
+            />
+          </Section>
+
+          {/* Scheduling — when/how the task is due */}
+          <Section>
+            {/* Due date — single row: Add when empty, picker + clear when set */}
+            {task.dueDate ? (
+              <HStack spacing={8}>
+                <Image
+                  systemName="calendar"
+                  size={ICON_SIZE}
+                  color={ICON_BLUE}
+                  modifiers={[frame({ width: ICON_COL })]}
+                />
+                <Text>Due</Text>
+                <Spacer />
+                <DatePicker
+                  selection={new Date(task.dueDate)}
+                  displayedComponents={['date']}
+                  onDateChange={(d) => handleUpdateField({ dueDate: d })}
+                  modifiers={[datePickerStyle('compact'), labelsHidden()]}
+                />
+                <Image
+                  systemName="xmark.circle.fill"
+                  size={18}
+                  color="#9CA3AF"
+                  onPress={() => handleUpdateField({ dueDate: null })}
+                />
+              </HStack>
+            ) : (
+              <HStack spacing={8}>
+                <Image
+                  systemName="calendar"
+                  size={ICON_SIZE}
+                  color={ICON_BLUE}
+                  modifiers={[frame({ width: ICON_COL })]}
+                />
+                <Text>Due Date</Text>
+                <Spacer />
+                <Button
+                  label="Add"
+                  onPress={() => handleUpdateField({ dueDate: new Date() })}
+                  modifiers={[buttonStyle('borderless')]}
+                />
+              </HStack>
+            )}
+
+            {task.dueDate ? (
+              <MenuRow
+                icon="repeat"
+                label="Repeat"
+                value={
+                  REPEAT_OPTIONS.find((r) => r.value === task.recurringFrequency)?.label ?? 'Never'
+                }
+                selection={task.recurringFrequency ?? REPEAT_NONE}
+                options={[
+                  { value: REPEAT_NONE, label: 'Never' },
+                  ...REPEAT_OPTIONS.map((r) => ({ value: r.value, label: r.label })),
+                ]}
+                onSelect={(value) => {
+                  const rf =
+                    value === REPEAT_NONE
+                      ? null
+                      : (value as 'daily' | 'weekly' | 'monthly' | 'yearly');
+                  if (rf !== task.recurringFrequency) {
+                    handleUpdateField({ recurringFrequency: rf });
+                  }
+                }}
+              />
+            ) : null}
+
+            <PriorityRow
+              priority={task.priority}
+              onCommit={(priority) => handleUpdateField({ priority })}
+            />
+
+            {/* Reminder — kept LAST because the revealed graphical calendar
+                    is tall; placing it at the end keeps the other rows compact. */}
+            <HStack spacing={8}>
+              <Image
+                systemName="bell"
+                size={ICON_SIZE}
+                color={ICON_BLUE}
+                modifiers={[frame({ width: ICON_COL })]}
+              />
+              <Text>Reminder</Text>
+              <Spacer />
+              <Toggle
+                isOn={!!task.reminderAt}
+                onIsOnChange={(on) =>
+                  handleUpdateField({
+                    reminderAt: on ? new Date(Date.now() + 60 * 60 * 1000) : null,
+                  })
+                }
+                modifiers={[labelsHidden()]}
+              />
+            </HStack>
+            {task.reminderAt ? (
+              <DatePicker
+                selection={new Date(task.reminderAt)}
+                displayedComponents={['date', 'hourAndMinute']}
+                onDateChange={(d) => handleUpdateField({ reminderAt: d })}
+                modifiers={[datePickerStyle('graphical'), labelsHidden()]}
+              />
+            ) : null}
+          </Section>
+
+          {/* Destructive delete — its own card at the end, centered red text */}
+          <Section>
+            <HStack modifiers={[onTapGesture(handleDeleteTask)]}>
+              <Spacer />
+              <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED)]}>Delete Task</Text>
+              <Spacer />
+            </HStack>
+          </Section>
+        </List>
+      ) : null}
+
+      <NativeUndoBar />
+
+      {task && composeMode ? (
+        <Composer key={composeMode} mode={composeMode} task={task} onClose={closeComposer} />
+      ) : null}
+    </VStack>
+  );
+
+  // A light, read-only peek of the parent task, shown behind the stacked child sheet so
+  // drilling into a subtask reads as a new card sliding over its parent.
+  const parentPeek =
+    parentTask != null ? (
+      <VStack spacing={12}>
+        <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
+          <Spacer />
+          <StatusPill status={parentTask.status} onStatusChange={() => {}} />
+          <Spacer />
+        </HStack>
+        <Text
+          modifiers={[
+            font({ size: 22, weight: 'semibold' }),
+            multilineTextAlignment('leading'),
+            frame({ maxWidth: Infinity, alignment: 'leading' }),
+            padding({ leading: 16, trailing: 16, top: 8 }),
+          ]}>
+          {parentTask.title}
+        </Text>
+      </VStack>
+    ) : null;
+
   return (
     <Host style={{ position: 'absolute' }} pointerEvents="none" colorScheme={scheme}>
       <BottomSheet
@@ -754,349 +1124,23 @@ export function GlobalTaskSheet() {
           if (!presented) closeSheet();
         }}
         onDismiss={onDismissed}>
-        <Group
-          modifiers={[
-            frame({
-              maxWidth: Infinity,
-              maxHeight: Infinity,
-              alignment: 'topLeading',
-            }),
-            padding({ top: 28, leading: 8, trailing: 8 }),
-            presentationDetents(['medium', 'large']),
-            presentationDragIndicator('visible'),
-          ]}>
+        <Group modifiers={sheetGroupModifiers}>
           <VStack spacing={12}>
-            {/* Top bar: [back?][refresh] / status / [back-placeholder?][close|Done]. Refresh
-                (left) balances close (right); a hidden placeholder (right) balances Back
-                (left) so the status pill stays centered at root AND when drilled into a
-                subtask. Refresh hides while editing text (avoid refetching mid-edit). */}
-            <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
-              {canGoBack ? (
-                <Button onPress={goBack} modifiers={circleGlass}>
-                  <Image systemName="chevron.left" size={18} />
-                </Button>
-              ) : null}
-              {task && !isEditingText ? (
-                <Button
-                  onPress={handleRefresh}
-                  modifiers={isRefreshing ? [...circleGlass, disabled(true)] : circleGlass}>
-                  <Image
-                    systemName="arrow.clockwise"
-                    size={18}
-                    modifiers={[
-                      symbolEffect(
-                        { effect: 'rotate' },
-                        { isActive: refreshingState, options: { speed: 2.5, repeat: 'continuous' } }
-                      ),
-                    ]}
-                  />
-                </Button>
-              ) : null}
-              <Spacer />
-              {task ? (
-                <StatusPill
-                  status={task.status}
-                  onStatusChange={(status) => handleUpdateField({ status })}
-                />
-              ) : null}
-              <Spacer />
-              {/* Invisible 40×40 placeholder so Back (left) has a counterweight (right). */}
-              {canGoBack ? (
-                <Button onPress={() => {}} modifiers={[...circleGlass, hidden(true)]}>
-                  <Image systemName="chevron.left" size={18} />
-                </Button>
-              ) : null}
-              {isEditingText ? (
-                // Same-size circular glass tick as the close button it replaces, so the
-                // status pill stays centered instead of shifting when editing begins.
-                <Button onPress={() => blurFieldRef.current?.()} modifiers={circleGlass}>
-                  <Image systemName="checkmark" size={18} color={ICON_BLUE} />
-                </Button>
-              ) : (
-                <Button onPress={closeSheet} modifiers={circleGlass}>
-                  <Image systemName="xmark" size={18} />
-                </Button>
-              )}
+            {canGoBack ? parentPeek : fullContent}
+
+            {/* Stacked child sheet (prototype: one drill level). Nested inside the root
+                sheet's content so SwiftUI presents it ON TOP of the parent peek. Wrapped
+                in a 0-height container so its hidden anchor view doesn't take layout
+                space in the root sheet. Swiping it down pops one level back. */}
+            <HStack modifiers={[frame({ height: 0 })]}>
+              <BottomSheet
+                isPresented={isPresented && canGoBack}
+                onIsPresentedChange={(presented) => {
+                  if (!presented && canGoBack) goBack();
+                }}>
+                <Group modifiers={sheetGroupModifiers}>{canGoBack ? fullContent : null}</Group>
+              </BottomSheet>
             </HStack>
-
-            {task ? (
-              editingTitle ? (
-                <EditableField
-                  key={`title-${task.id}`}
-                  value={task.title}
-                  onCommit={(t) => handleUpdateField({ title: t })}
-                  onFocusEnter={handleFieldFocus}
-                  onFocusLeave={() => {
-                    handleFieldBlur();
-                    setEditingTitle(false);
-                  }}
-                  autoFocus
-                  multiline
-                  modifiers={[
-                    textFieldStyle('plain'),
-                    font({ size: 22, weight: 'semibold' }),
-                    multilineTextAlignment('leading'),
-                    frame({ maxWidth: Infinity, alignment: 'leading' }),
-                    // Negative bottom padding pulls the Notes card up to tighten the gap.
-                    padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
-                  ]}
-                />
-              ) : (
-                // Read-only display: the title with the task number concatenated inline
-                // after the text (muted, smaller). Tap anywhere to edit.
-                <Text
-                  modifiers={[
-                    font({ size: 22, weight: 'semibold' }),
-                    multilineTextAlignment('leading'),
-                    frame({ maxWidth: Infinity, alignment: 'leading' }),
-                    padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
-                    onTapGesture(() => setEditingTitle(true)),
-                  ]}>
-                  <Text>{task.title}</Text>
-                  {task.taskNumber != null ? (
-                    <Text
-                      modifiers={[
-                        foregroundStyle(MENU_VALUE_GRAY),
-                        font({ size: 15, weight: 'regular' }),
-                      ]}>
-                      {`  #${task.taskNumber}`}
-                    </Text>
-                  ) : null}
-                </Text>
-              )
-            ) : null}
-
-            {task ? (
-              <List
-                modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
-                {/* Description lives in the scrollable list (not pinned) so a long note
-                    scrolls away instead of hogging the top of the sheet. Tap-to-edit: the
-                    rendered markdown shows read-only; tapping swaps in a monospaced field
-                    that edits the raw markdown source (saved via the top-bar Done). */}
-                {editingDesc ? (
-                  <EditableField
-                    key={`desc-${task.id}`}
-                    value={task.description ?? ''}
-                    onCommit={(t) => handleUpdateField({ description: t || null })}
-                    onFocusEnter={handleFieldFocus}
-                    onFocusLeave={() => {
-                      handleFieldBlur();
-                      setEditingDesc(false);
-                    }}
-                    allowEmpty
-                    multiline
-                    autoFocus
-                    placeholder="Description…"
-                    modifiers={[textFieldStyle('plain'), font({ design: 'monospaced', size: 14 })]}
-                  />
-                ) : task.description ? (
-                  <VStack
-                    alignment="leading"
-                    modifiers={[
-                      frame({ maxWidth: Infinity, alignment: 'leading' }),
-                      contentShape(shapes.rectangle()),
-                      onTapGesture(() => setEditingDesc(true)),
-                    ]}>
-                    <MarkdownView content={task.description} dark={colorScheme === 'dark'} />
-                  </VStack>
-                ) : (
-                  <Text
-                    modifiers={[
-                      foregroundStyle(MENU_VALUE_GRAY),
-                      frame({ maxWidth: Infinity, alignment: 'leading' }),
-                      onTapGesture(() => setEditingDesc(true)),
-                    ]}>
-                    Description…
-                  </Text>
-                )}
-
-                <CommentsSection taskId={task.id} onAdd={addComment} />
-
-                <SubtaskSection
-                  subtasks={subtasks}
-                  allTasks={allTasks}
-                  onOpen={drillDown}
-                  onAdd={addSubtask}
-                />
-
-                {/* Placement — where the task lives (project / milestone / parent) */}
-                <Section>
-                  <MenuRow
-                    icon="folder"
-                    label="Project"
-                    value={
-                      task.projectId
-                        ? (allProjects.find((p) => p.id === task.projectId)?.name ?? 'None')
-                        : 'None'
-                    }
-                    selection={task.projectId ?? INBOX_PROJECT_ID}
-                    options={[
-                      { value: INBOX_PROJECT_ID, label: 'None' },
-                      ...projects.map((p) => ({ value: p.id, label: p.name })),
-                    ]}
-                    onSelect={(value) => {
-                      const projectId = value === INBOX_PROJECT_ID ? null : value;
-                      if (projectId !== task.projectId) {
-                        handleUpdateField({ projectId, milestoneId: null });
-                      }
-                    }}
-                  />
-
-                  {task.projectId ? (
-                    <MenuRow
-                      icon="flag"
-                      label="Milestone"
-                      value={
-                        task.milestoneId
-                          ? (milestones.find((m) => m.id === task.milestoneId)?.name ?? 'None')
-                          : 'None'
-                      }
-                      selection={task.milestoneId ?? MILESTONE_NONE}
-                      options={[
-                        { value: MILESTONE_NONE, label: 'None' },
-                        ...milestones.map((m) => ({ value: m.id, label: m.name })),
-                      ]}
-                      onSelect={(value) => {
-                        const milestoneId = value === MILESTONE_NONE ? null : value;
-                        if (milestoneId !== task.milestoneId) {
-                          handleUpdateField({ milestoneId });
-                        }
-                      }}
-                    />
-                  ) : null}
-
-                  {/* Parent task — native Menu (lists valid parents; None detaches) */}
-                  <MenuRow
-                    icon="arrow.up.left"
-                    label="Parent"
-                    value={allTasks.find((t) => t.id === task.parentTaskId)?.title ?? 'None'}
-                    selection={task.parentTaskId ?? PARENT_NONE}
-                    options={parentOptions}
-                    onSelect={(value) => handleParentChange(value === PARENT_NONE ? null : value)}
-                  />
-                </Section>
-
-                {/* Scheduling — when/how the task is due */}
-                <Section>
-                  {/* Due date — single row: Add when empty, picker + clear when set */}
-                  {task.dueDate ? (
-                    <HStack spacing={8}>
-                      <Image
-                        systemName="calendar"
-                        size={ICON_SIZE}
-                        color={ICON_BLUE}
-                        modifiers={[frame({ width: ICON_COL })]}
-                      />
-                      <Text>Due</Text>
-                      <Spacer />
-                      <DatePicker
-                        selection={new Date(task.dueDate)}
-                        displayedComponents={['date']}
-                        onDateChange={(d) => handleUpdateField({ dueDate: d })}
-                        modifiers={[datePickerStyle('compact'), labelsHidden()]}
-                      />
-                      <Image
-                        systemName="xmark.circle.fill"
-                        size={18}
-                        color="#9CA3AF"
-                        onPress={() => handleUpdateField({ dueDate: null })}
-                      />
-                    </HStack>
-                  ) : (
-                    <HStack spacing={8}>
-                      <Image
-                        systemName="calendar"
-                        size={ICON_SIZE}
-                        color={ICON_BLUE}
-                        modifiers={[frame({ width: ICON_COL })]}
-                      />
-                      <Text>Due Date</Text>
-                      <Spacer />
-                      <Button
-                        label="Add"
-                        onPress={() => handleUpdateField({ dueDate: new Date() })}
-                        modifiers={[buttonStyle('borderless')]}
-                      />
-                    </HStack>
-                  )}
-
-                  {task.dueDate ? (
-                    <MenuRow
-                      icon="repeat"
-                      label="Repeat"
-                      value={
-                        REPEAT_OPTIONS.find((r) => r.value === task.recurringFrequency)?.label ??
-                        'Never'
-                      }
-                      selection={task.recurringFrequency ?? REPEAT_NONE}
-                      options={[
-                        { value: REPEAT_NONE, label: 'Never' },
-                        ...REPEAT_OPTIONS.map((r) => ({ value: r.value, label: r.label })),
-                      ]}
-                      onSelect={(value) => {
-                        const rf =
-                          value === REPEAT_NONE
-                            ? null
-                            : (value as 'daily' | 'weekly' | 'monthly' | 'yearly');
-                        if (rf !== task.recurringFrequency) {
-                          handleUpdateField({ recurringFrequency: rf });
-                        }
-                      }}
-                    />
-                  ) : null}
-
-                  <PriorityRow
-                    priority={task.priority}
-                    onCommit={(priority) => handleUpdateField({ priority })}
-                  />
-
-                  {/* Reminder — kept LAST because the revealed graphical calendar
-                    is tall; placing it at the end keeps the other rows compact. */}
-                  <HStack spacing={8}>
-                    <Image
-                      systemName="bell"
-                      size={ICON_SIZE}
-                      color={ICON_BLUE}
-                      modifiers={[frame({ width: ICON_COL })]}
-                    />
-                    <Text>Reminder</Text>
-                    <Spacer />
-                    <Toggle
-                      isOn={!!task.reminderAt}
-                      onIsOnChange={(on) =>
-                        handleUpdateField({
-                          reminderAt: on ? new Date(Date.now() + 60 * 60 * 1000) : null,
-                        })
-                      }
-                      modifiers={[labelsHidden()]}
-                    />
-                  </HStack>
-                  {task.reminderAt ? (
-                    <DatePicker
-                      selection={new Date(task.reminderAt)}
-                      displayedComponents={['date', 'hourAndMinute']}
-                      onDateChange={(d) => handleUpdateField({ reminderAt: d })}
-                      modifiers={[datePickerStyle('graphical'), labelsHidden()]}
-                    />
-                  ) : null}
-                </Section>
-
-                {/* Destructive delete — its own card at the end, centered red text */}
-                <Section>
-                  <HStack modifiers={[onTapGesture(handleDeleteTask)]}>
-                    <Spacer />
-                    <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED)]}>Delete Task</Text>
-                    <Spacer />
-                  </HStack>
-                </Section>
-              </List>
-            ) : null}
-
-            <NativeUndoBar />
-
-            {task && composeMode ? (
-              <Composer key={composeMode} mode={composeMode} task={task} onClose={closeComposer} />
-            ) : null}
           </VStack>
         </Group>
       </BottomSheet>
