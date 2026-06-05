@@ -83,7 +83,7 @@ function calculateNextDueDate(anchorDate: Date, frequency: string): Date {
         const daysInNextYearMonth = getDaysInMonth(nextDate);
         nextDate = setDate(
           setMonth(nextDate, anchorMonth),
-          Math.min(anchorDay, daysInNextYearMonth)
+          Math.min(anchorDay, daysInNextYearMonth),
         );
       }
 
@@ -110,7 +110,10 @@ router.get('/', async (c) => {
   const createdAfter = c.req.query('created_after');
   const createdBefore = c.req.query('created_before');
   const sortBy = c.req.query('sort_by');
-  const limit = Math.min(Math.max(parseInt(c.req.query('limit') || '50', 10) || 50, 1), 200);
+  const limit = Math.min(
+    Math.max(parseInt(c.req.query('limit') || '50', 10) || 50, 1),
+    200,
+  );
   const offset = Math.max(parseInt(c.req.query('offset') || '0', 10) || 0, 0);
 
   const conditions = [eq(tasks.userId, user.id)];
@@ -145,15 +148,18 @@ router.get('/', async (c) => {
 
   const where = and(...conditions);
 
-  // Default ordering groups by manual position then newest-first, so a freshly
-  // created task (position NULL) surfaces at the top of its list instead of being
-  // buried at the bottom. sort_by is opt-in and overrides it.
+  // Default ordering: manually-positioned tasks keep their drag order, but unpositioned
+  // tasks (position NULL) sort FIRST, newest-first among them — so a freshly created task
+  // naturally lands at the top and STAYS there. NULLS FIRST (not LAST) is what makes the
+  // server agree with the optimistic prepend; with NULLS LAST a new NULL-position task
+  // sorted after any positioned tasks and visibly jumped to the bottom on refetch.
+  // sort_by is opt-in and overrides this.
   const orderByClause =
     sortBy === 'created_desc'
       ? [desc(tasks.createdAt)]
       : sortBy === 'created_asc'
         ? [asc(tasks.createdAt)]
-        : [sql`${tasks.position} ASC NULLS LAST`, desc(tasks.createdAt)];
+        : [sql`${tasks.position} ASC NULLS FIRST`, desc(tasks.createdAt)];
 
   const [allTasks, countResult] = await Promise.all([
     db
@@ -187,7 +193,10 @@ router.post('/', async (c) => {
 
   // Block creating recurring task without a dueDate
   if (parsed.data.recurringFrequency && !parsed.data.dueDate) {
-    return c.json({ error: 'Cannot set recurring frequency without a due date' }, 400);
+    return c.json(
+      { error: 'Cannot set recurring frequency without a due date' },
+      400,
+    );
   }
 
   const id = uuidv7();
@@ -197,7 +206,12 @@ router.post('/', async (c) => {
     const [result] = await db
       .select({ max: sql<number>`COALESCE(MAX(${tasks.taskNumber}), 0) + 1` })
       .from(tasks)
-      .where(and(eq(tasks.projectId, parsed.data.projectId), eq(tasks.userId, user.id)));
+      .where(
+        and(
+          eq(tasks.projectId, parsed.data.projectId),
+          eq(tasks.userId, user.id),
+        ),
+      );
     taskNumber = result.max;
   }
 
@@ -225,8 +239,8 @@ router.patch('/reorder', async (c) => {
         .update(tasks)
         .set({ position: index })
         .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
-        .returning()
-    )
+        .returning(),
+    ),
   );
 
   return c.json({ updated: updates.flat().length });
@@ -262,11 +276,16 @@ router.patch('/:id', async (c) => {
 
   // Determine the effective dueDate after this update
   const effectiveDueDate =
-    parsed.data.dueDate !== undefined ? parsed.data.dueDate : existingTask.dueDate;
+    parsed.data.dueDate !== undefined
+      ? parsed.data.dueDate
+      : existingTask.dueDate;
 
   // Block setting recurringFrequency without a dueDate
   if (parsed.data.recurringFrequency && !effectiveDueDate) {
-    return c.json({ error: 'Cannot set recurring frequency without a due date' }, 400);
+    return c.json(
+      { error: 'Cannot set recurring frequency without a due date' },
+      400,
+    );
   }
 
   // If clearing dueDate, also clear recurringFrequency
@@ -276,12 +295,20 @@ router.patch('/:id', async (c) => {
   }
 
   // Assign new taskNumber when projectId changes
-  if (parsed.data.projectId !== undefined && parsed.data.projectId !== existingTask.projectId) {
+  if (
+    parsed.data.projectId !== undefined &&
+    parsed.data.projectId !== existingTask.projectId
+  ) {
     if (parsed.data.projectId) {
       const [result] = await db
         .select({ max: sql<number>`COALESCE(MAX(${tasks.taskNumber}), 0) + 1` })
         .from(tasks)
-        .where(and(eq(tasks.projectId, parsed.data.projectId), eq(tasks.userId, user.id)));
+        .where(
+          and(
+            eq(tasks.projectId, parsed.data.projectId),
+            eq(tasks.userId, user.id),
+          ),
+        );
       updateData.taskNumber = result.max;
     } else {
       updateData.taskNumber = null;
@@ -311,7 +338,10 @@ router.patch('/:id', async (c) => {
   }
 
   // Propagate projectId to all descendants if it changed, and clear their milestones
-  if (parsed.data.projectId !== undefined && parsed.data.projectId !== existingTask.projectId) {
+  if (
+    parsed.data.projectId !== undefined &&
+    parsed.data.projectId !== existingTask.projectId
+  ) {
     await db.execute(sql`
       WITH RECURSIVE descendants AS (
         SELECT id FROM tasks WHERE parent_task_id = ${id} AND user_id = ${user.id}
@@ -404,7 +434,7 @@ router.patch('/:id/complete', async (c) => {
   // Recurring: calculate next due date and reset
   const nextDueDate = calculateNextDueDate(
     task.dueDate ?? new Date(),
-    task.recurringFrequency
+    task.recurringFrequency,
   );
 
   // Reset parent task with new due date
