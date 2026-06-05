@@ -56,6 +56,7 @@ import { getSubtaskProgress } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
 
 const MUTED_GRAY = '#8E8E93';
+const ICON_BLUE = '#0A84FF'; // iOS system blue — matches GlobalTaskSheet's save tick
 const TODAY_AMBER = '#F59E0B';
 const PROGRESS_BLUE = '#3B82F6';
 const DONE_GREEN = '#22C55E';
@@ -225,19 +226,15 @@ export default function MilestoneScreen() {
                   onPress={() => blurDescRef.current?.()}
                   modifiers={[
                     buttonStyle('plain'),
-                    frame({ width: 36, height: 36 }),
-                    // Interactive glass tinted with the project color — springs on press
-                    // and fills edge-to-edge, not a flat fill. See GlobalTaskSheet circleBlue.
+                    frame({ width: 40, height: 40 }),
+                    // Same blue interactive-glass save tick as GlobalTaskSheet's circleBlue
+                    // (springs on press, fills edge-to-edge) — not a flat fill.
                     glassEffect({
-                      glass: {
-                        variant: 'regular',
-                        interactive: true,
-                        tint: project?.color ?? '#0A84FF',
-                      },
+                      glass: { variant: 'regular', interactive: true, tint: ICON_BLUE },
                       shape: 'circle',
                     }),
                   ]}>
-                  <Image systemName="checkmark" size={16} color="#FFFFFF" />
+                  <Image systemName="checkmark" size={18} color="#FFFFFF" />
                 </Button>
               </Host>
             ) : (
