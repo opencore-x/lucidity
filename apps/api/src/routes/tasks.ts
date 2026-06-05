@@ -145,14 +145,15 @@ router.get('/', async (c) => {
 
   const where = and(...conditions);
 
-  // Default ordering groups by position then oldest-first; sort_by is opt-in and
-  // overrides it (e.g. created_desc for global "most recently added" browsing).
+  // Default ordering groups by manual position then newest-first, so a freshly
+  // created task (position NULL) surfaces at the top of its list instead of being
+  // buried at the bottom. sort_by is opt-in and overrides it.
   const orderByClause =
     sortBy === 'created_desc'
       ? [desc(tasks.createdAt)]
       : sortBy === 'created_asc'
         ? [asc(tasks.createdAt)]
-        : [sql`${tasks.position} ASC NULLS LAST`, asc(tasks.createdAt)];
+        : [sql`${tasks.position} ASC NULLS LAST`, desc(tasks.createdAt)];
 
   const [allTasks, countResult] = await Promise.all([
     db

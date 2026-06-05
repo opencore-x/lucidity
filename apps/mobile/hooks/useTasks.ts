@@ -54,9 +54,11 @@ export function useCreateTask() {
         updatedAt: new Date(),
       };
 
-      // Optimistically update the cache
+      // Optimistically update the cache. Prepend so the new task lands at the top of
+      // the list (matching the server's newest-first default order) instead of the
+      // bottom, so it's immediately visible for editing.
       queryClient.setQueryData<Task[]>(['tasks'], (old) =>
-        old ? [...old, optimisticTask] : [optimisticTask]
+        old ? [optimisticTask, ...old] : [optimisticTask]
       );
 
       // Return context with the snapshot
