@@ -18,8 +18,7 @@ import {
 import {
   tint,
   buttonStyle,
-  background,
-  shapes,
+  glassEffect,
   padding,
   listStyle,
   listRowSeparator,
@@ -227,7 +226,16 @@ export default function MilestoneScreen() {
                   modifiers={[
                     buttonStyle('plain'),
                     frame({ width: 36, height: 36 }),
-                    background(project?.color ?? '#0A84FF', shapes.circle()),
+                    // Interactive glass tinted with the project color — springs on press
+                    // and fills edge-to-edge, not a flat fill. See GlobalTaskSheet circleBlue.
+                    glassEffect({
+                      glass: {
+                        variant: 'regular',
+                        interactive: true,
+                        tint: project?.color ?? '#0A84FF',
+                      },
+                      shape: 'circle',
+                    }),
                   ]}>
                   <Image systemName="checkmark" size={16} color="#FFFFFF" />
                 </Button>

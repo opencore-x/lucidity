@@ -26,7 +26,6 @@ import {
   buttonStyle,
   glassEffect,
   hidden,
-  background,
   disabled,
   datePickerStyle,
   labelsHidden,
@@ -766,16 +765,24 @@ function TaskSheetLevel({ depth }: { depth: number }) {
     }),
   ];
 
-  // The "save" affordance shown while editing: a solid blue circle. Same recipe as
-  // circleGlass (plain + 40×40 frame + circular fill) but an opaque blue background via
-  // SwiftUI's `.background(color, in: Circle())`, which fills the frame edge-to-edge.
-  // (The `*Prominent` button styles hug the glyph and stay a capsule — hence the earlier
-  // non-circular button and the gap between fill and edge.) Same 40×40 footprint as the
-  // close button so the status pill stays centered.
+  // The prominent "save"/confirm affordance: a blue-tinted INTERACTIVE-GLASS circle.
+  //
+  // IMPORTANT — for a colored icon button, use interactive glass, NOT a flat
+  // `background(color)` fill or a `*Prominent` button style:
+  //   • A flat background fill has no material, so it loses the Liquid Glass press
+  //     spring/bounce/shimmer and feels dead.
+  //   • `glass`/`glassProminent` button styles hug the glyph and stay a capsule, leaving
+  //     a gap between the fill and the frame edge (and a non-circular shape).
+  // `glassEffect({ interactive: true, tint }, shape: 'circle')` keeps the native press
+  // feel AND fills the circle edge-to-edge — the same recipe as circleGlass, just tinted.
+  // Same 40×40 footprint as the close button so the status pill stays centered.
   const circleBlue = [
     buttonStyle('plain'),
     frame({ width: 40, height: 40 }),
-    background(ICON_BLUE, shapes.circle()),
+    glassEffect({
+      glass: { variant: 'regular', interactive: true, tint: ICON_BLUE },
+      shape: 'circle',
+    }),
   ];
 
   // Shared group modifiers applied to each sheet level (root sheet + the stacked child
@@ -832,7 +839,8 @@ function TaskSheetLevel({ depth }: { depth: number }) {
         ) : null}
         <Spacer />
         {isEditingText ? (
-          // Solid blue circle with a white tick — a clear "save" affordance.
+          // Blue interactive-glass tick (springs like the close button) — a clear "save"
+          // affordance. See circleBlue above for why it's glass, not a flat fill.
           <Button onPress={() => blurFieldRef.current?.()} modifiers={circleBlue}>
             <Image systemName="checkmark" size={18} color="#FFFFFF" />
           </Button>

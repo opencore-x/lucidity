@@ -22,7 +22,6 @@ import {
   presentationDragIndicator,
   buttonStyle,
   glassEffect,
-  background,
   textFieldStyle,
   font,
   listStyle,
@@ -173,13 +172,16 @@ export function GlobalProjectSheet() {
     glassEffect({ glass: { variant: 'regular', interactive: true }, shape: 'circle' }),
   ];
 
-  // Solid blue circle for the "save" affordance while editing — `.background(color, in:
-  // Circle())` fills the 40×40 frame edge-to-edge (the prominent button styles hug the
-  // glyph and stay a capsule). Same footprint as the close button it replaces.
+  // Blue-tinted interactive-glass "save" circle. Use interactive glass (not a flat
+  // background fill or a *Prominent style) so it keeps the Liquid Glass press spring and
+  // fills the circle edge-to-edge — see GlobalTaskSheet's circleBlue for the full why.
   const circleBlue = [
     buttonStyle('plain'),
     frame({ width: 40, height: 40 }),
-    background(ICON_BLUE, shapes.circle()),
+    glassEffect({
+      glass: { variant: 'regular', interactive: true, tint: ICON_BLUE },
+      shape: 'circle',
+    }),
   ];
 
   return (
