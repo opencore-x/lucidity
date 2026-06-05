@@ -379,7 +379,7 @@ const SubtaskSection = React.memo(function SubtaskSection({
         </>
       ) : null}
 
-      <HStack spacing={12} modifiers={[onTapGesture(onAdd)]}>
+      <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onAdd)]}>
         <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
         <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Subtask</Text>
         <Spacer />
@@ -490,6 +490,7 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
       <HStack
         spacing={6}
         modifiers={[
+          contentShape(shapes.rectangle()),
           padding({ leading: 4, top: 4, bottom: 10 }),
           onTapGesture(() => setExpanded((e) => !e)),
         ]}>
@@ -527,7 +528,7 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
             </List.ForEach>
           ) : null}
 
-          <HStack spacing={12} modifiers={[onTapGesture(onAdd)]}>
+          <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onAdd)]}>
             <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
             <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Comment</Text>
             <Spacer />
@@ -850,6 +851,7 @@ function TaskSheetLevel({ depth }: { depth: number }) {
               multilineTextAlignment('leading'),
               frame({ maxWidth: Infinity, alignment: 'leading' }),
               padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
+              contentShape(shapes.rectangle()),
               onTapGesture(() => setEditingTitle(true)),
             ]}>
             <Text>{task.title}</Text>
@@ -903,6 +905,7 @@ function TaskSheetLevel({ depth }: { depth: number }) {
               modifiers={[
                 foregroundStyle(MENU_VALUE_GRAY),
                 frame({ maxWidth: Infinity, alignment: 'leading' }),
+                contentShape(shapes.rectangle()),
                 onTapGesture(() => setEditingDesc(true)),
               ]}>
               Description…
@@ -1081,7 +1084,7 @@ function TaskSheetLevel({ depth }: { depth: number }) {
 
           {/* Destructive delete — its own card at the end, centered red text */}
           <Section>
-            <HStack modifiers={[onTapGesture(handleDeleteTask)]}>
+            <HStack modifiers={[contentShape(shapes.rectangle()), onTapGesture(handleDeleteTask)]}>
               <Spacer />
               <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED)]}>Delete Task</Text>
               <Spacer />
