@@ -440,16 +440,16 @@ function CommentRow({
       modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
       {/* Top padding gives each comment's header row (avatar · @user · time) breathing
           room above it, separating one comment from the previous row. */}
-      <HStack spacing={6} modifiers={[padding({ top: 8 })]}>
+      <HStack spacing={6} modifiers={[padding({ bottom: 8 })]}>
         {isClaude && claudeLogoUri ? (
           <Image
             uiImage={claudeLogoUri}
-            modifiers={[resizable(), frame({ width: 16, height: 16 }), clipShape('circle')]}
+            modifiers={[resizable(), frame({ width: 20, height: 20 }), clipShape('circle')]}
           />
         ) : !isClaude && avatarLocalUri ? (
           <Image
             uiImage={avatarLocalUri}
-            modifiers={[resizable(), frame({ width: 16, height: 16 }), clipShape('circle')]}
+            modifiers={[resizable(), frame({ width: 20, height: 20 }), clipShape('circle')]}
           />
         ) : (
           <Image
@@ -458,8 +458,8 @@ function CommentRow({
             color={isClaude ? CLAUDE_PURPLE : MENU_VALUE_GRAY}
           />
         )}
-        <Text>{`@${displayName}`}</Text>
-        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY), font({ size: 13 })]}>
+        <Text modifiers={[font({ size: 16, weight: 'medium' })]}>{`@${displayName}`}</Text>
+        <Text modifiers={[foregroundStyle(MENU_VALUE_GRAY), font({ size: 14 })]}>
           {formatRelativeTime(comment.createdAt)}
         </Text>
       </HStack>
@@ -494,7 +494,7 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
         spacing={6}
         modifiers={[
           contentShape(shapes.rectangle()),
-          padding({ leading: 4, top: 4 }),
+          padding({ leading: 4, top: 2, bottom: 2 }),
           onTapGesture(() => setExpanded((e) => !e)),
         ]}>
         <Image systemName="bubble.left" size={ICON_SIZE - 4} color={MENU_VALUE_GRAY} />
