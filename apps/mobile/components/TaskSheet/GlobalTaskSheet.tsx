@@ -593,7 +593,15 @@ const PARENT_NONE = '__noparent__';
  * absolute Host, and the content Group MUST carry `frame({ maxWidth: Infinity })`
  * or the SwiftUI content collapses and the sheet presents invisibly.
  */
-export function GlobalTaskSheet() {
+/**
+ * One level of the stacked task sheet. Renders the BottomSheet for `taskStack[depth]`
+ * with that task's full content, then recursively renders the next level *inside* its
+ * own content so SwiftUI presents each drilled-in subtask as a real sheet stacked on
+ * its parent (with the native scale-back / peeking edge). Recursion stops once there's
+ * no task at this depth, so exactly `taskStack.length` levels render (plus one pre-
+ * mounted look-ahead so the next drill animates in).
+ */
+function TaskSheetLevel({ depth }: { depth: number }) {
   const { colorScheme } = useColorScheme();
   const scheme = colorScheme === 'dark' ? 'dark' : 'light';
 
@@ -601,14 +609,16 @@ export function GlobalTaskSheet() {
   const taskStack = useSheetStore((s) => s.taskStack);
   const closeSheet = useSheetStore((s) => s.closeSheet);
   const onDismissed = useSheetStore((s) => s.onDismissed);
-  const goBack = useSheetStore((s) => s.goBack);
   const drillDown = useSheetStore((s) => s.drillDown);
-  const updateCurrentTask = useSheetStore((s) => s.updateCurrentTask);
+  const updateTaskAt = useSheetStore((s) => s.updateTaskAt);
+  const popToDepth = useSheetStore((s) => s.popToDepth);
 
-  const task = taskStack.length > 0 ? taskStack[taskStack.length - 1] : null;
-  const canGoBack = taskStack.length > 1;
-  // The task one level down the stack — peeked behind the stacked child sheet.
-  const parentTask = taskStack.length > 1 ? taskStack[taskStack.length - 2] : null;
+  const task = depth < taskStack.length ? taskStack[depth] : null;
+  // This level's sheet is presented once the stack has reached (or passed) it.
+  const presented = isPresented && taskStack.length > depth;
+  const canGoBack = depth > 0;
+  // Back button / interactive dismissal of THIS level pops it (and anything above it).
+  const popThisLevel = React.useCallback(() => popToDepth(depth), [popToDepth, depth]);
 
   const queryClient = useQueryClient();
 
@@ -628,9 +638,12 @@ export function GlobalTaskSheet() {
 
   React.useEffect(() => {
     if (task && !allTasks.find((t) => t.id === task.id)) {
-      closeSheet();
+      // The task at this level vanished (deleted here or elsewhere): pop this level
+      // back to its parent, or close the whole sheet if this is the root.
+      if (depth === 0) closeSheet();
+      else popToDepth(depth);
     }
-  }, [task, allTasks, closeSheet]);
+  }, [task, allTasks, depth, closeSheet, popToDepth]);
 
   // While a title/description field is focused, the top-bar close button becomes a
   // "Done" button that blurs the field (the explicit save affordance for the
@@ -685,13 +698,13 @@ export function GlobalTaskSheet() {
       // Reflect the change in the open sheet immediately (optimistic) so the UI
       // doesn't wait for the server round-trip; the mutation also updates the
       // query cache and re-syncs the authoritative task on success.
-      updateCurrentTask({ ...task, ...data } as Task);
+      updateTaskAt(depth, { ...task, ...data } as Task);
       updateTask.mutate(
         { id: task.id, data },
-        { onSuccess: (updatedTask) => updateCurrentTask(updatedTask) }
+        { onSuccess: (updatedTask) => updateTaskAt(depth, updatedTask) }
       );
     },
-    [task, updateTask, updateCurrentTask]
+    [task, depth, updateTask, updateTaskAt]
   );
 
   const handleParentChange = React.useCallback(
@@ -732,11 +745,11 @@ export function GlobalTaskSheet() {
         queryClient.invalidateQueries({ queryKey: ['comments', id] }),
       ]);
       const fresh = queryClient.getQueryData<Task[]>(['tasks'])?.find((t) => t.id === id);
-      if (fresh) updateCurrentTask(fresh);
+      if (fresh) updateTaskAt(depth, fresh);
     } finally {
       setIsRefreshing(false);
     }
-  }, [task, isRefreshing, queryClient, updateCurrentTask]);
+  }, [task, depth, isRefreshing, queryClient, updateTaskAt]);
 
   // A circular Liquid Glass icon button (back / close).
   const circleGlass = [
@@ -768,7 +781,7 @@ export function GlobalTaskSheet() {
                 subtask. Refresh hides while editing text (avoid refetching mid-edit). */}
       <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
         {canGoBack ? (
-          <Button onPress={goBack} modifiers={circleGlass}>
+          <Button onPress={popThisLevel} modifiers={circleGlass}>
             <Image systemName="chevron.left" size={18} />
           </Button>
         ) : null}
@@ -1094,56 +1107,51 @@ export function GlobalTaskSheet() {
     </VStack>
   );
 
-  // A light, read-only peek of the parent task, shown behind the stacked child sheet so
-  // drilling into a subtask reads as a new card sliding over its parent.
-  const parentPeek =
-    parentTask != null ? (
-      <VStack spacing={12}>
-        <HStack spacing={8} modifiers={[padding({ horizontal: 6 })]}>
-          <Spacer />
-          <StatusPill status={parentTask.status} onStatusChange={() => {}} />
-          <Spacer />
-        </HStack>
-        <Text
-          modifiers={[
-            font({ size: 22, weight: 'semibold' }),
-            multilineTextAlignment('leading'),
-            frame({ maxWidth: Infinity, alignment: 'leading' }),
-            padding({ leading: 16, trailing: 16, top: 8 }),
-          ]}>
-          {parentTask.title}
-        </Text>
-      </VStack>
-    ) : null;
+  // Each level renders its own task's full content, then nests the next level inside so
+  // SwiftUI stacks it as a real sheet on top (native scale-back / peek). A level with no
+  // task is the recursion base: an unpresented sheet that renders nothing further.
+  return (
+    <BottomSheet
+      isPresented={presented}
+      onIsPresentedChange={(isOpen) => {
+        if (isOpen) return;
+        // Fires only on an interactive (swipe-down) dismiss — programmatic pops don't
+        // re-enter here, since the native view guards prop/state equality, so there's no
+        // double-pop. Root closes the whole sheet; a deeper level pops to its parent.
+        if (depth === 0) closeSheet();
+        else popToDepth(depth);
+      }}
+      onDismiss={depth === 0 ? onDismissed : undefined}>
+      <Group modifiers={sheetGroupModifiers}>
+        <VStack spacing={12}>
+          {task ? fullContent : null}
 
+          {/* Recurse: the next stack entry presents as a sheet on top of this one.
+              Wrapped 0-height so its hidden anchor view doesn't consume layout space in
+              this sheet. Only mounted when this level has a task (recursion base case). */}
+          {task ? (
+            <HStack modifiers={[frame({ height: 0 })]}>
+              <TaskSheetLevel depth={depth + 1} />
+            </HStack>
+          ) : null}
+        </VStack>
+      </Group>
+    </BottomSheet>
+  );
+}
+
+/**
+ * The global, drill-down task sheet. Mounted once at the signed-in app root and driven
+ * by `sheetStore`. A single `Host` hosts a recursive stack of `TaskSheetLevel` sheets —
+ * one per `taskStack` entry — so opening a subtask stacks a new native sheet on top of
+ * its parent rather than swapping content in place.
+ */
+export function GlobalTaskSheet() {
+  const { colorScheme } = useColorScheme();
+  const scheme = colorScheme === 'dark' ? 'dark' : 'light';
   return (
     <Host style={{ position: 'absolute' }} pointerEvents="none" colorScheme={scheme}>
-      <BottomSheet
-        isPresented={isPresented}
-        onIsPresentedChange={(presented) => {
-          if (!presented) closeSheet();
-        }}
-        onDismiss={onDismissed}>
-        <Group modifiers={sheetGroupModifiers}>
-          <VStack spacing={12}>
-            {canGoBack ? parentPeek : fullContent}
-
-            {/* Stacked child sheet (prototype: one drill level). Nested inside the root
-                sheet's content so SwiftUI presents it ON TOP of the parent peek. Wrapped
-                in a 0-height container so its hidden anchor view doesn't take layout
-                space in the root sheet. Swiping it down pops one level back. */}
-            <HStack modifiers={[frame({ height: 0 })]}>
-              <BottomSheet
-                isPresented={isPresented && canGoBack}
-                onIsPresentedChange={(presented) => {
-                  if (!presented && canGoBack) goBack();
-                }}>
-                <Group modifiers={sheetGroupModifiers}>{canGoBack ? fullContent : null}</Group>
-              </BottomSheet>
-            </HStack>
-          </VStack>
-        </Group>
-      </BottomSheet>
+      <TaskSheetLevel depth={0} />
     </Host>
   );
 }
