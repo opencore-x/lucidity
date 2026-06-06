@@ -5,6 +5,7 @@ import {
   BottomSheet,
   Group,
   VStack,
+  ZStack,
   HStack,
   Text,
   Button,
@@ -901,236 +902,244 @@ function TaskSheetLevel({ depth }: { depth: number }) {
         )
       ) : null}
 
-      {task ? (
-        <List modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
-          {/* Description lives in the scrollable list (not pinned) so a long note
+      {/* List + bottom-floating bars share a ZStack so the in-sheet composer and undo
+          bar float over the List's insetGrouped background — glass needs opaque content
+          behind it to read transparent (a VStack sibling exposes the bare sheet → opaque).
+          Mirrors the inline-composer pattern in app/project/[id].tsx. */}
+      <ZStack alignment="bottom" modifiers={[frame({ maxWidth: Infinity, maxHeight: Infinity })]}>
+        {task ? (
+          <List modifiers={[listStyle('insetGrouped'), scrollDismissesKeyboard('interactively')]}>
+            {/* Description lives in the scrollable list (not pinned) so a long note
                     scrolls away instead of hogging the top of the sheet. Tap-to-edit: the
                     rendered markdown shows read-only; tapping swaps in a monospaced field
                     that edits the raw markdown source (saved via the top-bar Done). */}
-          {editingDesc ? (
-            <EditableField
-              key={`desc-${task.id}`}
-              value={task.description ?? ''}
-              onCommit={(t) => handleUpdateField({ description: t || null })}
-              onFocusEnter={handleFieldFocus}
-              onFocusLeave={() => {
-                handleFieldBlur();
-                setEditingDesc(false);
-              }}
-              allowEmpty
-              multiline
-              autoFocus
-              placeholder="Description…"
-              modifiers={[textFieldStyle('plain'), font({ design: 'monospaced', size: 14 })]}
-            />
-          ) : task.description ? (
-            <VStack
-              alignment="leading"
-              modifiers={[
-                frame({ maxWidth: Infinity, alignment: 'leading' }),
-                contentShape(shapes.rectangle()),
-                onTapGesture(() => setEditingDesc(true)),
-              ]}>
-              <MarkdownView content={task.description} dark={colorScheme === 'dark'} />
-            </VStack>
-          ) : (
-            <Text
-              modifiers={[
-                foregroundStyle(MENU_VALUE_GRAY),
-                frame({ maxWidth: Infinity, alignment: 'leading' }),
-                contentShape(shapes.rectangle()),
-                onTapGesture(() => setEditingDesc(true)),
-              ]}>
-              Description…
-            </Text>
-          )}
-
-          <CommentsSection taskId={task.id} onAdd={addComment} />
-
-          <SubtaskSection
-            subtasks={subtasks}
-            allTasks={allTasks}
-            onOpen={drillDown}
-            onAdd={addSubtask}
-          />
-
-          {/* Placement — where the task lives (project / milestone / parent) */}
-          <Section>
-            <MenuRow
-              icon="folder"
-              label="Project"
-              value={
-                task.projectId
-                  ? (allProjects.find((p) => p.id === task.projectId)?.name ?? 'None')
-                  : 'None'
-              }
-              selection={task.projectId ?? INBOX_PROJECT_ID}
-              options={[
-                { value: INBOX_PROJECT_ID, label: 'None' },
-                ...projects.map((p) => ({ value: p.id, label: p.name })),
-              ]}
-              onSelect={(value) => {
-                const projectId = value === INBOX_PROJECT_ID ? null : value;
-                if (projectId !== task.projectId) {
-                  handleUpdateField({ projectId, milestoneId: null });
-                }
-              }}
-            />
-
-            {task.projectId ? (
-              <MenuRow
-                icon="flag"
-                label="Milestone"
-                value={
-                  task.milestoneId
-                    ? (milestones.find((m) => m.id === task.milestoneId)?.name ?? 'None')
-                    : 'None'
-                }
-                selection={task.milestoneId ?? MILESTONE_NONE}
-                options={[
-                  { value: MILESTONE_NONE, label: 'None' },
-                  ...milestones.map((m) => ({ value: m.id, label: m.name })),
-                ]}
-                onSelect={(value) => {
-                  const milestoneId = value === MILESTONE_NONE ? null : value;
-                  if (milestoneId !== task.milestoneId) {
-                    handleUpdateField({ milestoneId });
-                  }
+            {editingDesc ? (
+              <EditableField
+                key={`desc-${task.id}`}
+                value={task.description ?? ''}
+                onCommit={(t) => handleUpdateField({ description: t || null })}
+                onFocusEnter={handleFieldFocus}
+                onFocusLeave={() => {
+                  handleFieldBlur();
+                  setEditingDesc(false);
                 }}
+                allowEmpty
+                multiline
+                autoFocus
+                placeholder="Description…"
+                modifiers={[textFieldStyle('plain'), font({ design: 'monospaced', size: 14 })]}
               />
-            ) : null}
-
-            {/* Parent task — native Menu (lists valid parents; None detaches) */}
-            <MenuRow
-              icon="arrow.up.left"
-              label="Parent"
-              value={allTasks.find((t) => t.id === task.parentTaskId)?.title ?? 'None'}
-              selection={task.parentTaskId ?? PARENT_NONE}
-              options={parentOptions}
-              onSelect={(value) => handleParentChange(value === PARENT_NONE ? null : value)}
-            />
-          </Section>
-
-          {/* Scheduling — when/how the task is due */}
-          <Section>
-            {/* Due date — single row: Add when empty, picker + clear when set */}
-            {task.dueDate ? (
-              <HStack spacing={8}>
-                <Image
-                  systemName="calendar"
-                  size={ICON_SIZE}
-                  color={ICON_BLUE}
-                  modifiers={[frame({ width: ICON_COL })]}
-                />
-                <Text>Due</Text>
-                <Spacer />
-                <DatePicker
-                  selection={new Date(task.dueDate)}
-                  displayedComponents={['date']}
-                  onDateChange={(d) => handleUpdateField({ dueDate: d })}
-                  modifiers={[datePickerStyle('compact'), labelsHidden()]}
-                />
-                <Image
-                  systemName="xmark.circle.fill"
-                  size={18}
-                  color="#9CA3AF"
-                  onPress={() => handleUpdateField({ dueDate: null })}
-                />
-              </HStack>
+            ) : task.description ? (
+              <VStack
+                alignment="leading"
+                modifiers={[
+                  frame({ maxWidth: Infinity, alignment: 'leading' }),
+                  contentShape(shapes.rectangle()),
+                  onTapGesture(() => setEditingDesc(true)),
+                ]}>
+                <MarkdownView content={task.description} dark={colorScheme === 'dark'} />
+              </VStack>
             ) : (
-              <HStack spacing={8}>
-                <Image
-                  systemName="calendar"
-                  size={ICON_SIZE}
-                  color={ICON_BLUE}
-                  modifiers={[frame({ width: ICON_COL })]}
-                />
-                <Text>Due Date</Text>
-                <Spacer />
-                <Button
-                  label="Add"
-                  onPress={() => handleUpdateField({ dueDate: new Date() })}
-                  modifiers={[buttonStyle('borderless')]}
-                />
-              </HStack>
+              <Text
+                modifiers={[
+                  foregroundStyle(MENU_VALUE_GRAY),
+                  frame({ maxWidth: Infinity, alignment: 'leading' }),
+                  contentShape(shapes.rectangle()),
+                  onTapGesture(() => setEditingDesc(true)),
+                ]}>
+                Description…
+              </Text>
             )}
 
-            {task.dueDate ? (
+            <CommentsSection taskId={task.id} onAdd={addComment} />
+
+            <SubtaskSection
+              subtasks={subtasks}
+              allTasks={allTasks}
+              onOpen={drillDown}
+              onAdd={addSubtask}
+            />
+
+            {/* Placement — where the task lives (project / milestone / parent) */}
+            <Section>
               <MenuRow
-                icon="repeat"
-                label="Repeat"
+                icon="folder"
+                label="Project"
                 value={
-                  REPEAT_OPTIONS.find((r) => r.value === task.recurringFrequency)?.label ?? 'Never'
+                  task.projectId
+                    ? (allProjects.find((p) => p.id === task.projectId)?.name ?? 'None')
+                    : 'None'
                 }
-                selection={task.recurringFrequency ?? REPEAT_NONE}
+                selection={task.projectId ?? INBOX_PROJECT_ID}
                 options={[
-                  { value: REPEAT_NONE, label: 'Never' },
-                  ...REPEAT_OPTIONS.map((r) => ({ value: r.value, label: r.label })),
+                  { value: INBOX_PROJECT_ID, label: 'None' },
+                  ...projects.map((p) => ({ value: p.id, label: p.name })),
                 ]}
                 onSelect={(value) => {
-                  const rf =
-                    value === REPEAT_NONE
-                      ? null
-                      : (value as 'daily' | 'weekly' | 'monthly' | 'yearly');
-                  if (rf !== task.recurringFrequency) {
-                    handleUpdateField({ recurringFrequency: rf });
+                  const projectId = value === INBOX_PROJECT_ID ? null : value;
+                  if (projectId !== task.projectId) {
+                    handleUpdateField({ projectId, milestoneId: null });
                   }
                 }}
               />
-            ) : null}
 
-            <PriorityRow
-              priority={task.priority}
-              onCommit={(priority) => handleUpdateField({ priority })}
-            />
+              {task.projectId ? (
+                <MenuRow
+                  icon="flag"
+                  label="Milestone"
+                  value={
+                    task.milestoneId
+                      ? (milestones.find((m) => m.id === task.milestoneId)?.name ?? 'None')
+                      : 'None'
+                  }
+                  selection={task.milestoneId ?? MILESTONE_NONE}
+                  options={[
+                    { value: MILESTONE_NONE, label: 'None' },
+                    ...milestones.map((m) => ({ value: m.id, label: m.name })),
+                  ]}
+                  onSelect={(value) => {
+                    const milestoneId = value === MILESTONE_NONE ? null : value;
+                    if (milestoneId !== task.milestoneId) {
+                      handleUpdateField({ milestoneId });
+                    }
+                  }}
+                />
+              ) : null}
 
-            {/* Reminder — kept LAST because the revealed graphical calendar
+              {/* Parent task — native Menu (lists valid parents; None detaches) */}
+              <MenuRow
+                icon="arrow.up.left"
+                label="Parent"
+                value={allTasks.find((t) => t.id === task.parentTaskId)?.title ?? 'None'}
+                selection={task.parentTaskId ?? PARENT_NONE}
+                options={parentOptions}
+                onSelect={(value) => handleParentChange(value === PARENT_NONE ? null : value)}
+              />
+            </Section>
+
+            {/* Scheduling — when/how the task is due */}
+            <Section>
+              {/* Due date — single row: Add when empty, picker + clear when set */}
+              {task.dueDate ? (
+                <HStack spacing={8}>
+                  <Image
+                    systemName="calendar"
+                    size={ICON_SIZE}
+                    color={ICON_BLUE}
+                    modifiers={[frame({ width: ICON_COL })]}
+                  />
+                  <Text>Due</Text>
+                  <Spacer />
+                  <DatePicker
+                    selection={new Date(task.dueDate)}
+                    displayedComponents={['date']}
+                    onDateChange={(d) => handleUpdateField({ dueDate: d })}
+                    modifiers={[datePickerStyle('compact'), labelsHidden()]}
+                  />
+                  <Image
+                    systemName="xmark.circle.fill"
+                    size={18}
+                    color="#9CA3AF"
+                    onPress={() => handleUpdateField({ dueDate: null })}
+                  />
+                </HStack>
+              ) : (
+                <HStack spacing={8}>
+                  <Image
+                    systemName="calendar"
+                    size={ICON_SIZE}
+                    color={ICON_BLUE}
+                    modifiers={[frame({ width: ICON_COL })]}
+                  />
+                  <Text>Due Date</Text>
+                  <Spacer />
+                  <Button
+                    label="Add"
+                    onPress={() => handleUpdateField({ dueDate: new Date() })}
+                    modifiers={[buttonStyle('borderless')]}
+                  />
+                </HStack>
+              )}
+
+              {task.dueDate ? (
+                <MenuRow
+                  icon="repeat"
+                  label="Repeat"
+                  value={
+                    REPEAT_OPTIONS.find((r) => r.value === task.recurringFrequency)?.label ??
+                    'Never'
+                  }
+                  selection={task.recurringFrequency ?? REPEAT_NONE}
+                  options={[
+                    { value: REPEAT_NONE, label: 'Never' },
+                    ...REPEAT_OPTIONS.map((r) => ({ value: r.value, label: r.label })),
+                  ]}
+                  onSelect={(value) => {
+                    const rf =
+                      value === REPEAT_NONE
+                        ? null
+                        : (value as 'daily' | 'weekly' | 'monthly' | 'yearly');
+                    if (rf !== task.recurringFrequency) {
+                      handleUpdateField({ recurringFrequency: rf });
+                    }
+                  }}
+                />
+              ) : null}
+
+              <PriorityRow
+                priority={task.priority}
+                onCommit={(priority) => handleUpdateField({ priority })}
+              />
+
+              {/* Reminder — kept LAST because the revealed graphical calendar
                     is tall; placing it at the end keeps the other rows compact. */}
-            <HStack spacing={8}>
-              <Image
-                systemName="bell"
-                size={ICON_SIZE}
-                color={ICON_BLUE}
-                modifiers={[frame({ width: ICON_COL })]}
-              />
-              <Text>Reminder</Text>
-              <Spacer />
-              <Toggle
-                isOn={!!task.reminderAt}
-                onIsOnChange={(on) =>
-                  handleUpdateField({
-                    reminderAt: on ? new Date(Date.now() + 60 * 60 * 1000) : null,
-                  })
-                }
-                modifiers={[labelsHidden()]}
-              />
-            </HStack>
-            {task.reminderAt ? (
-              <DatePicker
-                selection={new Date(task.reminderAt)}
-                displayedComponents={['date', 'hourAndMinute']}
-                onDateChange={(d) => handleUpdateField({ reminderAt: d })}
-                modifiers={[datePickerStyle('graphical'), labelsHidden()]}
-              />
-            ) : null}
-          </Section>
+              <HStack spacing={8}>
+                <Image
+                  systemName="bell"
+                  size={ICON_SIZE}
+                  color={ICON_BLUE}
+                  modifiers={[frame({ width: ICON_COL })]}
+                />
+                <Text>Reminder</Text>
+                <Spacer />
+                <Toggle
+                  isOn={!!task.reminderAt}
+                  onIsOnChange={(on) =>
+                    handleUpdateField({
+                      reminderAt: on ? new Date(Date.now() + 60 * 60 * 1000) : null,
+                    })
+                  }
+                  modifiers={[labelsHidden()]}
+                />
+              </HStack>
+              {task.reminderAt ? (
+                <DatePicker
+                  selection={new Date(task.reminderAt)}
+                  displayedComponents={['date', 'hourAndMinute']}
+                  onDateChange={(d) => handleUpdateField({ reminderAt: d })}
+                  modifiers={[datePickerStyle('graphical'), labelsHidden()]}
+                />
+              ) : null}
+            </Section>
 
-          {/* Destructive delete — its own card at the end, centered red text */}
-          <Section>
-            <HStack modifiers={[contentShape(shapes.rectangle()), onTapGesture(handleDeleteTask)]}>
-              <Spacer />
-              <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED)]}>Delete Task</Text>
-              <Spacer />
-            </HStack>
-          </Section>
-        </List>
-      ) : null}
+            {/* Destructive delete — its own card at the end, centered red text */}
+            <Section>
+              <HStack
+                modifiers={[contentShape(shapes.rectangle()), onTapGesture(handleDeleteTask)]}>
+                <Spacer />
+                <Text modifiers={[foregroundStyle(DESTRUCTIVE_RED)]}>Delete Task</Text>
+                <Spacer />
+              </HStack>
+            </Section>
+          </List>
+        ) : null}
 
-      <NativeUndoBar />
+        <NativeUndoBar />
 
-      {task && composeMode ? (
-        <Composer key={composeMode} mode={composeMode} task={task} onClose={closeComposer} />
-      ) : null}
+        {task && composeMode ? (
+          <Composer key={composeMode} mode={composeMode} task={task} onClose={closeComposer} />
+        ) : null}
+      </ZStack>
     </VStack>
   );
 
