@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import Constants from 'expo-constants';
 
 export const PROD_API_URL = 'https://api.lucidity.my';
-const DEFAULT_DEV_URL = 'http://localhost:3000';
+const DEFAULT_DEV_URL = 'http://localhost:3001';
 
 export type ApiEnv = 'production' | 'development';
 

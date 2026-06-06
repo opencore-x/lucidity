@@ -285,7 +285,7 @@ export default function SettingsScreen() {
               <EditableField
                 value={devUrl}
                 onCommit={commitDevUrl}
-                placeholder="http://localhost:3000"
+                placeholder="http://localhost:3001"
                 modifiers={[
                   textFieldStyle('roundedBorder'),
                   keyboardType('url'),

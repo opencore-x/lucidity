@@ -11,7 +11,7 @@ export const LOGS_DIR = join(CONFIG_DIR, 'logs');
 export interface DaemonConfig {
   /** Lucidity API key, `luc_…`. */
   apiKey: string;
-  /** API base URL. Default: `http://localhost:3000`. */
+  /** API base URL. Default: `http://localhost:3001`. */
   apiUrl: string;
   /** Daily briefing time, 24h `HH:MM`. Default: `08:00`. */
   briefingTime: string;
@@ -41,7 +41,7 @@ export interface DaemonConfig {
 
 const EXAMPLE = `{
   "apiKey": "luc_xxx",            // from Lucidity → Settings → API Key
-  "apiUrl": "http://localhost:3000",
+  "apiUrl": "http://localhost:3001",
   "briefingTime": "08:00",
   "model": "sonnet",              // optional; "haiku" to stay frugal
   "timezone": "Asia/Kolkata",     // optional; IANA name
@@ -111,7 +111,7 @@ export function loadConfig(configPath: string = CONFIG_PATH): DaemonConfig {
     fail(`${CONFIG_PATH}: "apiKey" is required and must start with "luc_".`);
   }
 
-  const apiUrl = typeof obj['apiUrl'] === 'string' && obj['apiUrl'] ? obj['apiUrl'] : 'http://localhost:3000';
+  const apiUrl = typeof obj['apiUrl'] === 'string' && obj['apiUrl'] ? obj['apiUrl'] : 'http://localhost:3001';
 
   const briefingTime = typeof obj['briefingTime'] === 'string' && obj['briefingTime'] ? obj['briefingTime'] : '08:00';
   if (!isValidTime(briefingTime)) {

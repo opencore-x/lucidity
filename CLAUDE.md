@@ -13,7 +13,7 @@ Lucidity is a task management app built as a pnpm monorepo with Turborepo. It co
 pnpm dev
 
 # Run individual packages
-pnpm dev:api                    # API server on :3000
+pnpm dev:api                    # API server on :3001
 pnpm dev:mobile                 # Expo dev server
 
 # iOS builds
@@ -37,7 +37,7 @@ pnpm format                     # Prettier
 ## Monorepo Structure
 
 ```
-apps/api/          → @lucidity/api      Hono REST API (tsx watch, port 3000)
+apps/api/          → @lucidity/api      Hono REST API (tsx watch, port 3001)
 apps/mobile/       → @lucidity/mobile   Expo React Native app (expo-router v6)
 apps/daemon/       → @lucidity/daemon   Lucid local daemon — cron, jobs, chat (see apps/daemon/README.md)
 packages/db/       → @lucidity/db       Drizzle ORM schema + Neon PostgreSQL

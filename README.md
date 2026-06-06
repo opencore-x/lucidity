@@ -118,7 +118,7 @@ The MCP server (`@lucidity/mcp-server`) exposes your tasks, projects, milestones
    ```
 4. **Restart the client.** Lucid's tools — `list_tasks`, `create_task`, `complete_task`, `get_today`, `get_week`, `search`, and more — are now available.
 
-`LUCIDITY_API_URL` defaults to `http://localhost:3000`; set it in `env` to point at your Lucidity API — the hosted `https://api.lucidity.my` or a self-hosted instance.
+`LUCIDITY_API_URL` defaults to `http://localhost:3001`; set it in `env` to point at your Lucidity API — the hosted `https://api.lucidity.my` or a self-hosted instance.
 
 ## Tech stack
 
@@ -160,7 +160,7 @@ packages/
 ```bash
 pnpm install
 pnpm dev          # Start all packages
-pnpm dev:api      # API server on :3000
+pnpm dev:api      # API server on :3001
 pnpm dev:mobile   # Expo dev server
 pnpm dev:web      # Vite / TanStack Start dev server
 
