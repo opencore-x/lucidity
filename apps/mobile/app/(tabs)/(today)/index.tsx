@@ -5,6 +5,7 @@ import {
   Host,
   ZStack,
   Button,
+  HStack,
   List,
   Section,
   SwipeActions,
@@ -16,8 +17,8 @@ import {
   refreshable,
   frame,
   foregroundStyle,
-  font,
   padding,
+  listRowInsets,
   scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -28,6 +29,7 @@ import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { TaskRow } from '@/components/native/TaskRow';
 import { TaskComposer } from '@/components/native/TaskComposer';
+import { PillButton } from '@/components/native/PillButton';
 import { useTasks, useCreateTask, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
@@ -37,6 +39,8 @@ import type { Task } from '@lucidity/shared';
 
 const MUTED_GRAY = '#8E8E93';
 const OVERDUE_RED = '#EF4444';
+// Amber matches TaskRow's "Today" due-date pill.
+const DUE_TODAY_AMBER = '#F59E0B';
 // Indigo "Remove from Today" swipe — matches the old left-action background.
 const REMOVE_INDIGO = '#6366F1';
 
@@ -190,13 +194,18 @@ export default function TodayScreen() {
                   {dueTodayTasks.length > 0 ? (
                     <Section
                       header={
-                        <UIText
+                        <HStack
                           modifiers={[
-                            font({ size: 13, weight: 'semibold' }),
-                            foregroundStyle(MUTED_GRAY),
+                            frame({ maxWidth: Infinity, alignment: 'leading' }),
+                            listRowInsets({ top: 0, leading: 0, bottom: 6, trailing: 0 }),
                           ]}>
-                          {`Due Today (${dueTodayTasks.length})`}
-                        </UIText>
+                          <PillButton
+                            label="Due Today"
+                            count={dueTodayTasks.length}
+                            color={DUE_TODAY_AMBER}
+                            weight="semibold"
+                          />
+                        </HStack>
                       }>
                       {dueTodayTasks.map(renderRow)}
                     </Section>
@@ -205,13 +214,18 @@ export default function TodayScreen() {
                   {overdueTasks.length > 0 ? (
                     <Section
                       header={
-                        <UIText
+                        <HStack
                           modifiers={[
-                            font({ size: 13, weight: 'semibold' }),
-                            foregroundStyle(OVERDUE_RED),
+                            frame({ maxWidth: Infinity, alignment: 'leading' }),
+                            listRowInsets({ top: 0, leading: 0, bottom: 6, trailing: 0 }),
                           ]}>
-                          {`Overdue (${overdueTasks.length})`}
-                        </UIText>
+                          <PillButton
+                            label="Overdue"
+                            count={overdueTasks.length}
+                            color={OVERDUE_RED}
+                            weight="semibold"
+                          />
+                        </HStack>
                       }>
                       {overdueTasks.map(renderRow)}
                     </Section>
