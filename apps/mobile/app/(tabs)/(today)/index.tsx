@@ -197,7 +197,7 @@ export default function TodayScreen() {
                         <HStack
                           modifiers={[
                             frame({ maxWidth: Infinity, alignment: 'leading' }),
-                            listRowInsets({ top: 0, leading: 0, bottom: 6, trailing: 0 }),
+                            listRowInsets({ top: 16, leading: 0, bottom: 6, trailing: 0 }),
                           ]}>
                           <PillButton
                             label="Due Today"
@@ -217,7 +217,12 @@ export default function TodayScreen() {
                         <HStack
                           modifiers={[
                             frame({ maxWidth: Infinity, alignment: 'leading' }),
-                            listRowInsets({ top: 0, leading: 0, bottom: 6, trailing: 0 }),
+                            listRowInsets({
+                              top: dueTodayTasks.length > 0 ? 0 : 16,
+                              leading: 0,
+                              bottom: 6,
+                              trailing: 0,
+                            }),
                           ]}>
                           <PillButton
                             label="Overdue"
