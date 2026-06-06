@@ -268,7 +268,7 @@ These work with both Clerk and API key auth, so the mobile app could use them to
 ```bash
 claude mcp add lucidity \
   -e LUCIDITY_API_KEY=luc_your_key_here \
-  -e LUCIDITY_API_URL=http://localhost:3000 \
+  -e LUCIDITY_API_URL=http://localhost:3001 \
   -- node /path/to/lucidity/packages/mcp-server/dist/index.js
 ```
 
@@ -284,7 +284,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
       "args": ["/path/to/lucidity/packages/mcp-server/dist/index.js"],
       "env": {
         "LUCIDITY_API_KEY": "luc_your_key_here",
-        "LUCIDITY_API_URL": "http://localhost:3000"
+        "LUCIDITY_API_URL": "http://localhost:3001"
       }
     }
   }
@@ -296,7 +296,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | Variable           | Required | Default                 | Description                            |
 | ------------------ | -------- | ----------------------- | -------------------------------------- |
 | `LUCIDITY_API_KEY` | Yes      | —                       | API key generated from Settings screen |
-| `LUCIDITY_API_URL` | No       | `http://localhost:3000` | Lucidity API base URL                  |
+| `LUCIDITY_API_URL` | No       | `http://localhost:3001` | Lucidity API base URL                  |
 
 ## Development
 

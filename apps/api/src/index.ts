@@ -42,7 +42,7 @@ app.route('/api/projects', projectRouter);
 app.route('/api/milestones', milestoneRouter);
 app.route('/api', searchRouter);
 
-const port = Number(process.env.PORT) || 3000;
+const port = Number(process.env.PORT) || 3001;
 
 serve(
   {

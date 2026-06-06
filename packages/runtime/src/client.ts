@@ -1,5 +1,5 @@
 export interface ApiClientConfig {
-  /** Base URL, e.g. `http://localhost:3000` or `https://api.lucidity.my`. */
+  /** Base URL, e.g. `http://localhost:3001` or `https://api.lucidity.my`. */
   apiUrl: string;
   /** Lucidity API key (`luc_…`), sent as `Authorization: Bearer`. */
   apiKey: string;

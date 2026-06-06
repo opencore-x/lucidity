@@ -40,7 +40,7 @@ Create `~/.lucidity/config.json` (chmod 600 — it holds your key):
 ```jsonc
 {
   "apiKey": "luc_xxx",              // required; from Lucidity → Settings → API Key
-  "apiUrl": "http://localhost:3000",// API base URL (default shown)
+  "apiUrl": "http://localhost:3001",// API base URL (default shown)
   "briefingTime": "08:00",          // daily briefing, 24h HH:MM
   "model": "sonnet",                // optional; "haiku" to stay frugal
   "timezone": "Asia/Kolkata",       // optional; IANA name (default: system tz)

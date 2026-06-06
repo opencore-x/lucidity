@@ -8,7 +8,7 @@ const getApiUrl = () => {
   const baseUrl =
     useEnvStore.getState().apiUrl() ||
     Constants.expoConfig?.extra?.apiUrl ||
-    'http://localhost:3000';
+    'http://localhost:3001';
   // Android emulator uses 10.0.2.2 to access host machine's localhost
   if (Platform.OS === 'android' && baseUrl.includes('localhost')) {
     return baseUrl.replace('localhost', '10.0.2.2');

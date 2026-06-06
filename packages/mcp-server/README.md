@@ -37,7 +37,7 @@ For local development against localhost:
 claude mcp add lucidity \
   --scope user \
   -e LUCIDITY_API_KEY=luc_your_api_key_here \
-  -e LUCIDITY_API_URL=http://localhost:3000 \
+  -e LUCIDITY_API_URL=http://localhost:3001 \
   -- lucidity-mcp
 ```
 

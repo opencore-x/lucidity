@@ -123,7 +123,7 @@ We have implemented a native iOS App Intent that will:
 ## What's Your API URL?
 
 The API URL depends on your environment:
-- **Local Development:** `http://localhost:3000/api/tasks`
+- **Local Development:** `http://localhost:3001/api/tasks`
 - **Production:** `https://api.lucidity.app/api/tasks` (replace with actual domain)
 
 You can find your API URL in the app's settings or configuration.
