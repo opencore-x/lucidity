@@ -187,21 +187,6 @@ export default function TodayScreen() {
                 </UIText>
               ) : (
                 <>
-                  {overdueTasks.length > 0 ? (
-                    <Section
-                      header={
-                        <UIText
-                          modifiers={[
-                            font({ size: 13, weight: 'semibold' }),
-                            foregroundStyle(OVERDUE_RED),
-                          ]}>
-                          {`Overdue (${overdueTasks.length})`}
-                        </UIText>
-                      }>
-                      {overdueTasks.map(renderRow)}
-                    </Section>
-                  ) : null}
-
                   {dueTodayTasks.length > 0 ? (
                     <Section
                       header={
@@ -214,6 +199,21 @@ export default function TodayScreen() {
                         </UIText>
                       }>
                       {dueTodayTasks.map(renderRow)}
+                    </Section>
+                  ) : null}
+
+                  {overdueTasks.length > 0 ? (
+                    <Section
+                      header={
+                        <UIText
+                          modifiers={[
+                            font({ size: 13, weight: 'semibold' }),
+                            foregroundStyle(OVERDUE_RED),
+                          ]}>
+                          {`Overdue (${overdueTasks.length})`}
+                        </UIText>
+                      }>
+                      {overdueTasks.map(renderRow)}
                     </Section>
                   ) : null}
                 </>
