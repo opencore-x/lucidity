@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import {
   Host,
@@ -61,6 +61,23 @@ const TODAY_AMBER = '#F59E0B';
 const PROGRESS_BLUE = '#3B82F6';
 const DONE_GREEN = '#22C55E';
 
+// The collapsed description preview clamps to this many lines.
+const DESC_PREVIEW_LINES = 2;
+const DESC_FONT_SIZE = 15;
+
+// SwiftUI Text exposes no truncation callback, so we estimate whether a description
+// overflows the preview — to choose between a "Read more" toggle and showing "Edit"
+// directly. Approximate (proportional font), but a wrong guess is harmless: Edit always
+// reveals the full text. Tune the 0.55 glyph-width factor if the cutoff feels off.
+function descriptionOverflowsPreview(text: string, contentWidth: number): boolean {
+  const charsPerLine = Math.floor(contentWidth / (DESC_FONT_SIZE * 0.55));
+  if (charsPerLine <= 0) return false;
+  const rows = text
+    .split('\n')
+    .reduce((acc, line) => acc + Math.max(1, Math.ceil(line.length / charsPerLine)), 0);
+  return rows > DESC_PREVIEW_LINES;
+}
+
 // Milestone names are long ("M1: Core Platform + Visitor Management") and don't fit the
 // nav bar OR the large-title area without truncating. So the nav title is the generic
 // "Milestone" (signals the screen type), and the milestone name lives as a wrapping
@@ -98,7 +115,7 @@ export default function MilestoneScreen() {
   );
   const [composing, setComposing] = React.useState(false);
 
-  // Description has three modes: a collapsed 3-line preview (tap to read), an expanded
+  // Description has three modes: a collapsed 2-line preview (tap to read), an expanded
   // read-only full view (no keyboard; tap to re-collapse, with an explicit Edit button),
   // and an editing field. Reading and editing are deliberately separate so a tap to read
   // doesn't pop the keyboard. While editing, the nav bar shows a "Done" button that blurs
@@ -111,6 +128,14 @@ export default function MilestoneScreen() {
     setDescMode('editing');
   }, []);
   const handleDescBlur = React.useCallback(() => setDescMode('expanded'), []);
+
+  // Whether the description is long enough to need the "Read more" toggle. Short ones
+  // skip it and show "Edit" directly. insetGrouped content width ≈ window minus the
+  // grouped section margins + row insets (~64pt total).
+  const { width: windowWidth } = useWindowDimensions();
+  const descOverflows = milestone?.description
+    ? descriptionOverflowsPreview(milestone.description, windowWidth - 64)
+    : false;
 
   const rootTasks = React.useMemo(
     () => allTasks.filter((t) => t.milestoneId === id && !t.parentTaskId),
@@ -276,7 +301,7 @@ export default function MilestoneScreen() {
               {/* Milestone name as a plain wrapping heading (no grouped card) — long names
                   don't fit the nav bar, which shows the short project name. The clear row
                   background drops the inset-grouped card without clipping the title. */}
-              <Section modifiers={[listSectionSpacing('compact')]}>
+              <Section modifiers={[listSectionSpacing(6)]}>
                 <VStack
                   spacing={4}
                   alignment="leading"
@@ -291,8 +316,9 @@ export default function MilestoneScreen() {
                   ) : null}
                   {/* Milestone description. Reading + editing are driven by explicit glass
                       pills (no keyboard on read):
-                      - collapsed: muted 3-line preview + a "Read more" pill
-                      - expanded: full text + "Read less" and "Edit" pills
+                      - short (fits the preview): full text + an "Edit" pill (no "Read more")
+                      - long collapsed: muted 2-line preview + a "Read more" pill
+                      - long expanded: full text + "Read less" and "Edit" pills
                       - editing: auto-focused field, saved via nav-bar "Done"
                       Empty: a single "Add description" pill. */}
                   {descMode === 'editing' ? (
@@ -324,16 +350,19 @@ export default function MilestoneScreen() {
                       <UIText
                         modifiers={[
                           foregroundStyle(MUTED_GRAY),
-                          font({ size: 15 }),
+                          font({ size: DESC_FONT_SIZE }),
                           frame({ maxWidth: Infinity, alignment: 'leading' }),
-                          ...(descMode === 'collapsed'
-                            ? [lineLimit(3), truncationMode('tail')]
+                          ...(descOverflows && descMode === 'collapsed'
+                            ? [lineLimit(DESC_PREVIEW_LINES), truncationMode('tail')]
                             : []),
                         ]}>
                         {milestone.description}
                       </UIText>
                       <HStack spacing={8}>
-                        {descMode === 'collapsed' ? (
+                        {!descOverflows ? (
+                          // Fits the preview — no "Read more"; edit directly.
+                          <PillButton label="Edit" onPress={() => setDescMode('editing')} />
+                        ) : descMode === 'collapsed' ? (
                           <PillButton label="Read more" onPress={() => setDescMode('expanded')} />
                         ) : (
                           <>

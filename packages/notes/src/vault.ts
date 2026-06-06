@@ -8,7 +8,15 @@ import {
   existsSync,
   type Dirent,
 } from 'node:fs';
-import { resolve, join, dirname, basename, relative, sep, isAbsolute } from 'node:path';
+import {
+  resolve,
+  join,
+  dirname,
+  basename,
+  relative,
+  sep,
+  isAbsolute,
+} from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { parseFrontmatter, noteTitle } from '@lucidity/shared';
 
@@ -68,7 +76,9 @@ export function listNotes(
 ): NoteSummary[] {
   const limit = opts.limit ?? 50;
   const rootResolved = resolve(root);
-  const base = opts.folder ? resolveDirInVault(rootResolved, opts.folder) : rootResolved;
+  const base = opts.folder
+    ? resolveDirInVault(rootResolved, opts.folder)
+    : rootResolved;
 
   const files: string[] = [];
   walk(base, files);
@@ -125,7 +135,68 @@ export function writeNote(
   let next = content;
   if (mode === 'append' && exists) {
     const prev = readFileSync(target, 'utf8');
-    next = prev === '' || prev.endsWith('\n') ? prev + content : `${prev}\n${content}`;
+    next =
+      prev === '' || prev.endsWith('\n')
+        ? prev + content
+        : `${prev}\n${content}`;
+  }
+
+  atomicWrite(target, next);
+  return {
+    path: toRel(rootResolved, target),
+    title: noteTitle(next, basename(target)),
+    mtime: new Date(safeMtimeMs(target)).toISOString(),
+  };
+}
+
+/**
+ * Surgically replace an exact span inside an existing note, leaving the rest of
+ * the file byte-for-byte intact — the safe alternative to an `overwrite` for
+ * mid-file edits (no whole-file reflow, no dropped content, no mangled
+ * frontmatter). Mirrors Claude Code's `Edit`: `oldString` must be present, and
+ * unique unless `replaceAll`. Writes atomically (temp + rename), same as
+ * {@link writeNote}.
+ */
+export function editNote(
+  root: string,
+  rel: string,
+  oldString: string,
+  newString: string,
+  replaceAll = false,
+): NoteSummary {
+  const rootResolved = resolve(root);
+  const target = resolveInVault(rootResolved, rel);
+
+  if (typeof oldString !== 'string' || oldString === '') {
+    throw new Error('oldString is required');
+  }
+  if (oldString === newString) {
+    throw new Error('oldString and newString are identical');
+  }
+  if (!existsSync(target)) {
+    throw new Error(`note not found: ${toRel(rootResolved, target)}`);
+  }
+
+  const prev = readFileSync(target, 'utf8');
+  const count = countOccurrences(prev, oldString);
+  if (count === 0) {
+    throw new Error(`oldString not found in ${toRel(rootResolved, target)}`);
+  }
+  if (count > 1 && !replaceAll) {
+    throw new Error(
+      `oldString is not unique in ${toRel(rootResolved, target)} (${count} matches) — ` +
+        'add surrounding context to make it unique, or pass replaceAll',
+    );
+  }
+
+  // Index-based splice (not String.replace) so `$`-sequences in newString are
+  // inserted literally and the untouched bytes stay exactly as they were.
+  let next: string;
+  if (replaceAll) {
+    next = prev.split(oldString).join(newString);
+  } else {
+    const idx = prev.indexOf(oldString);
+    next = prev.slice(0, idx) + newString + prev.slice(idx + oldString.length);
   }
 
   atomicWrite(target, next);
@@ -169,7 +240,11 @@ export function searchNotes(
       const line = lines[i];
       if (line === undefined) continue;
       if (line.toLowerCase().includes(q)) {
-        hits.push({ path: rel, line: i + 1, snippet: line.trim().slice(0, 200) });
+        hits.push({
+          path: rel,
+          line: i + 1,
+          snippet: line.trim().slice(0, 200),
+        });
         matchedBody = true;
       }
     }
@@ -228,6 +303,16 @@ function walk(dir: string, acc: string[]): void {
     if (e.isDirectory()) walk(full, acc);
     else if (e.isFile() && e.name.toLowerCase().endsWith('.md')) acc.push(full);
   }
+}
+
+function countOccurrences(haystack: string, needle: string): number {
+  let count = 0;
+  let i = haystack.indexOf(needle);
+  while (i !== -1) {
+    count++;
+    i = haystack.indexOf(needle, i + needle.length);
+  }
+  return count;
 }
 
 function atomicWrite(target: string, data: string): void {

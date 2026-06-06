@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readdirSync, rmSync } from 'node:fs';
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  readdirSync,
+  rmSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -8,6 +14,7 @@ import {
   listNotes,
   readNote,
   writeNote,
+  editNote,
   searchNotes,
   readNotesContext,
 } from './vault.js';
@@ -51,6 +58,51 @@ test('writeNote: create refuses to clobber; append + overwrite work; no temp fil
     // append to a non-existent note creates it
     writeNote(root, 'sub/b.md', 'b body', 'append');
     assert.equal(readNote(root, 'sub/b.md').content, 'b body');
+
+    // atomic writes leave no .tmp residue
+    assert.ok(!readdirSync(root).some((n) => n.includes('.tmp')));
+  });
+});
+
+test('editNote: surgical replace, not-found + non-unique errors, replaceAll', () => {
+  withVault((root) => {
+    // editing a missing note errors
+    assert.throws(
+      () => editNote(root, 'missing.md', 'a', 'b'),
+      /note not found/,
+    );
+
+    writeNote(root, 'e.md', '---\ntitle: E\n---\nalpha beta alpha\ngamma');
+
+    // absent oldString → error
+    assert.throws(
+      () => editNote(root, 'e.md', 'zeta', 'x'),
+      /oldString not found/,
+    );
+
+    // non-unique without replaceAll → error
+    assert.throws(() => editNote(root, 'e.md', 'alpha', 'x'), /not unique/);
+
+    // single surgical replace leaves the rest of the file byte-for-byte intact
+    editNote(root, 'e.md', 'beta', 'BETA');
+    assert.equal(
+      readNote(root, 'e.md').content,
+      '---\ntitle: E\n---\nalpha BETA alpha\ngamma',
+    );
+
+    // replaceAll replaces every occurrence
+    editNote(root, 'e.md', 'alpha', 'A', true);
+    assert.equal(
+      readNote(root, 'e.md').content,
+      '---\ntitle: E\n---\nA BETA A\ngamma',
+    );
+
+    // `$`-sequences in newString are inserted literally (not regex substitution)
+    editNote(root, 'e.md', 'gamma', '$& $1 done');
+    assert.equal(
+      readNote(root, 'e.md').content,
+      '---\ntitle: E\n---\nA BETA A\n$& $1 done',
+    );
 
     // atomic writes leave no .tmp residue
     assert.ok(!readdirSync(root).some((n) => n.includes('.tmp')));
