@@ -14,8 +14,6 @@ import {
   HStack,
   Image,
   Text as UIText,
-  Button,
-  SwipeActions,
 } from '@expo/ui/swift-ui';
 import {
   listStyle,
@@ -29,23 +27,19 @@ import {
   lineLimit,
   scrollDismissesKeyboard,
   padding,
-  tint,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { layout } from '@/lib/layout';
 import { COLORS } from '@/lib/theme';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
-import { TaskRow } from '@/components/native/TaskRow';
+import { SwipeableTaskRow } from '@/components/native/SwipeableTaskRow';
 import { TaskComposer } from '@/components/native/TaskComposer';
-import { useTasks, useCreateTask, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
-import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
+import { useTasks, useCreateTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
-import { useSheetStore } from '@/stores/sheetStore';
 import type { Task, Project } from '@lucidity/shared';
 
 const MUTED_GRAY = '#8E8E93';
-const TODAY_AMBER = '#F59E0B';
 
 // @expo/ui's SwiftUI List rebuilds its whole tree synchronously on the JS thread
 // (no virtualization). Cap rendered matches so a broad query ("task") can't freeze
@@ -93,10 +87,6 @@ export default function SearchScreen() {
     refetch: refetchProjects,
   } = useProjects();
   const createTask = useCreateTask();
-  const toggleTask = useToggleTask();
-  const updateTask = useUpdateTask();
-  const { deleteTask } = useUndoableDeleteTask();
-  const { openSheet } = useSheetStore();
 
   const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
   const isLoading = tasksLoading || projectsLoading;
@@ -156,34 +146,6 @@ export default function SearchScreen() {
     return counts;
   }, [tasks]);
 
-  // Direct-child progress per parent, computed once (O(n)) so each rendered row is an
-  // O(1) lookup instead of re-scanning all tasks (which was O(rows × tasks) = a freeze).
-  const progressByParent = React.useMemo(() => {
-    const map = new Map<string, { completed: number; total: number }>();
-    for (const t of tasks) {
-      if (!t.parentTaskId) continue;
-      const cur = map.get(t.parentTaskId) ?? { completed: 0, total: 0 };
-      cur.total += 1;
-      if (t.status === 'completed') cur.completed += 1;
-      map.set(t.parentTaskId, cur);
-    }
-    return map;
-  }, [tasks]);
-
-  const handleTaskPress = React.useCallback((task: Task) => openSheet(task), [openSheet]);
-  const handleTaskToggle = React.useCallback(
-    (taskId: string) => toggleTask.mutate(taskId),
-    [toggleTask]
-  );
-  const handleDeleteTask = React.useCallback((taskId: string) => deleteTask(taskId), [deleteTask]);
-  const handleSetDueToday = React.useCallback(
-    (taskId: string) => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      updateTask.mutate({ id: taskId, data: { dueDate: today } });
-    },
-    [updateTask]
-  );
   // Native iOS search bar (UISearchController) rendered in the nav area via the Stack
   // header. autoFocus makes iOS focus it and open the keyboard when the screen appears —
   // reliable where a custom TextField in a List under a native search-role tab was not.
@@ -221,30 +183,7 @@ export default function SearchScreen() {
     [handleCreateTask]
   );
 
-  const renderTaskRow = (task: Task) => (
-    <SwipeActions key={task.id}>
-      <TaskRow
-        task={task}
-        progress={progressByParent.get(task.id) ?? null}
-        onToggle={() => handleTaskToggle(task.id)}
-        onOpen={() => handleTaskPress(task)}
-      />
-      <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
-        <Button
-          label="Delete"
-          systemImage="trash"
-          role="destructive"
-          onPress={() => handleDeleteTask(task.id)}
-        />
-        <Button
-          label="Today"
-          systemImage="calendar"
-          onPress={() => handleSetDueToday(task.id)}
-          modifiers={[tint(TODAY_AMBER)]}
-        />
-      </SwipeActions.Actions>
-    </SwipeActions>
-  );
+  const renderTaskRow = (task: Task) => <SwipeableTaskRow key={task.id} task={task} />;
 
   if (isLoading) {
     return (

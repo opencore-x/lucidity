@@ -1,18 +1,8 @@
 import * as React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
+import { Host, ZStack, HStack, List, Section, Text as UIText } from '@expo/ui/swift-ui';
 import {
-  Host,
-  ZStack,
-  Button,
-  HStack,
-  List,
-  Section,
-  SwipeActions,
-  Text as UIText,
-} from '@expo/ui/swift-ui';
-import {
-  tint,
   listStyle,
   refreshable,
   frame,
@@ -24,25 +14,19 @@ import {
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { layout } from '@/lib/layout';
 import { COLORS } from '@/lib/theme';
-import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
-import { TaskRow } from '@/components/native/TaskRow';
+import { SwipeableTaskRow } from '@/components/native/SwipeableTaskRow';
 import { TaskComposer } from '@/components/native/TaskComposer';
 import { PillButton } from '@/components/native/PillButton';
-import { useTasks, useCreateTask, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
-import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
+import { useTasks, useCreateTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
-import { useSheetStore } from '@/stores/sheetStore';
-import { getSubtaskProgress } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
 
 const MUTED_GRAY = '#8E8E93';
 const OVERDUE_RED = '#EF4444';
 // Amber matches TaskRow's "Today" due-date pill.
 const DUE_TODAY_AMBER = '#F59E0B';
-// Indigo "Remove from Today" swipe — matches the old left-action background.
-const REMOVE_INDIGO = '#6366F1';
 
 export default function TodayScreen() {
   const { colorScheme } = useColorScheme();
@@ -51,10 +35,6 @@ export default function TodayScreen() {
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { isLoading: projectsLoading, refetch: refetchProjects } = useProjects();
   const createTask = useCreateTask();
-  const toggleTask = useToggleTask();
-  const updateTask = useUpdateTask();
-  const { deleteTask } = useUndoableDeleteTask();
-  const { openSheet } = useSheetStore();
   const [composing, setComposing] = React.useState(false);
 
   const isLoading = tasksLoading || projectsLoading;
@@ -90,17 +70,6 @@ export default function TodayScreen() {
     await Promise.all([refetchTasks(), refetchProjects()]);
   }, [refetchTasks, refetchProjects]);
 
-  const handleTaskPress = React.useCallback((task: Task) => openSheet(task), [openSheet]);
-  const handleTaskToggle = React.useCallback(
-    (taskId: string) => toggleTask.mutate(taskId),
-    [toggleTask]
-  );
-  const handleClearDueDate = React.useCallback(
-    (taskId: string) => updateTask.mutate({ id: taskId, data: { dueDate: null } }),
-    [updateTask]
-  );
-  const handleDeleteTask = React.useCallback((taskId: string) => deleteTask(taskId), [deleteTask]);
-
   const handleCreateTask = React.useCallback(() => setComposing(true), []);
   const handleSubmitTask = React.useCallback(
     (title: string) => {
@@ -122,33 +91,8 @@ export default function TodayScreen() {
   );
 
   const renderRow = React.useCallback(
-    (task: Task) => (
-      <SwipeActions key={task.id}>
-        <TaskRow
-          task={task}
-          progress={getSubtaskProgress(tasks, task.id)}
-          onToggle={() => handleTaskToggle(task.id)}
-          onOpen={() => handleTaskPress(task)}
-        />
-        <SwipeActions.Actions edge="leading">
-          <Button
-            label="Remove"
-            systemImage="calendar.badge.minus"
-            onPress={() => handleClearDueDate(task.id)}
-            modifiers={[tint(REMOVE_INDIGO)]}
-          />
-        </SwipeActions.Actions>
-        <SwipeActions.Actions edge="trailing">
-          <Button
-            label="Delete"
-            systemImage="trash"
-            role="destructive"
-            onPress={() => handleDeleteTask(task.id)}
-          />
-        </SwipeActions.Actions>
-      </SwipeActions>
-    ),
-    [tasks, handleTaskToggle, handleTaskPress, handleClearDueDate, handleDeleteTask]
+    (task: Task) => <SwipeableTaskRow key={task.id} task={task} />,
+    []
   );
 
   if (isLoading) {

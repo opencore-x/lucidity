@@ -1,19 +1,8 @@
 import * as React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { Host, ZStack, VStack, HStack, Spacer, List, Text as UIText } from '@expo/ui/swift-ui';
 import {
-  Host,
-  ZStack,
-  VStack,
-  HStack,
-  Spacer,
-  Button,
-  List,
-  SwipeActions,
-  Text as UIText,
-} from '@expo/ui/swift-ui';
-import {
-  tint,
   padding,
   listStyle,
   listRowSeparator,
@@ -29,26 +18,16 @@ import { COLORS } from '@/lib/theme';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
-import { TaskRow } from '@/components/native/TaskRow';
+import { SwipeableTaskRow } from '@/components/native/SwipeableTaskRow';
 import { TaskComposer } from '@/components/native/TaskComposer';
 import { SegmentTab } from '@/components/native/SegmentTab';
 import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
 import { useProject, useProjects } from '@/hooks/useProjects';
-import {
-  useTasks,
-  useCreateTask,
-  useToggleTask,
-  useUpdateTask,
-  useReorderTasks,
-} from '@/hooks/useTasks';
-import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
-import { useSheetStore } from '@/stores/sheetStore';
+import { useTasks, useCreateTask, useReorderTasks } from '@/hooks/useTasks';
 import { useProjectSheetStore } from '@/stores/projectSheetStore';
-import { getSubtaskProgress, INBOX_PROJECT, INBOX_PROJECT_ID } from '@/utils/helpers';
-import type { Task } from '@lucidity/shared';
+import { INBOX_PROJECT, INBOX_PROJECT_ID } from '@/utils/helpers';
 
 const MUTED_GRAY = '#8E8E93';
-const TODAY_AMBER = '#F59E0B';
 
 export default function ProjectScreen() {
   const { colorScheme } = useColorScheme();
@@ -64,11 +43,7 @@ export default function ProjectScreen() {
   const { data: allTasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { refetch: refetchProjects } = useProjects();
   const createTask = useCreateTask();
-  const toggleTask = useToggleTask();
-  const updateTask = useUpdateTask();
   const reorderTasks = useReorderTasks();
-  const { deleteTask } = useUndoableDeleteTask();
-  const { openSheet } = useSheetStore();
   const openProjectSheet = useProjectSheetStore((s) => s.openSheet);
 
   const rootTasks = React.useMemo(
@@ -109,21 +84,6 @@ export default function ProjectScreen() {
   const onRefresh = React.useCallback(async () => {
     await Promise.all([refetchTasks(), refetchProjects()]);
   }, [refetchTasks, refetchProjects]);
-
-  const handleTaskPress = React.useCallback((task: Task) => openSheet(task), [openSheet]);
-  const handleTaskToggle = React.useCallback(
-    (taskId: string) => toggleTask.mutate(taskId),
-    [toggleTask]
-  );
-  const handleDeleteTask = React.useCallback((taskId: string) => deleteTask(taskId), [deleteTask]);
-  const handleSetDueToday = React.useCallback(
-    (taskId: string) => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      updateTask.mutate({ id: taskId, data: { dueDate: today } });
-    },
-    [updateTask]
-  );
 
   // Native drag-reorder (List.ForEach onMove) — mirrors SwiftUI's move index semantics.
   const onMove = React.useCallback(
@@ -230,28 +190,7 @@ export default function ProjectScreen() {
               {selectedTab === 'active' ? (
                 <List.ForEach onMove={onMove}>
                   {localTasks.map((task) => (
-                    <SwipeActions key={task.id}>
-                      <TaskRow
-                        task={task}
-                        progress={getSubtaskProgress(allTasks, task.id)}
-                        onToggle={() => handleTaskToggle(task.id)}
-                        onOpen={() => handleTaskPress(task)}
-                      />
-                      <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
-                        <Button
-                          label="Delete"
-                          systemImage="trash"
-                          role="destructive"
-                          onPress={() => handleDeleteTask(task.id)}
-                        />
-                        <Button
-                          label="Today"
-                          systemImage="calendar"
-                          onPress={() => handleSetDueToday(task.id)}
-                          modifiers={[tint(TODAY_AMBER)]}
-                        />
-                      </SwipeActions.Actions>
-                    </SwipeActions>
+                    <SwipeableTaskRow key={task.id} task={task} />
                   ))}
                 </List.ForEach>
               ) : completedTasks.length === 0 ? (
@@ -264,24 +203,7 @@ export default function ProjectScreen() {
                   No completed tasks
                 </UIText>
               ) : (
-                completedTasks.map((task) => (
-                  <SwipeActions key={task.id}>
-                    <TaskRow
-                      task={task}
-                      progress={getSubtaskProgress(allTasks, task.id)}
-                      onToggle={() => handleTaskToggle(task.id)}
-                      onOpen={() => handleTaskPress(task)}
-                    />
-                    <SwipeActions.Actions edge="trailing">
-                      <Button
-                        label="Delete"
-                        systemImage="trash"
-                        role="destructive"
-                        onPress={() => handleDeleteTask(task.id)}
-                      />
-                    </SwipeActions.Actions>
-                  </SwipeActions>
-                ))
+                completedTasks.map((task) => <SwipeableTaskRow key={task.id} task={task} />)
               )}
             </List>
             {composing ? (
