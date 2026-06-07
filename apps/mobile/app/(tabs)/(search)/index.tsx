@@ -21,7 +21,6 @@ import {
   padding,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { layout } from '@/lib/layout';
 import { COLORS } from '@/lib/theme';
 import { UserMenu } from '@/components/user-menu';
@@ -83,16 +82,26 @@ export default function SearchScreen() {
   const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
   const isLoading = tasksLoading || projectsLoading;
 
+  // `query` holds the *committed* (debounced) search text used for filtering.
+  // The native search bar is uncontrolled — it draws its own text — so we never
+  // store keystrokes in React state. That keeps typing from re-rendering the
+  // whole SwiftUI List on every character; state only updates after a pause.
   const [query, setQuery] = React.useState('');
-  const debouncedQuery = useDebouncedValue(query, 200);
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [composing, setComposing] = React.useState(false);
+
+  React.useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const onRefresh = React.useCallback(async () => {
     await Promise.all([refetchTasks(), refetchProjects()]);
   }, [refetchTasks, refetchProjects]);
 
   const filteredTasks = React.useMemo(() => {
-    const q = debouncedQuery.trim().toLowerCase();
+    const q = query.trim().toLowerCase();
     if (!q) return [];
     return tasks.filter(
       (task) =>
@@ -100,13 +109,13 @@ export default function SearchScreen() {
         (task.title.toLowerCase().includes(q) ||
           (task.description?.toLowerCase().includes(q) ?? false))
     );
-  }, [tasks, debouncedQuery]);
+  }, [tasks, query]);
 
   const filteredProjects = React.useMemo(() => {
-    const q = debouncedQuery.trim().toLowerCase();
+    const q = query.trim().toLowerCase();
     if (!q) return [];
     return projects.filter((p) => p.name.toLowerCase().includes(q));
-  }, [projects, debouncedQuery]);
+  }, [projects, query]);
 
   const recentTasks = React.useMemo(
     () =>
@@ -140,9 +149,15 @@ export default function SearchScreen() {
       placeholder: 'Search ...',
       autoFocus: true,
       hideWhenScrolling: false,
-      onChangeText: (e: NativeSyntheticEvent<TextInputChangeEventData>) =>
-        setQuery(e.nativeEvent.text),
-      onCancelButtonPress: () => setQuery(''),
+      onChangeText: (e: NativeSyntheticEvent<TextInputChangeEventData>) => {
+        const text = e.nativeEvent.text;
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => setQuery(text), 300);
+      },
+      onCancelButtonPress: () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        setQuery('');
+      },
     }),
     []
   );
@@ -186,7 +201,7 @@ export default function SearchScreen() {
     );
   }
 
-  const hasQuery = debouncedQuery.trim().length > 0;
+  const hasQuery = query.trim().length > 0;
   const noResults = hasQuery && filteredTasks.length === 0 && filteredProjects.length === 0;
 
   return (
@@ -231,7 +246,7 @@ export default function SearchScreen() {
                         frame({ maxWidth: Infinity, alignment: 'center' }),
                         padding({ vertical: 48 }),
                       ]}>
-                      {`No results for "${debouncedQuery.trim()}"`}
+                      {`No results for "${query.trim()}"`}
                     </UIText>
                   ) : null}
                 </>
