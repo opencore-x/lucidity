@@ -199,7 +199,8 @@ router.post('/', async (c) => {
     );
   }
 
-  const id = uuidv7();
+  // Honor a client-supplied UUIDv7 (optimistic-create stable id); otherwise mint one.
+  const id = parsed.data.id ?? uuidv7();
 
   let taskNumber: number | null = null;
   if (parsed.data.projectId) {

@@ -1,7 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { uuidv7 } from 'uuidv7';
 import { tasksApi } from '@/api/tasks';
 import { scheduleTaskReminder, cancelTaskReminder } from '@/lib/notifications';
 import type { CreateTask, UpdateTask, Task } from '@lucidity/shared';
+
+// In-flight create POSTs keyed by the client-generated task id. A task is editable the
+// instant it's created (optimistically), but its row doesn't exist on the server until the
+// POST lands — so a write fired during that window must wait for the create, or it 404s.
+const pendingTaskCreates = new Map<string, Promise<unknown>>();
+
+// Run `op` only after any in-flight create for `id` has settled, so updates/toggles/deletes
+// are ordered after the create that produced the row. If the create rejected, this rejects
+// too (the row never existed), so the dependent write rolls back instead of 404ing.
+async function afterPendingCreate<T>(id: string, op: () => Promise<T>): Promise<T> {
+  const pending = pendingTaskCreates.get(id);
+  if (pending) await pending;
+  return op();
+}
 
 export function useTasks() {
   return useQuery({
@@ -22,8 +37,28 @@ export function useCreateTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateTask) => tasksApi.create(data),
+    mutationFn: (data: CreateTask) => {
+      const promise = tasksApi.create(data);
+      // Track the POST by its (client-generated) id so writes fired before it lands wait
+      // for it (see afterPendingCreate). data.id is set in onMutate, which runs first.
+      const id = data.id;
+      if (id) {
+        pendingTaskCreates.set(id, promise);
+        void promise
+          .catch(() => {})
+          .finally(() => {
+            if (pendingTaskCreates.get(id) === promise) pendingTaskCreates.delete(id);
+          });
+      }
+      return promise;
+    },
     onMutate: async (newTask) => {
+      // Generate a stable client UUIDv7 and stamp it onto the variables so the POST body,
+      // this optimistic row, and the saved row all share one id. (onMutate receives the
+      // same object the mutationFn will send.) This is why an open task sheet survives the
+      // create: the id never changes underneath it.
+      if (!newTask.id) newTask.id = uuidv7();
+
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['tasks'] });
 
@@ -32,7 +67,7 @@ export function useCreateTask() {
 
       // Create optimistic task
       const optimisticTask: Task = {
-        id: `temp-${Date.now()}`,
+        id: newTask.id,
         userId: 'temp-user',
         title: newTask.title,
         projectId: newTask.projectId ?? null,
@@ -65,7 +100,8 @@ export function useCreateTask() {
       return { previousTasks };
     },
     onError: (_err, _newTask, context) => {
-      // Rollback on error
+      // Rollback on error. The optimistic row is removed; if a sheet is open on it, the
+      // sheet's own auto-close effect dismisses it (the id is gone from the list).
       if (context?.previousTasks) {
         queryClient.setQueryData(['tasks'], context.previousTasks);
       }
@@ -83,7 +119,7 @@ export function useUpdateTask() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateTask }) =>
-      tasksApi.update(id, data),
+      afterPendingCreate(id, () => tasksApi.update(id, data)),
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: ['tasks'] });
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks']);
@@ -125,7 +161,7 @@ export function useToggleTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => tasksApi.toggleComplete(id),
+    mutationFn: (id: string) => afterPendingCreate(id, () => tasksApi.toggleComplete(id)),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['tasks'] });
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks']);
@@ -174,7 +210,7 @@ export function useDeleteTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => tasksApi.delete(id),
+    mutationFn: (id: string) => afterPendingCreate(id, () => tasksApi.delete(id)),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['tasks'] });
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks']);
