@@ -21,6 +21,7 @@ import {
   padding,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { layout } from '@/lib/layout';
 import { COLORS } from '@/lib/theme';
 import { UserMenu } from '@/components/user-menu';
@@ -83,6 +84,7 @@ export default function SearchScreen() {
   const isLoading = tasksLoading || projectsLoading;
 
   const [query, setQuery] = React.useState('');
+  const debouncedQuery = useDebouncedValue(query, 200);
   const [composing, setComposing] = React.useState(false);
 
   const onRefresh = React.useCallback(async () => {
@@ -90,7 +92,7 @@ export default function SearchScreen() {
   }, [refetchTasks, refetchProjects]);
 
   const filteredTasks = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     if (!q) return [];
     return tasks.filter(
       (task) =>
@@ -98,13 +100,13 @@ export default function SearchScreen() {
         (task.title.toLowerCase().includes(q) ||
           (task.description?.toLowerCase().includes(q) ?? false))
     );
-  }, [tasks, query]);
+  }, [tasks, debouncedQuery]);
 
   const filteredProjects = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     if (!q) return [];
     return projects.filter((p) => p.name.toLowerCase().includes(q));
-  }, [projects, query]);
+  }, [projects, debouncedQuery]);
 
   const recentTasks = React.useMemo(
     () =>
@@ -184,7 +186,7 @@ export default function SearchScreen() {
     );
   }
 
-  const hasQuery = query.trim().length > 0;
+  const hasQuery = debouncedQuery.trim().length > 0;
   const noResults = hasQuery && filteredTasks.length === 0 && filteredProjects.length === 0;
 
   return (
@@ -229,7 +231,7 @@ export default function SearchScreen() {
                         frame({ maxWidth: Infinity, alignment: 'center' }),
                         padding({ vertical: 48 }),
                       ]}>
-                      {`No results for "${query.trim()}"`}
+                      {`No results for "${debouncedQuery.trim()}"`}
                     </UIText>
                   ) : null}
                 </>
