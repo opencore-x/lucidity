@@ -68,7 +68,7 @@ function SearchPage() {
           ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search ..."
+          placeholder="search"
           className="h-10 w-full rounded-md border bg-transparent pl-10 pr-4 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
         />
       </div>

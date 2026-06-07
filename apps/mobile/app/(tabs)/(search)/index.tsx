@@ -6,7 +6,17 @@ import {
   type TextInputChangeEventData,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Host, ZStack, List, Section, HStack, Image, Text as UIText } from '@expo/ui/swift-ui';
+import {
+  Host,
+  ZStack,
+  List,
+  Section,
+  HStack,
+  Image,
+  Text as UIText,
+  Button,
+  SwipeActions,
+} from '@expo/ui/swift-ui';
 import {
   listStyle,
   refreshable,
@@ -19,6 +29,7 @@ import {
   lineLimit,
   scrollDismissesKeyboard,
   padding,
+  tint,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { layout } from '@/lib/layout';
@@ -27,13 +38,15 @@ import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
 import { TaskRow } from '@/components/native/TaskRow';
 import { TaskComposer } from '@/components/native/TaskComposer';
-import { useTasks, useCreateTask, useToggleTask } from '@/hooks/useTasks';
+import { useTasks, useCreateTask, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
+import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
 import { getSubtaskProgress } from '@/utils/helpers';
 import type { Task, Project } from '@lucidity/shared';
 
 const MUTED_GRAY = '#8E8E93';
+const TODAY_AMBER = '#F59E0B';
 
 /** A native search result row for a matching project (dot + name + task count). */
 function ProjectResultRow({
@@ -77,6 +90,8 @@ export default function SearchScreen() {
   } = useProjects();
   const createTask = useCreateTask();
   const toggleTask = useToggleTask();
+  const updateTask = useUpdateTask();
+  const { deleteTask } = useUndoableDeleteTask();
   const { openSheet } = useSheetStore();
 
   const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
@@ -107,7 +122,8 @@ export default function SearchScreen() {
       (task) =>
         !task.parentTaskId &&
         (task.title.toLowerCase().includes(q) ||
-          (task.description?.toLowerCase().includes(q) ?? false))
+          (task.description?.toLowerCase().includes(q) ?? false) ||
+          (task.taskNumber != null && String(task.taskNumber).includes(q)))
     );
   }, [tasks, query]);
 
@@ -141,12 +157,21 @@ export default function SearchScreen() {
     (taskId: string) => toggleTask.mutate(taskId),
     [toggleTask]
   );
+  const handleDeleteTask = React.useCallback((taskId: string) => deleteTask(taskId), [deleteTask]);
+  const handleSetDueToday = React.useCallback(
+    (taskId: string) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      updateTask.mutate({ id: taskId, data: { dueDate: today } });
+    },
+    [updateTask]
+  );
   // Native iOS search bar (UISearchController) rendered in the nav area via the Stack
   // header. autoFocus makes iOS focus it and open the keyboard when the screen appears —
   // reliable where a custom TextField in a List under a native search-role tab was not.
   const searchBarOptions = React.useMemo(
     () => ({
-      placeholder: 'Search ...',
+      placeholder: 'search',
       autoFocus: true,
       hideWhenScrolling: false,
       onChangeText: (e: NativeSyntheticEvent<TextInputChangeEventData>) => {
@@ -179,13 +204,28 @@ export default function SearchScreen() {
   );
 
   const renderTaskRow = (task: Task) => (
-    <TaskRow
-      key={task.id}
-      task={task}
-      progress={getSubtaskProgress(tasks, task.id)}
-      onToggle={() => handleTaskToggle(task.id)}
-      onOpen={() => handleTaskPress(task)}
-    />
+    <SwipeActions key={task.id}>
+      <TaskRow
+        task={task}
+        progress={getSubtaskProgress(tasks, task.id)}
+        onToggle={() => handleTaskToggle(task.id)}
+        onOpen={() => handleTaskPress(task)}
+      />
+      <SwipeActions.Actions edge="trailing" allowsFullSwipe={false}>
+        <Button
+          label="Delete"
+          systemImage="trash"
+          role="destructive"
+          onPress={() => handleDeleteTask(task.id)}
+        />
+        <Button
+          label="Today"
+          systemImage="calendar"
+          onPress={() => handleSetDueToday(task.id)}
+          modifiers={[tint(TODAY_AMBER)]}
+        />
+      </SwipeActions.Actions>
+    </SwipeActions>
   );
 
   if (isLoading) {
