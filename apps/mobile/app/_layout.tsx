@@ -99,17 +99,11 @@ function Routes() {
         {/* Screens only shown when the user IS signed in */}
         <Stack.Protected guard={isSignedIn}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="project/[id]"
-            options={{ ...LARGE_TITLE_SCREEN_OPTIONS, headerBackTitle: 'Back' }}
-          />
-          <Stack.Screen
-            name="milestone/[id]"
-            options={{ ...LARGE_TITLE_SCREEN_OPTIONS, headerBackTitle: 'Back' }}
-          />
+          <Stack.Screen name="project/[id]" options={LARGE_TITLE_SCREEN_OPTIONS} />
+          <Stack.Screen name="milestone/[id]" options={LARGE_TITLE_SCREEN_OPTIONS} />
           <Stack.Screen
             name="settings"
-            options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: 'Settings', headerBackTitle: 'Back' }}
+            options={{ ...LARGE_TITLE_SCREEN_OPTIONS, title: 'Settings' }}
           />
         </Stack.Protected>
 

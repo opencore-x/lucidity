@@ -69,7 +69,7 @@ export default function NoteScreen() {
   return (
     <>
       <Stack.Screen
-        options={{ title: note?.title ?? 'Note', headerBackTitle: 'Notes', headerRight }}
+        options={{ title: note?.title ?? 'Note', headerBackButtonDisplayMode: 'minimal', headerRight }}
       />
       <View style={[layout.flex1, { backgroundColor: colors.background }]}>
         {isLoading ? (
