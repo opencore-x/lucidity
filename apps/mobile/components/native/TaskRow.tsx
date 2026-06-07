@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { HStack, VStack, Image, Text } from '@expo/ui/swift-ui';
+import { HStack, VStack, Image, Text, ProgressView } from '@expo/ui/swift-ui';
 import {
   contentShape,
   shapes,
@@ -10,6 +10,9 @@ import {
   font,
   glassEffect,
   padding,
+  controlSize,
+  scaleEffect,
+  tint,
 } from '@expo/ui/swift-ui/modifiers';
 import { formatRelativeTime } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
@@ -99,6 +102,18 @@ export function TaskRow({
         <Text modifiers={[foregroundStyle(MUTED_GRAY), font({ size: META_FONT })]}>
           {`#${task.taskNumber}`}
         </Text>
+      </HStack>
+    );
+  } else if (task.projectId != null) {
+    // The server assigns the per-project #number on insert (and reassigns it on a
+    // project move), so a project task with no number yet is mid-flight — the
+    // optimistic row before the create/update refetch lands. Show a spinner in the
+    // #number pill's place so the ~1s gap reads as "assigning a number" rather than a
+    // pill popping in late. Inbox tasks (projectId null) never get a number, so they
+    // correctly show nothing here.
+    meta.push(
+      <HStack key="num" modifiers={CHIP_MODS}>
+        <ProgressView modifiers={[controlSize('mini'), scaleEffect(0.7), tint(MUTED_GRAY)]} />
       </HStack>
     );
   }
