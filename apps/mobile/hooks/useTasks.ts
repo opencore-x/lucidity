@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { uuidv7 } from 'uuidv7';
 import { tasksApi } from '@/api/tasks';
 import { scheduleTaskReminder, cancelTaskReminder } from '@/lib/notifications';
+import { pendingTaskDeletions } from '@/lib/pendingTaskDeletions';
 import type { CreateTask, UpdateTask, Task } from '@lucidity/shared';
 
 // In-flight create POSTs keyed by the client-generated task id. A task is editable the
@@ -22,6 +23,9 @@ export function useTasks() {
   return useQuery({
     queryKey: ['tasks'],
     queryFn: tasksApi.list,
+    // Hide tasks awaiting a confirmed server delete, so a refetch during the undo window
+    // doesn't resurrect them (see pendingTaskDeletions / useUndoableDeleteTask).
+    select: (tasks) => tasks.filter((t) => !pendingTaskDeletions.has(t.id)),
   });
 }
 
