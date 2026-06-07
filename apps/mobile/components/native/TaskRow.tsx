@@ -177,11 +177,24 @@ export function TaskRow({
           ]}>
           {task.title}
         </Text>
-        {meta.length > 0 ? (
-          <HStack spacing={8} modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
-            {meta}
-          </HStack>
-        ) : null}
+        {/* The metadata line is ALWAYS rendered (with a transparent, chip-height
+            placeholder when empty) so a row never changes height as chips come and go —
+            e.g. swiping a metadata-less task to "Today" adds the due pill without the
+            1-line→2-line jump that made the swipe feel jerky. */}
+        <HStack spacing={8} modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
+          {meta.length > 0 ? (
+            meta
+          ) : (
+            <Text
+              modifiers={[
+                font({ size: META_FONT }),
+                padding({ vertical: 3 }),
+                foregroundStyle('#00000000'),
+              ]}>
+              {' '}
+            </Text>
+          )}
+        </HStack>
       </VStack>
     </HStack>
   );

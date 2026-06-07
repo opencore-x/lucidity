@@ -88,11 +88,13 @@ export function useUpdateTask() {
       await queryClient.cancelQueries({ queryKey: ['tasks'] });
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks']);
 
-      // Optimistically update the task
+      // Optimistically update the task. Do NOT touch updatedAt: the server doesn't bump
+      // it on update (schema is defaultNow() only, no $onUpdate), so faking a fresh
+      // updatedAt makes the task sort to the top of any updatedAt-ordered list (the Search
+      // "Recent" list) until the refetch reveals the unchanged value — it visibly jumps to
+      // the top and drops back. Mirroring the server (leave updatedAt alone) keeps it put.
       queryClient.setQueryData<Task[]>(['tasks'], (old) =>
-        old?.map((task) =>
-          task.id === id ? { ...task, ...data, updatedAt: new Date() } : task
-        )
+        old?.map((task) => (task.id === id ? { ...task, ...data } : task))
       );
 
       return { previousTasks };

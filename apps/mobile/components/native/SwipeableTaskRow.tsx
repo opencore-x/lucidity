@@ -49,13 +49,12 @@ export function SwipeableTaskRow({ task }: { task: Task }) {
   const dueToday = isDueToday(task.dueDate);
 
   const handleToggleToday = React.useCallback(() => {
-    if (dueToday) {
-      updateTask.mutate({ id: task.id, data: { dueDate: null } });
-    } else {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      updateTask.mutate({ id: task.id, data: { dueDate: today } });
+    let dueDate: Date | null = null;
+    if (!dueToday) {
+      dueDate = new Date();
+      dueDate.setHours(0, 0, 0, 0);
     }
+    updateTask.mutate({ id: task.id, data: { dueDate } });
   }, [dueToday, task.id, updateTask]);
 
   return (
