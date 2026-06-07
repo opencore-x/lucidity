@@ -617,7 +617,10 @@ function TaskSheetLevel({ depth }: { depth: number }) {
   const updateTaskAt = useSheetStore((s) => s.updateTaskAt);
   const popToDepth = useSheetStore((s) => s.popToDepth);
 
-  const task = depth < taskStack.length ? taskStack[depth] : null;
+  // The stack entry is a snapshot taken at openSheet/drillDown time — it identifies WHICH
+  // task this level shows, but it can go stale (e.g. the #number the server assigns on
+  // create lands in the ['tasks'] cache, not here).
+  const stackTask = depth < taskStack.length ? taskStack[depth] : null;
   // This level's sheet is presented once the stack has reached (or passed) it.
   const presented = isPresented && taskStack.length > depth;
   // Closing this level: the root sheet closes the whole stack, while a stacked subtask
@@ -634,6 +637,16 @@ function TaskSheetLevel({ depth }: { depth: number }) {
   const { data: allTasks = [] } = useTasks();
   const { data: allProjects = [] } = useProjects();
   const projects = allProjects.filter((p) => !p.isArchived);
+
+  // Render the authoritative cached version of this task so server-assigned fields (the
+  // #number minted on create) and edits made elsewhere show up live. Optimistic edits also
+  // flow through the cache (useUpdateTask.onMutate), so this stays immediate. Falls back to
+  // the stack snapshot only while the task isn't in the list yet (or is mid-delete).
+  const task = React.useMemo(
+    () => (stackTask ? (allTasks.find((t) => t.id === stackTask.id) ?? stackTask) : null),
+    [stackTask, allTasks]
+  );
+
   const { data: milestones = [] } = useMilestones(task?.projectId ?? null);
 
   // Stable per (allTasks, task.id) so SubtaskSection's local order isn't resynced

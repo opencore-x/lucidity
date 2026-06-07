@@ -4,6 +4,7 @@ const isIOS26 = Platform.OS === 'ios' && parseInt(Platform.Version as string, 10
 
 export const LARGE_TITLE_SCREEN_OPTIONS = {
   headerLargeTitle: true,
+  headerBackButtonDisplayMode: 'minimal' as const,
   headerLargeTitleStyle: { fontWeight: 'bold', fontSize: 38 },
   headerTitleStyle: { fontWeight: 'bold', fontSize: 19 },
   headerShadowVisible: false,

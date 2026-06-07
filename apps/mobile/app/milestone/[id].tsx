@@ -11,7 +11,6 @@ import {
   Image,
   List,
   Section,
-  SwipeActions,
   ProgressView,
   Text as UIText,
 } from '@expo/ui/swift-ui';
@@ -41,7 +40,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Text } from '@/components/ui/text';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
-import { TaskRow } from '@/components/native/TaskRow';
+import { SwipeableTaskRow } from '@/components/native/SwipeableTaskRow';
 import { TaskComposer } from '@/components/native/TaskComposer';
 import { EditableField } from '@/components/native/EditableField';
 import { PillButton } from '@/components/native/PillButton';
@@ -49,15 +48,10 @@ import { SegmentTab } from '@/components/native/SegmentTab';
 import { LARGE_TITLE_SCREEN_OPTIONS } from '@/lib/headerConfig';
 import { useProjects } from '@/hooks/useProjects';
 import { useAllMilestones, useMilestoneProgress, useUpdateMilestone } from '@/hooks/useMilestones';
-import { useTasks, useCreateTask, useToggleTask, useUpdateTask } from '@/hooks/useTasks';
-import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
-import { useSheetStore } from '@/stores/sheetStore';
-import { getSubtaskProgress } from '@/utils/helpers';
-import type { Task } from '@lucidity/shared';
+import { useTasks, useCreateTask } from '@/hooks/useTasks';
 
 const MUTED_GRAY = '#8E8E93';
 const ICON_BLUE = '#0A84FF'; // iOS system blue — matches GlobalTaskSheet's save tick
-const TODAY_AMBER = '#F59E0B';
 const PROGRESS_BLUE = '#3B82F6';
 const DONE_GREEN = '#22C55E';
 
@@ -103,11 +97,7 @@ export default function MilestoneScreen() {
   const { data: allTasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useTasks();
   const { data: progress } = useMilestoneProgress(id);
   const createTask = useCreateTask();
-  const toggleTask = useToggleTask();
-  const updateTask = useUpdateTask();
   const updateMilestone = useUpdateMilestone();
-  const { deleteTask } = useUndoableDeleteTask();
-  const { openSheet } = useSheetStore();
   const queryClient = useQueryClient();
 
   const [selectedTab, setSelectedTab] = React.useState<'active' | 'deferred' | 'completed'>(
@@ -164,21 +154,6 @@ export default function MilestoneScreen() {
     await refetchTasks();
   }, [refetchTasks, queryClient]);
 
-  const handleTaskPress = React.useCallback((task: Task) => openSheet(task), [openSheet]);
-  const handleTaskToggle = React.useCallback(
-    (taskId: string) => toggleTask.mutate(taskId),
-    [toggleTask]
-  );
-  const handleDeleteTask = React.useCallback((taskId: string) => deleteTask(taskId), [deleteTask]);
-  const handleSetDueToday = React.useCallback(
-    (taskId: string) => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      updateTask.mutate({ id: taskId, data: { dueDate: today } });
-    },
-    [updateTask]
-  );
-
   const handleCreateTask = React.useCallback(() => setComposing(true), []);
   const handleSubmitTask = React.useCallback(
     (title: string) => {
@@ -232,8 +207,6 @@ export default function MilestoneScreen() {
       : selectedTab === 'deferred'
         ? 'No deferred tasks'
         : 'No completed tasks';
-  // Completed rows get a single full-swipe Delete; active/deferred rows also offer "Today".
-  const showTodayAction = selectedTab !== 'completed';
 
   return (
     <>
@@ -425,32 +398,7 @@ export default function MilestoneScreen() {
                     {emptyLabel}
                   </UIText>
                 ) : (
-                  tabTasks.map((task) => (
-                    <SwipeActions key={task.id}>
-                      <TaskRow
-                        task={task}
-                        progress={getSubtaskProgress(allTasks, task.id)}
-                        onToggle={() => handleTaskToggle(task.id)}
-                        onOpen={() => handleTaskPress(task)}
-                      />
-                      <SwipeActions.Actions edge="trailing" allowsFullSwipe={!showTodayAction}>
-                        <Button
-                          label="Delete"
-                          systemImage="trash"
-                          role="destructive"
-                          onPress={() => handleDeleteTask(task.id)}
-                        />
-                        {showTodayAction ? (
-                          <Button
-                            label="Today"
-                            systemImage="calendar"
-                            onPress={() => handleSetDueToday(task.id)}
-                            modifiers={[tint(TODAY_AMBER)]}
-                          />
-                        ) : null}
-                      </SwipeActions.Actions>
-                    </SwipeActions>
-                  ))
+                  tabTasks.map((task) => <SwipeableTaskRow key={task.id} task={task} />)
                 )}
               </Section>
 

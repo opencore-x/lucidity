@@ -8,6 +8,10 @@ import {
 
 // What client sends when creating a task
 export const CreateTaskSchema = z.object({
+  // Optional client-generated UUIDv7. When provided the server uses it as the row id
+  // instead of minting its own, so an optimistic row and its saved row share one stable
+  // id (no temp→real swap). Omitted by older/other clients → server generates the id.
+  id: z.uuidv7().optional(),
   title: z.string().min(1).max(500),
   projectId: z.uuidv7().nullable().optional(),
   milestoneId: z.uuidv7().nullable().optional(),
@@ -50,7 +54,9 @@ export const TaskSchema = CreateTaskSchema.extend({
 // `.partial()` makes fields optional but does NOT strip defaults, so without
 // these overrides an update that omits status/priority would inject
 // status:'pending' and priority:500 and silently clobber the stored values.
-export const UpdateTaskSchema = CreateTaskSchema.partial().extend({
+export const UpdateTaskSchema = CreateTaskSchema.omit({ id: true })
+  .partial()
+  .extend({
   projectId: z.uuidv7().nullable().optional(),
   milestoneId: z.uuidv7().nullable().optional(),
   parentTaskId: z.uuidv7().nullable().optional(),

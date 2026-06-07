@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { HStack, VStack, Image, Text } from '@expo/ui/swift-ui';
+import { HStack, VStack, Image, Text, ProgressView } from '@expo/ui/swift-ui';
 import {
   contentShape,
   shapes,
@@ -10,6 +10,9 @@ import {
   font,
   glassEffect,
   padding,
+  controlSize,
+  scaleEffect,
+  tint,
 } from '@expo/ui/swift-ui/modifiers';
 import { formatRelativeTime } from '@/utils/helpers';
 import type { Task } from '@lucidity/shared';
@@ -101,6 +104,18 @@ export function TaskRow({
         </Text>
       </HStack>
     );
+  } else if (task.projectId != null) {
+    // The server assigns the per-project #number on insert (and reassigns it on a
+    // project move), so a project task with no number yet is mid-flight — the
+    // optimistic row before the create/update refetch lands. Show a spinner in the
+    // #number pill's place so the ~1s gap reads as "assigning a number" rather than a
+    // pill popping in late. Inbox tasks (projectId null) never get a number, so they
+    // correctly show nothing here.
+    meta.push(
+      <HStack key="num" modifiers={CHIP_MODS}>
+        <ProgressView modifiers={[controlSize('mini'), scaleEffect(0.7), tint(MUTED_GRAY)]} />
+      </HStack>
+    );
   }
   const statusMeta = completed ? undefined : STATUS_META[task.status];
   if (statusMeta) {
@@ -177,11 +192,24 @@ export function TaskRow({
           ]}>
           {task.title}
         </Text>
-        {meta.length > 0 ? (
-          <HStack spacing={8} modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
-            {meta}
-          </HStack>
-        ) : null}
+        {/* The metadata line is ALWAYS rendered (with a transparent, chip-height
+            placeholder when empty) so a row never changes height as chips come and go —
+            e.g. swiping a metadata-less task to "Today" adds the due pill without the
+            1-line→2-line jump that made the swipe feel jerky. */}
+        <HStack spacing={8} modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
+          {meta.length > 0 ? (
+            meta
+          ) : (
+            <Text
+              modifiers={[
+                font({ size: META_FONT }),
+                padding({ vertical: 3 }),
+                foregroundStyle('#00000000'),
+              ]}>
+              {' '}
+            </Text>
+          )}
+        </HStack>
       </VStack>
     </HStack>
   );

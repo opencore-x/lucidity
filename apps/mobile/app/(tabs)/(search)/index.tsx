@@ -6,7 +6,15 @@ import {
   type TextInputChangeEventData,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Host, ZStack, List, Section, HStack, Image, Text as UIText } from '@expo/ui/swift-ui';
+import {
+  Host,
+  ZStack,
+  List,
+  Section,
+  HStack,
+  Image,
+  Text as UIText,
+} from '@expo/ui/swift-ui';
 import {
   listStyle,
   refreshable,
@@ -25,15 +33,18 @@ import { layout } from '@/lib/layout';
 import { COLORS } from '@/lib/theme';
 import { UserMenu } from '@/components/user-menu';
 import { HeaderGlassButton } from '@/components/native/HeaderGlassButton';
-import { TaskRow } from '@/components/native/TaskRow';
+import { SwipeableTaskRow } from '@/components/native/SwipeableTaskRow';
 import { TaskComposer } from '@/components/native/TaskComposer';
-import { useTasks, useCreateTask, useToggleTask } from '@/hooks/useTasks';
+import { useTasks, useCreateTask } from '@/hooks/useTasks';
 import { useProjects } from '@/hooks/useProjects';
-import { useSheetStore } from '@/stores/sheetStore';
-import { getSubtaskProgress } from '@/utils/helpers';
 import type { Task, Project } from '@lucidity/shared';
 
 const MUTED_GRAY = '#8E8E93';
+
+// @expo/ui's SwiftUI List rebuilds its whole tree synchronously on the JS thread
+// (no virtualization). Cap rendered matches so a broad query ("task") can't freeze
+// the UI; the full count is still shown so nothing is silently hidden.
+const MAX_RESULTS = 50;
 
 /** A native search result row for a matching project (dot + name + task count). */
 function ProjectResultRow({
@@ -76,14 +87,23 @@ export default function SearchScreen() {
     refetch: refetchProjects,
   } = useProjects();
   const createTask = useCreateTask();
-  const toggleTask = useToggleTask();
-  const { openSheet } = useSheetStore();
 
   const projects = React.useMemo(() => allProjects.filter((p) => !p.isArchived), [allProjects]);
   const isLoading = tasksLoading || projectsLoading;
 
+  // `query` holds the *committed* (debounced) search text used for filtering.
+  // The native search bar is uncontrolled — it draws its own text — so we never
+  // store keystrokes in React state. That keeps typing from re-rendering the
+  // whole SwiftUI List on every character; state only updates after a pause.
   const [query, setQuery] = React.useState('');
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [composing, setComposing] = React.useState(false);
+
+  React.useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const onRefresh = React.useCallback(async () => {
     await Promise.all([refetchTasks(), refetchProjects()]);
@@ -96,7 +116,8 @@ export default function SearchScreen() {
       (task) =>
         !task.parentTaskId &&
         (task.title.toLowerCase().includes(q) ||
-          (task.description?.toLowerCase().includes(q) ?? false))
+          (task.description?.toLowerCase().includes(q) ?? false) ||
+          (task.taskNumber != null && String(task.taskNumber).includes(q)))
     );
   }, [tasks, query]);
 
@@ -125,22 +146,23 @@ export default function SearchScreen() {
     return counts;
   }, [tasks]);
 
-  const handleTaskPress = React.useCallback((task: Task) => openSheet(task), [openSheet]);
-  const handleTaskToggle = React.useCallback(
-    (taskId: string) => toggleTask.mutate(taskId),
-    [toggleTask]
-  );
   // Native iOS search bar (UISearchController) rendered in the nav area via the Stack
   // header. autoFocus makes iOS focus it and open the keyboard when the screen appears —
   // reliable where a custom TextField in a List under a native search-role tab was not.
   const searchBarOptions = React.useMemo(
     () => ({
-      placeholder: 'Search ...',
+      placeholder: 'search',
       autoFocus: true,
       hideWhenScrolling: false,
-      onChangeText: (e: NativeSyntheticEvent<TextInputChangeEventData>) =>
-        setQuery(e.nativeEvent.text),
-      onCancelButtonPress: () => setQuery(''),
+      onChangeText: (e: NativeSyntheticEvent<TextInputChangeEventData>) => {
+        const text = e.nativeEvent.text;
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => setQuery(text), 500);
+      },
+      onCancelButtonPress: () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        setQuery('');
+      },
     }),
     []
   );
@@ -161,15 +183,7 @@ export default function SearchScreen() {
     [handleCreateTask]
   );
 
-  const renderTaskRow = (task: Task) => (
-    <TaskRow
-      key={task.id}
-      task={task}
-      progress={getSubtaskProgress(tasks, task.id)}
-      onToggle={() => handleTaskToggle(task.id)}
-      onOpen={() => handleTaskPress(task)}
-    />
-  );
+  const renderTaskRow = (task: Task) => <SwipeableTaskRow key={task.id} task={task} />;
 
   if (isLoading) {
     return (
@@ -189,7 +203,9 @@ export default function SearchScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Search', headerRight }} />
+      <Stack.Screen
+        options={{ title: 'Search', headerRight, headerSearchBarOptions: searchBarOptions }}
+      />
       <View style={[layout.flex1, { backgroundColor: COLORS[scheme].background }]}>
         <Host style={{ flex: 1 }} colorScheme={scheme}>
           <ZStack
@@ -218,7 +234,18 @@ export default function SearchScreen() {
 
                   {filteredTasks.length > 0 ? (
                     <Section title={`Tasks (${filteredTasks.length})`}>
-                      {filteredTasks.map(renderTaskRow)}
+                      {filteredTasks.slice(0, MAX_RESULTS).map(renderTaskRow)}
+                      {filteredTasks.length > MAX_RESULTS ? (
+                        <UIText
+                          modifiers={[
+                            foregroundStyle(MUTED_GRAY),
+                            font({ size: 13 }),
+                            frame({ maxWidth: Infinity, alignment: 'center' }),
+                            padding({ vertical: 8 }),
+                          ]}>
+                          {`Showing first ${MAX_RESULTS} of ${filteredTasks.length} — refine your search`}
+                        </UIText>
+                      ) : null}
                     </Section>
                   ) : null}
 
