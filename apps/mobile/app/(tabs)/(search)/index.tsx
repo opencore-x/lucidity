@@ -42,11 +42,15 @@ import { useTasks, useCreateTask, useToggleTask, useUpdateTask } from '@/hooks/u
 import { useUndoableDeleteTask } from '@/hooks/useUndoableDeleteTask';
 import { useProjects } from '@/hooks/useProjects';
 import { useSheetStore } from '@/stores/sheetStore';
-import { getSubtaskProgress } from '@/utils/helpers';
 import type { Task, Project } from '@lucidity/shared';
 
 const MUTED_GRAY = '#8E8E93';
 const TODAY_AMBER = '#F59E0B';
+
+// @expo/ui's SwiftUI List rebuilds its whole tree synchronously on the JS thread
+// (no virtualization). Cap rendered matches so a broad query ("task") can't freeze
+// the UI; the full count is still shown so nothing is silently hidden.
+const MAX_RESULTS = 50;
 
 /** A native search result row for a matching project (dot + name + task count). */
 function ProjectResultRow({
@@ -152,6 +156,20 @@ export default function SearchScreen() {
     return counts;
   }, [tasks]);
 
+  // Direct-child progress per parent, computed once (O(n)) so each rendered row is an
+  // O(1) lookup instead of re-scanning all tasks (which was O(rows × tasks) = a freeze).
+  const progressByParent = React.useMemo(() => {
+    const map = new Map<string, { completed: number; total: number }>();
+    for (const t of tasks) {
+      if (!t.parentTaskId) continue;
+      const cur = map.get(t.parentTaskId) ?? { completed: 0, total: 0 };
+      cur.total += 1;
+      if (t.status === 'completed') cur.completed += 1;
+      map.set(t.parentTaskId, cur);
+    }
+    return map;
+  }, [tasks]);
+
   const handleTaskPress = React.useCallback((task: Task) => openSheet(task), [openSheet]);
   const handleTaskToggle = React.useCallback(
     (taskId: string) => toggleTask.mutate(taskId),
@@ -177,7 +195,7 @@ export default function SearchScreen() {
       onChangeText: (e: NativeSyntheticEvent<TextInputChangeEventData>) => {
         const text = e.nativeEvent.text;
         if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => setQuery(text), 300);
+        debounceRef.current = setTimeout(() => setQuery(text), 500);
       },
       onCancelButtonPress: () => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -207,7 +225,7 @@ export default function SearchScreen() {
     <SwipeActions key={task.id}>
       <TaskRow
         task={task}
-        progress={getSubtaskProgress(tasks, task.id)}
+        progress={progressByParent.get(task.id) ?? null}
         onToggle={() => handleTaskToggle(task.id)}
         onOpen={() => handleTaskPress(task)}
       />
@@ -246,7 +264,9 @@ export default function SearchScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Search', headerRight }} />
+      <Stack.Screen
+        options={{ title: 'Search', headerRight, headerSearchBarOptions: searchBarOptions }}
+      />
       <View style={[layout.flex1, { backgroundColor: COLORS[scheme].background }]}>
         <Host style={{ flex: 1 }} colorScheme={scheme}>
           <ZStack
@@ -275,7 +295,18 @@ export default function SearchScreen() {
 
                   {filteredTasks.length > 0 ? (
                     <Section title={`Tasks (${filteredTasks.length})`}>
-                      {filteredTasks.map(renderTaskRow)}
+                      {filteredTasks.slice(0, MAX_RESULTS).map(renderTaskRow)}
+                      {filteredTasks.length > MAX_RESULTS ? (
+                        <UIText
+                          modifiers={[
+                            foregroundStyle(MUTED_GRAY),
+                            font({ size: 13 }),
+                            frame({ maxWidth: Infinity, alignment: 'center' }),
+                            padding({ vertical: 8 }),
+                          ]}>
+                          {`Showing first ${MAX_RESULTS} of ${filteredTasks.length} — refine your search`}
+                        </UIText>
+                      ) : null}
                     </Section>
                   ) : null}
 

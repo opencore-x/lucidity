@@ -37,7 +37,7 @@ function useDebounce<T>(value: T, ms: number): T {
 
 function SearchPage() {
   const [query, setQuery] = React.useState('');
-  const debouncedQuery = useDebounce(query.trim(), 300);
+  const debouncedQuery = useDebounce(query.trim(), 500);
   const searchQuery = useSearch(debouncedQuery);
   const tasksQuery = useTasks();
   const toggleTask = useToggleTask();
