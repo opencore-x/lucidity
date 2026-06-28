@@ -5,3 +5,4 @@ export * from './milestones.js';
 export * from './comments.js';
 export * from './apiKeys.js';
 export * from './timeSessions.js';
+export * from './projectMembers.js';
