@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AI_REVIEW_DEPTH_VALUES } from '../constants.js';
+import { AI_REVIEW_DEPTH_VALUES, PROJECT_VISIBILITY_VALUES } from '../constants.js';
 
 // What client sends when creating a project
 export const CreateProjectSchema = z.object({
@@ -17,6 +17,7 @@ export const ProjectSchema = CreateProjectSchema.extend({
   color: z.string().length(7).nullable(),
   description: z.string().nullable(),
   aiReviewDepth: z.enum(AI_REVIEW_DEPTH_VALUES),
+  visibility: z.enum(PROJECT_VISIBILITY_VALUES).default('private'),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });

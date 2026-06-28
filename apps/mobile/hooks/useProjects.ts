@@ -38,6 +38,7 @@ export function useCreateProject() {
         description: newProject.description ?? null,
         isArchived: newProject.isArchived ?? false,
         aiReviewDepth: newProject.aiReviewDepth ?? 'light',
+        visibility: 'private',
         createdAt: new Date(),
         updatedAt: new Date(),
       };

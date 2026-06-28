@@ -18,3 +18,6 @@ export const AI_REVIEW_DEPTH_VALUES = ['deep', 'light', 'none'] as const;
 
 export const TIME_SESSION_DEVICE_VALUES = ['mobile', 'watch', 'web'] as const;
 
+export const PROJECT_VISIBILITY_VALUES = ['private', 'shared', 'public'] as const;
+export const MEMBER_ACCESS_VALUES = ['view', 'edit'] as const;
+
