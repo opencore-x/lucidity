@@ -48,9 +48,18 @@ type ProjectRowData = { project: Project; total: number; completed: number };
  * The whole row is tappable via `contentShape` + `onTapGesture`. Swipe actions
  * (Edit / Delete) are attached by the parent.
  */
+// Non-solo projects get a subtle glyph: people for shared, globe for public.
+// Private/solo projects stay quiet (no badge). Keyed by visibility.
+type SFSymbol = React.ComponentProps<typeof Image>['systemName'];
+const VISIBILITY_GLYPH: Record<string, SFSymbol> = {
+  shared: 'person.2.fill',
+  public: 'globe',
+};
+
 function ProjectRow({ row, onPress }: { row: ProjectRowData; onPress: () => void }) {
   const { project, total, completed } = row;
   const remaining = total - completed;
+  const visibilityGlyph = VISIBILITY_GLYPH[project.visibility ?? 'private'];
   return (
     <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onPress)]}>
       {/* key on the color so the native Image re-paints when the color changes
@@ -62,6 +71,9 @@ function ProjectRow({ row, onPress }: { row: ProjectRowData; onPress: () => void
         color={project.color ?? MUTED_GRAY}
       />
       <Text>{project.name}</Text>
+      {visibilityGlyph ? (
+        <Image systemName={visibilityGlyph} size={12} color={MUTED_GRAY} />
+      ) : null}
       <Spacer />
       {remaining > 0 ? (
         <Text modifiers={[foregroundStyle(MUTED_GRAY)]}>{String(remaining)}</Text>
