@@ -21,3 +21,21 @@ export const ProjectMemberSchema = CreateProjectMemberSchema.extend({
 export const UpdateProjectMemberSchema = z.object({
   access: z.enum(MEMBER_ACCESS_VALUES),
 });
+
+// A member enriched with the joined user identity — the shape the member-roster
+// endpoints return for client display (avatar + name/email next to the access).
+export const ProjectMemberWithUserSchema = z.object({
+  userId: z.uuidv7(),
+  access: z.enum(MEMBER_ACCESS_VALUES),
+  invitedBy: z.uuidv7().nullable(),
+  createdAt: z.coerce.date(),
+  name: z.string(),
+  email: z.string(),
+  avatarUrl: z.string().nullable(),
+});
+
+// What the client sends to invite a member: an existing user's email + access.
+export const InviteProjectMemberSchema = z.object({
+  email: z.string().email(),
+  access: z.enum(MEMBER_ACCESS_VALUES).default('edit'),
+});

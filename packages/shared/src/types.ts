@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
 import {
+  PROJECT_VISIBILITY_VALUES,
+  MEMBER_ACCESS_VALUES,
+  PROJECT_ACCESS_VALUES,
+} from './constants.js';
+import {
   TaskSchema,
   CreateTaskSchema,
   UpdateTaskSchema,
@@ -39,6 +44,8 @@ import {
   ProjectMemberSchema,
   CreateProjectMemberSchema,
   UpdateProjectMemberSchema,
+  ProjectMemberWithUserSchema,
+  InviteProjectMemberSchema,
 } from './schemas/projectMember.js';
 
 export type Task = z.infer<typeof TaskSchema>;
@@ -68,3 +75,9 @@ export type UpdateTimeSession = z.infer<typeof UpdateTimeSessionSchema>;
 export type ProjectMember = z.infer<typeof ProjectMemberSchema>;
 export type CreateProjectMember = z.input<typeof CreateProjectMemberSchema>;
 export type UpdateProjectMember = z.infer<typeof UpdateProjectMemberSchema>;
+export type ProjectMemberWithUser = z.infer<typeof ProjectMemberWithUserSchema>;
+export type InviteProjectMember = z.input<typeof InviteProjectMemberSchema>;
+
+export type ProjectVisibility = (typeof PROJECT_VISIBILITY_VALUES)[number];
+export type MemberAccess = (typeof MEMBER_ACCESS_VALUES)[number];
+export type ProjectAccess = (typeof PROJECT_ACCESS_VALUES)[number];

@@ -9,6 +9,7 @@ export {
   TIME_SESSION_DEVICE_VALUES,
   PROJECT_VISIBILITY_VALUES,
   MEMBER_ACCESS_VALUES,
+  PROJECT_ACCESS_VALUES,
 } from './constants.js';
 
 // Notes
@@ -57,6 +58,8 @@ export {
   ProjectMemberSchema,
   CreateProjectMemberSchema,
   UpdateProjectMemberSchema,
+  ProjectMemberWithUserSchema,
+  InviteProjectMemberSchema,
 } from './schemas/projectMember.js';
 
 // Types
@@ -82,4 +85,9 @@ export type {
   ProjectMember,
   CreateProjectMember,
   UpdateProjectMember,
+  ProjectMemberWithUser,
+  InviteProjectMember,
+  ProjectVisibility,
+  MemberAccess,
+  ProjectAccess,
 } from './types.js';
