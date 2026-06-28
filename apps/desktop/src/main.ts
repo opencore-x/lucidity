@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, nativeImage, shell } from 'electron'
 import path from 'node:path'
 import http from 'node:http'
 import sirv from 'sirv'
@@ -6,7 +6,14 @@ import sirv from 'sirv'
 // The desktop app renders the SAME build the web app/PWA ship. We serve it over
 // a real http://localhost origin (not file://) so Clerk's auth flows behave
 // exactly as they do on the web — this is the core of the auth spike.
+// Set the app name before `ready` so the menu bar / About panel read "Lucidity"
+// instead of "Electron". NOTE: the Cmd+Tab switcher name comes from the running
+// bundle's Info.plist (CFBundleName) — in dev that's Electron.app, so it stays
+// "Electron" until electron-builder packages a real Lucidity.app.
+app.setName('Lucidity')
+
 const WEB_DIST = path.join(__dirname, '../../web/dist')
+const ICON_PNG = path.join(__dirname, '../assets/icon.png')
 const PORT = 7777
 const ORIGIN = `http://localhost:${PORT}`
 
@@ -35,6 +42,7 @@ async function createWindow() {
     width: 1280,
     height: 860,
     title: 'Lucidity',
+    icon: ICON_PNG,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -71,7 +79,14 @@ async function createWindow() {
   win.webContents.openDevTools({ mode: 'detach' })
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  // In dev (unpackaged) the dock shows the generic Electron icon — override it.
+  // Packaging (electron-builder) will bake assets/icon.icns in for real builds.
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(nativeImage.createFromPath(ICON_PNG))
+  }
+  createWindow()
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
