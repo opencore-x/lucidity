@@ -354,40 +354,45 @@ const SubtaskSection = React.memo(function SubtaskSection({
               {`${completedCount}/${order.length}`}
             </Text>
           </HStack>
-          <List.ForEach
-            onMove={
-              readOnly
-                ? undefined
-                : (from, to) => {
-                    const next = [...order];
-                    const src = from[0];
-                    const [moved] = next.splice(src, 1);
-                    // Mirror SwiftUI's Array.move(fromOffsets:toOffset:) index semantics.
-                    next.splice(src < to ? to - 1 : to, 0, moved);
-                    setOrder(next);
-                    reorderTasks.mutate(next.map((t) => t.id));
-                  }
-            }
-            onDelete={
-              readOnly
-                ? undefined
-                : (indices) => {
-                    indices.forEach((i) => {
-                      const t = order[i];
-                      if (t) deleteTask(t.id);
-                    });
-                  }
-            }>
-            {order.map((st) => (
+          {/* A List.ForEach stays drag/swipe-interactive even with null handlers, so
+              in read-only we render plain rows (no ForEach) — no reorder, no swipe. */}
+          {readOnly ? (
+            order.map((st) => (
               <SubtaskRow
                 key={st.id}
                 task={st}
                 progress={getSubtaskProgress(allTasks, st.id)}
-                onToggle={readOnly ? undefined : () => toggleTask.mutate(st.id)}
                 onOpen={() => onOpen(st)}
               />
-            ))}
-          </List.ForEach>
+            ))
+          ) : (
+            <List.ForEach
+              onMove={(from, to) => {
+                const next = [...order];
+                const src = from[0];
+                const [moved] = next.splice(src, 1);
+                // Mirror SwiftUI's Array.move(fromOffsets:toOffset:) index semantics.
+                next.splice(src < to ? to - 1 : to, 0, moved);
+                setOrder(next);
+                reorderTasks.mutate(next.map((t) => t.id));
+              }}
+              onDelete={(indices) => {
+                indices.forEach((i) => {
+                  const t = order[i];
+                  if (t) deleteTask(t.id);
+                });
+              }}>
+              {order.map((st) => (
+                <SubtaskRow
+                  key={st.id}
+                  task={st}
+                  progress={getSubtaskProgress(allTasks, st.id)}
+                  onToggle={() => toggleTask.mutate(st.id)}
+                  onOpen={() => onOpen(st)}
+                />
+              ))}
+            </List.ForEach>
+          )}
         </>
       ) : null}
 
@@ -533,18 +538,9 @@ function CommentsSection({
       {expanded ? (
         <>
           {list.length > 0 ? (
-            <List.ForEach
-              onDelete={
-                readOnly
-                  ? undefined
-                  : (indices) => {
-                      indices.forEach((i) => {
-                        const c = list[i];
-                        if (c) deleteComment(taskId, c.id);
-                      });
-                    }
-              }>
-              {list.map((c) => (
+            readOnly ? (
+              // Plain rows (no ForEach) so swipe-to-delete is gone, not just inert.
+              list.map((c) => (
                 <CommentRow
                   key={c.id}
                   comment={c}
@@ -552,8 +548,26 @@ function CommentsSection({
                   claudeLogoUri={claudeLogoUri}
                   avatarUrl={c.authorAvatarUrl ?? null}
                 />
-              ))}
-            </List.ForEach>
+              ))
+            ) : (
+              <List.ForEach
+                onDelete={(indices) => {
+                  indices.forEach((i) => {
+                    const c = list[i];
+                    if (c) deleteComment(taskId, c.id);
+                  });
+                }}>
+                {list.map((c) => (
+                  <CommentRow
+                    key={c.id}
+                    comment={c}
+                    displayName={c.source === 'claude' ? 'claude' : c.authorName || userName}
+                    claudeLogoUri={claudeLogoUri}
+                    avatarUrl={c.authorAvatarUrl ?? null}
+                  />
+                ))}
+              </List.ForEach>
+            )
           ) : null}
 
           {readOnly ? null : (
