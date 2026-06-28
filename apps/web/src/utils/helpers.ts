@@ -10,6 +10,7 @@ export const INBOX_PROJECT: Project = {
   description: null,
   isArchived: false,
   aiReviewDepth: 'none',
+  visibility: 'private',
   createdAt: new Date(0),
   updatedAt: new Date(0),
 }

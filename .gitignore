@@ -50,3 +50,6 @@ quiz/
 
 # Fetched agent skills (regenerable from skills-lock.json). Commit the lockfile, not the cache.
 .agents/skills/
+
+# Playwright MCP browser artifacts
+.playwright-mcp/

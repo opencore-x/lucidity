@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useAuth } from '@clerk/tanstack-react-start'
+import { useAuth } from '@clerk/clerk-react'
 import { setTokenGetter } from '~/api/client'
 
 const AuthContext = React.createContext(false)
