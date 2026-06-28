@@ -228,12 +228,21 @@ export default function ProjectScreen() {
               </VStack>
 
               {selectedTab === 'active' ? (
-                // Drag-reorder is an edit affordance: omit onMove in read-only.
-                <List.ForEach onMove={readOnly ? undefined : onMove}>
-                  {localTasks.map((task) => (
-                    <SwipeableTaskRow key={task.id} task={task} readOnly={readOnly} />
-                  ))}
-                </List.ForEach>
+                // Drag-reorder is an edit affordance. A `List.ForEach` stays draggable
+                // even with no onMove handler (it just can't persist), so in read-only
+                // we render a plain map with no ForEach — exactly like the completed
+                // list, which has no drag.
+                readOnly ? (
+                  localTasks.map((task) => (
+                    <SwipeableTaskRow key={task.id} task={task} readOnly />
+                  ))
+                ) : (
+                  <List.ForEach onMove={onMove}>
+                    {localTasks.map((task) => (
+                      <SwipeableTaskRow key={task.id} task={task} />
+                    ))}
+                  </List.ForEach>
+                )
               ) : completedTasks.length === 0 ? (
                 <UIText
                   modifiers={[
