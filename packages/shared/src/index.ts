@@ -7,6 +7,8 @@ export {
   COMMENT_SOURCE_VALUES,
   AI_REVIEW_DEPTH_VALUES,
   TIME_SESSION_DEVICE_VALUES,
+  PROJECT_VISIBILITY_VALUES,
+  MEMBER_ACCESS_VALUES,
 } from './constants.js';
 
 // Notes
@@ -51,6 +53,12 @@ export {
   UpdateTimeSessionSchema,
 } from './schemas/timeSession.js';
 
+export {
+  ProjectMemberSchema,
+  CreateProjectMemberSchema,
+  UpdateProjectMemberSchema,
+} from './schemas/projectMember.js';
+
 // Types
 export type {
   Task,
@@ -71,4 +79,7 @@ export type {
   TimeSession,
   CreateTimeSession,
   UpdateTimeSession,
+  ProjectMember,
+  CreateProjectMember,
+  UpdateProjectMember,
 } from './types.js';

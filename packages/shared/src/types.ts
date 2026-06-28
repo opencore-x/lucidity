@@ -35,6 +35,12 @@ import {
   UpdateTimeSessionSchema,
 } from './schemas/timeSession.js';
 
+import {
+  ProjectMemberSchema,
+  CreateProjectMemberSchema,
+  UpdateProjectMemberSchema,
+} from './schemas/projectMember.js';
+
 export type Task = z.infer<typeof TaskSchema>;
 export type CreateTask = z.input<typeof CreateTaskSchema>;
 export type UpdateTask = z.infer<typeof UpdateTaskSchema>;
@@ -58,3 +64,7 @@ export type UpdateComment = z.infer<typeof UpdateCommentSchema>;
 export type TimeSession = z.infer<typeof TimeSessionSchema>;
 export type CreateTimeSession = z.input<typeof CreateTimeSessionSchema>;
 export type UpdateTimeSession = z.infer<typeof UpdateTimeSessionSchema>;
+
+export type ProjectMember = z.infer<typeof ProjectMemberSchema>;
+export type CreateProjectMember = z.input<typeof CreateProjectMemberSchema>;
+export type UpdateProjectMember = z.infer<typeof UpdateProjectMemberSchema>;
