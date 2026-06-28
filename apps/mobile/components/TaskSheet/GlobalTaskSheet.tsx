@@ -281,7 +281,7 @@ function SubtaskRow({
 }: {
   task: Task;
   progress: { completed: number; total: number } | null;
-  onToggle: () => void;
+  onToggle?: () => void;
   onOpen: () => void;
 }) {
   const completed = task.status === 'completed';
@@ -324,11 +324,13 @@ const SubtaskSection = React.memo(function SubtaskSection({
   allTasks,
   onOpen,
   onAdd,
+  readOnly = false,
 }: {
   subtasks: Task[];
   allTasks: Task[];
   onOpen: (task: Task) => void;
   onAdd: () => void;
+  readOnly?: boolean;
 }) {
   const reorderTasks = useReorderTasks();
   const toggleTask = useToggleTask();
@@ -353,27 +355,35 @@ const SubtaskSection = React.memo(function SubtaskSection({
             </Text>
           </HStack>
           <List.ForEach
-            onMove={(from, to) => {
-              const next = [...order];
-              const src = from[0];
-              const [moved] = next.splice(src, 1);
-              // Mirror SwiftUI's Array.move(fromOffsets:toOffset:) index semantics.
-              next.splice(src < to ? to - 1 : to, 0, moved);
-              setOrder(next);
-              reorderTasks.mutate(next.map((t) => t.id));
-            }}
-            onDelete={(indices) => {
-              indices.forEach((i) => {
-                const t = order[i];
-                if (t) deleteTask(t.id);
-              });
-            }}>
+            onMove={
+              readOnly
+                ? undefined
+                : (from, to) => {
+                    const next = [...order];
+                    const src = from[0];
+                    const [moved] = next.splice(src, 1);
+                    // Mirror SwiftUI's Array.move(fromOffsets:toOffset:) index semantics.
+                    next.splice(src < to ? to - 1 : to, 0, moved);
+                    setOrder(next);
+                    reorderTasks.mutate(next.map((t) => t.id));
+                  }
+            }
+            onDelete={
+              readOnly
+                ? undefined
+                : (indices) => {
+                    indices.forEach((i) => {
+                      const t = order[i];
+                      if (t) deleteTask(t.id);
+                    });
+                  }
+            }>
             {order.map((st) => (
               <SubtaskRow
                 key={st.id}
                 task={st}
                 progress={getSubtaskProgress(allTasks, st.id)}
-                onToggle={() => toggleTask.mutate(st.id)}
+                onToggle={readOnly ? undefined : () => toggleTask.mutate(st.id)}
                 onOpen={() => onOpen(st)}
               />
             ))}
@@ -381,11 +391,13 @@ const SubtaskSection = React.memo(function SubtaskSection({
         </>
       ) : null}
 
-      <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onAdd)]}>
-        <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
-        <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Subtask</Text>
-        <Spacer />
-      </HStack>
+      {readOnly ? null : (
+        <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onAdd)]}>
+          <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
+          <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Subtask</Text>
+          <Spacer />
+        </HStack>
+      )}
     </>
   );
 });
@@ -476,7 +488,15 @@ function CommentRow({
  * (swipe-to-delete via `useDeleteComment`'s optimistic removal), and an "Add Comment"
  * row that opens the shared floating composer.
  */
-function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void }) {
+function CommentsSection({
+  taskId,
+  onAdd,
+  readOnly = false,
+}: {
+  taskId: string;
+  onAdd: () => void;
+  readOnly?: boolean;
+}) {
   const { user } = useUser();
   const { data: comments } = useComments(taskId);
   const { deleteComment } = useUndoableDeleteComment();
@@ -514,12 +534,16 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
         <>
           {list.length > 0 ? (
             <List.ForEach
-              onDelete={(indices) => {
-                indices.forEach((i) => {
-                  const c = list[i];
-                  if (c) deleteComment(taskId, c.id);
-                });
-              }}>
+              onDelete={
+                readOnly
+                  ? undefined
+                  : (indices) => {
+                      indices.forEach((i) => {
+                        const c = list[i];
+                        if (c) deleteComment(taskId, c.id);
+                      });
+                    }
+              }>
               {list.map((c) => (
                 <CommentRow
                   key={c.id}
@@ -532,11 +556,15 @@ function CommentsSection({ taskId, onAdd }: { taskId: string; onAdd: () => void 
             </List.ForEach>
           ) : null}
 
-          <HStack spacing={12} modifiers={[contentShape(shapes.rectangle()), onTapGesture(onAdd)]}>
-            <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
-            <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Comment</Text>
-            <Spacer />
-          </HStack>
+          {readOnly ? null : (
+            <HStack
+              spacing={12}
+              modifiers={[contentShape(shapes.rectangle()), onTapGesture(onAdd)]}>
+              <Image systemName="plus.circle.fill" size={22} color={ICON_BLUE} />
+              <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Add Comment</Text>
+              <Spacer />
+            </HStack>
+          )}
         </>
       ) : null}
     </Section>
@@ -649,6 +677,13 @@ function TaskSheetLevel({ depth }: { depth: number }) {
 
   const { data: milestones = [] } = useMilestones(task?.projectId ?? null);
 
+  // View-access projects are read-only: gate every edit affordance in the sheet.
+  // Inbox / no-project tasks are your own, so never read-only. (The server also
+  // 403s writes for viewers — this just keeps the UI honest.)
+  const readOnly =
+    !!task?.projectId &&
+    allProjects.find((p) => p.id === task.projectId)?.userAccess === 'view';
+
   // Stable per (allTasks, task.id) so SubtaskSection's local order isn't resynced
   // (and a live drag clobbered) on unrelated re-renders.
   const subtasks = React.useMemo(
@@ -714,7 +749,7 @@ function TaskSheetLevel({ depth }: { depth: number }) {
   const updateTask = useUpdateTask();
   const handleUpdateField = React.useCallback(
     (data: Partial<UpdateTask>) => {
-      if (!task) return;
+      if (!task || readOnly) return;
       // Reflect the change in the open sheet immediately (optimistic) so the UI
       // doesn't wait for the server round-trip; the mutation also updates the
       // query cache and re-syncs the authoritative task on success.
@@ -724,7 +759,7 @@ function TaskSheetLevel({ depth }: { depth: number }) {
         { onSuccess: (updatedTask) => updateTaskAt(depth, updatedTask) }
       );
     },
-    [task, depth, updateTask, updateTaskAt]
+    [task, readOnly, depth, updateTask, updateTaskAt]
   );
 
   const handleParentChange = React.useCallback(
@@ -851,6 +886,7 @@ function TaskSheetLevel({ depth }: { depth: number }) {
           <StatusPill
             status={task.status}
             onStatusChange={(status) => handleUpdateField({ status })}
+            readOnly={readOnly}
           />
         ) : null}
         <Spacer />
@@ -899,7 +935,9 @@ function TaskSheetLevel({ depth }: { depth: number }) {
               frame({ maxWidth: Infinity, alignment: 'leading' }),
               padding({ leading: 16, trailing: 16, top: 8, bottom: -8 }),
               contentShape(shapes.rectangle()),
-              onTapGesture(() => setEditingTitle(true)),
+              onTapGesture(() => {
+                if (!readOnly) setEditingTitle(true);
+              }),
             ]}>
             <Text>{task.title}</Text>
             {task.taskNumber != null ? (
@@ -948,11 +986,13 @@ function TaskSheetLevel({ depth }: { depth: number }) {
                 modifiers={[
                   frame({ maxWidth: Infinity, alignment: 'leading' }),
                   contentShape(shapes.rectangle()),
-                  onTapGesture(() => setEditingDesc(true)),
+                  onTapGesture(() => {
+                    if (!readOnly) setEditingDesc(true);
+                  }),
                 ]}>
                 <MarkdownView content={task.description} dark={colorScheme === 'dark'} />
               </VStack>
-            ) : (
+            ) : readOnly ? null : (
               <Text
                 modifiers={[
                   foregroundStyle(MENU_VALUE_GRAY),
@@ -964,13 +1004,14 @@ function TaskSheetLevel({ depth }: { depth: number }) {
               </Text>
             )}
 
-            <CommentsSection taskId={task.id} onAdd={addComment} />
+            <CommentsSection taskId={task.id} onAdd={addComment} readOnly={readOnly} />
 
             <SubtaskSection
               subtasks={subtasks}
               allTasks={allTasks}
               onOpen={drillDown}
               onAdd={addSubtask}
+              readOnly={readOnly}
             />
 
             {/* Placement — where the task lives (project / milestone / parent) */}
