@@ -9,6 +9,7 @@ export * from './schema/milestones.js';
 export * from './schema/comments.js';
 export * from './schema/apiKeys.js';
 export * from './schema/timeSessions.js';
+export * from './schema/projectMembers.js';
 
 // Re-export drizzle-orm helpers
 export { eq, and, or, desc, asc, isNull, isNotNull, inArray, sql } from 'drizzle-orm';

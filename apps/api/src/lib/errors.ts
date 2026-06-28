@@ -23,6 +23,9 @@ export const createError = (
 export const unauthorizedError = (message = 'Unauthorized') =>
   createError('UNAUTHORIZED', message, 401);
 
+export const forbiddenError = (message = 'Forbidden') =>
+  createError('FORBIDDEN', message, 403);
+
 export const notFoundError = (message = 'Not Found') =>
   createError('NOT_FOUND', message, 404);
 
