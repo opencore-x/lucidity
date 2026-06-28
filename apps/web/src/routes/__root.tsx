@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Outlet, createRootRoute } from '@tanstack/react-router'
+import { Outlet, createRootRoute, useRouterState } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { SignedIn, SignedOut } from '@clerk/clerk-react'
 import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
@@ -11,6 +11,13 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
+  // Public share routes (/p/:id) render standalone — no sidebar, no auth gate —
+  // so a logged-out visitor sees a clean read-only page regardless of session.
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  if (pathname.startsWith('/p/')) {
+    return <Outlet />
+  }
+
   return (
     <>
       <SignedIn>
