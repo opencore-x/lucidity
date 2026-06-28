@@ -1,0 +1,18 @@
+{
+  "name": "@lucidity/desktop",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Lucidity desktop shell (Electron) — renders the web SPA build + native layer.",
+  "main": "dist-main/main.js",
+  "scripts": {
+    "build:main": "esbuild src/main.ts src/preload.ts --bundle --platform=node --format=cjs --outdir=dist-main --external:electron",
+    "start": "pnpm build:main && electron .",
+    "dev": "pnpm build:main && electron ."
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "electron": "^42.5.0",
+    "esbuild": "^0.28.1",
+    "sirv": "^3.0.2"
+  }
+}

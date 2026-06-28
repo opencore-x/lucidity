@@ -8,6 +8,7 @@
     "dev:api": "turbo run dev --filter=@lucidity/api...",
     "dev:mobile": "turbo run dev --filter=@lucidity/mobile",
     "dev:web": "turbo run dev --filter=@lucidity/web",
+    "dev:desktop": "pnpm --filter @lucidity/desktop dev",
     "dev:daemon": "turbo run dev --filter=@lucidity/daemon...",
     "ios:local": "pnpm --filter @lucidity/mobile ios:local",
     "ios:prod": "pnpm --filter @lucidity/mobile ios:prod",
@@ -24,7 +25,8 @@
     "overrides": {
       "lightningcss": "1.30.1",
       "@expo/dom-webview": "56.0.5"
-    }
+    },
+    "onlyBuiltDependencies": ["electron", "esbuild"]
   },
   "packageManager": "pnpm@10.28.1",
   "engines": {
