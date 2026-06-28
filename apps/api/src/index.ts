@@ -15,6 +15,7 @@ import apiKeyRouter from './routes/apiKey.js';
 import commentRouter from './routes/comments.js';
 import timeSessionRouter from './routes/timeSessions.js';
 import { taskQueryRouter, searchRouter } from './routes/taskQueries.js';
+import publicRouter from './routes/public.js';
 
 const app = new Hono();
 
@@ -32,6 +33,9 @@ app.onError((err, c) => {
 });
 
 app.get('/', (c) => c.json({ status: 'ok' }));
+
+// Unauthenticated read-only access to public projects (anyone with the link).
+app.route('/api/public', publicRouter);
 
 app.route('/api/auth/api-key', apiKeyRouter);
 app.route('/api/tasks', commentRouter);      // :taskId/comments/* must be before /:id
