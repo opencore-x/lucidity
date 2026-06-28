@@ -1,4 +1,5 @@
-import { projects, projectMembers, eq, and } from '@lucidity/db';
+import { projects, projectMembers, tasks, eq, and, or, isNull, inArray, sql } from '@lucidity/db';
+import type { SQL } from 'drizzle-orm';
 import { db } from './db.js';
 import { forbiddenError, notFoundError } from './errors.js';
 import {
@@ -100,4 +101,53 @@ export async function assertProjectAccess(
   });
 
   if (!allowed) throw forbiddenError();
+}
+
+/**
+ * Assert that `userId` may `read`/`write` a task. Project tasks are governed by
+ * their project's access; Inbox tasks (projectId NULL) are personal and
+ * owner-only. Pass the already-fetched task to avoid a redundant query.
+ */
+export async function assertTaskAccess(
+  userId: string,
+  task: { projectId: string | null; userId: string },
+  mode: AccessMode,
+): Promise<void> {
+  if (task.projectId) {
+    await assertProjectAccess(userId, task.projectId, mode);
+    return;
+  }
+  if (task.userId !== userId) {
+    throw mode === 'read' ? notFoundError('Task not found') : forbiddenError();
+  }
+}
+
+/**
+ * A drizzle WHERE condition scoping `tasks` to what `userId` may access for
+ * `mode`: personal Inbox tasks (projectId NULL, owned) plus tasks in any
+ * accessible project. Use for ORM `.where(...)` queries over tasks.
+ */
+export function taskAccessCondition(userId: string, accessibleIds: string[]): SQL {
+  const inAccessibleProject =
+    accessibleIds.length > 0 ? inArray(tasks.projectId, accessibleIds) : sql`false`;
+  return or(
+    and(isNull(tasks.projectId), eq(tasks.userId, userId))!,
+    inAccessibleProject,
+  )!;
+}
+
+/**
+ * The same task scope as {@link taskAccessCondition}, expressed as a raw SQL
+ * fragment for `db.execute` queries. Column names are unqualified to match the
+ * existing raw-SQL call sites (single `tasks` table, no alias).
+ */
+export function taskAccessSql(userId: string, accessibleIds: string[]): SQL {
+  const inAccessibleProject =
+    accessibleIds.length > 0
+      ? sql`project_id IN (${sql.join(
+          accessibleIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`
+      : sql`false`;
+  return sql`((project_id IS NULL AND user_id = ${userId}) OR ${inAccessibleProject})`;
 }

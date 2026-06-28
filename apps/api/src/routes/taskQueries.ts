@@ -1,7 +1,13 @@
 import { Hono } from 'hono';
 import { db } from '../lib/db.js';
-import { tasks, projects, comments, eq, and, isNull, sql } from '@lucidity/db';
+import { tasks, projects, comments, eq, and, inArray, isNull, sql } from '@lucidity/db';
 import { getCurrentUser } from '../lib/auth.js';
+import {
+  accessibleProjectIds,
+  assertTaskAccess,
+  taskAccessCondition,
+  taskAccessSql,
+} from '../lib/authz.js';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
 
 const taskQueryRouter = new Hono();
@@ -12,12 +18,14 @@ taskQueryRouter.get('/today', async (c) => {
   const now = new Date();
   const todayEnd = endOfDay(now);
 
+  const accessibleIds = await accessibleProjectIds(user.id, 'read');
+
   const result = await db
     .select()
     .from(tasks)
     .where(
       and(
-        eq(tasks.userId, user.id),
+        taskAccessCondition(user.id, accessibleIds),
         isNull(tasks.parentTaskId),
         sql`${tasks.status} != 'completed'`,
         sql`${tasks.dueDate} <= ${todayEnd}`,
@@ -35,12 +43,14 @@ taskQueryRouter.get('/week', async (c) => {
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
+  const accessibleIds = await accessibleProjectIds(user.id, 'read');
+
   const result = await db
     .select()
     .from(tasks)
     .where(
       and(
-        eq(tasks.userId, user.id),
+        taskAccessCondition(user.id, accessibleIds),
         isNull(tasks.parentTaskId),
         sql`${tasks.status} != 'completed'`,
         sql`${tasks.dueDate} >= ${weekStart}`,
@@ -57,8 +67,10 @@ taskQueryRouter.get('/stats', async (c) => {
   const user = await getCurrentUser(c);
   const projectId = c.req.query('project_id');
 
+  const accessibleIds = await accessibleProjectIds(user.id, 'read');
+
   const conditions = [
-    sql`user_id = ${user.id}`,
+    taskAccessSql(user.id, accessibleIds),
     sql`parent_task_id IS NULL`,
   ];
 
@@ -99,8 +111,10 @@ taskQueryRouter.get('/unreviewed', async (c) => {
   const projectId = c.req.query('project_id');
   const limit = parseInt(c.req.query('limit') || '50', 10);
 
+  const accessibleIds = await accessibleProjectIds(user.id, 'read');
+
   const conditions = [
-    eq(tasks.userId, user.id),
+    taskAccessCondition(user.id, accessibleIds),
     isNull(tasks.parentTaskId),
     isNull(tasks.reviewedAt),
     sql`${tasks.status} != 'completed'`,
@@ -125,10 +139,14 @@ taskQueryRouter.patch('/:id/review', async (c) => {
   const user = await getCurrentUser(c);
   const id = c.req.param('id');
 
+  const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+  if (!task) return c.json({ error: 'Task not found' }, 404);
+  await assertTaskAccess(user.id, task, 'write');
+
   const [updated] = await db
     .update(tasks)
     .set({ reviewedAt: new Date() })
-    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
+    .where(eq(tasks.id, id))
     .returning();
 
   if (!updated) {
@@ -169,13 +187,18 @@ searchRouter.get('/search', async (c) => {
 
   const pattern = `%${q}%`;
 
+  const accessibleIds = await accessibleProjectIds(user.id, 'read');
+  const taskScope = taskAccessCondition(user.id, accessibleIds);
+  const projectScope =
+    accessibleIds.length > 0 ? inArray(projects.id, accessibleIds) : sql`false`;
+
   const [titleDescTasks, commentMatches, matchedProjects] = await Promise.all([
     db
       .select()
       .from(tasks)
       .where(
         and(
-          eq(tasks.userId, user.id),
+          taskScope,
           sql`(${tasks.title} ILIKE ${pattern} OR ${tasks.description} ILIKE ${pattern})`,
         ),
       )
@@ -185,20 +208,13 @@ searchRouter.get('/search', async (c) => {
       .select({ task: tasks, commentContent: comments.content })
       .from(comments)
       .innerJoin(tasks, eq(comments.taskId, tasks.id))
-      .where(
-        and(eq(tasks.userId, user.id), sql`${comments.content} ILIKE ${pattern}`),
-      )
+      .where(and(taskScope, sql`${comments.content} ILIKE ${pattern}`))
       .orderBy(sql`${comments.createdAt} DESC`)
       .limit(50),
     db
       .select()
       .from(projects)
-      .where(
-        and(
-          eq(projects.userId, user.id),
-          sql`${projects.name} ILIKE ${pattern}`,
-        ),
-      )
+      .where(and(projectScope, sql`${projects.name} ILIKE ${pattern}`))
       .orderBy(sql`${projects.createdAt} DESC`)
       .limit(20),
   ]);

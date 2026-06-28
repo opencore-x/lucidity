@@ -1,28 +1,31 @@
 import { Hono } from 'hono';
 import { db } from '../lib/db.js';
-import { eq, and, projects, tasks } from '@lucidity/db';
+import { eq, inArray, projects, tasks } from '@lucidity/db';
 import { CreateProjectSchema, UpdateProjectSchema } from '@lucidity/shared';
 import { uuidv7 } from 'uuidv7';
 import { getCurrentUser } from '../lib/auth.js';
+import { accessibleProjectIds, assertProjectAccess } from '../lib/authz.js';
 
 const router = new Hono();
 
 router.get('/', async (c) => {
   const user = await getCurrentUser(c);
+  const ids = await accessibleProjectIds(user.id, 'read');
+  if (ids.length === 0) return c.json([]);
   const allProjects = await db
     .select()
     .from(projects)
-    .where(eq(projects.userId, user.id));
+    .where(inArray(projects.id, ids));
   return c.json(allProjects);
 });
 
 router.get('/:id', async (c) => {
   const user = await getCurrentUser(c);
   const id = c.req.param('id');
-  const project = await db
-    .select()
-    .from(projects)
-    .where(and(eq(projects.id, id), eq(projects.userId, user.id)));
+
+  await assertProjectAccess(user.id, id, 'read');
+
+  const project = await db.select().from(projects).where(eq(projects.id, id));
 
   if (!project.length) return c.json({ error: 'Project not found' }, 404);
 
@@ -55,10 +58,12 @@ router.patch('/:id', async (c) => {
 
   if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
 
+  await assertProjectAccess(user.id, id, 'write');
+
   const [updatedProject] = await db
     .update(projects)
     .set(parsed.data)
-    .where(and(eq(projects.id, id), eq(projects.userId, user.id)))
+    .where(eq(projects.id, id))
     .returning();
 
   if (!updatedProject) return c.json({ error: 'Project not found' }, 404);
@@ -70,20 +75,12 @@ router.delete('/:id', async (c) => {
   const user = await getCurrentUser(c);
   const id = c.req.param('id');
 
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(and(eq(projects.id, id), eq(projects.userId, user.id)));
+  await assertProjectAccess(user.id, id, 'write');
 
-  if (!project) return c.json({ error: 'Project not found' }, 404);
+  // Deleting the project removes all its tasks regardless of author.
+  await db.delete(tasks).where(eq(tasks.projectId, id));
 
-  await db
-    .delete(tasks)
-    .where(and(eq(tasks.projectId, id), eq(tasks.userId, user.id)));
-
-  await db
-    .delete(projects)
-    .where(and(eq(projects.id, id), eq(projects.userId, user.id)));
+  await db.delete(projects).where(eq(projects.id, id));
 
   return c.body(null, 204);
 });
