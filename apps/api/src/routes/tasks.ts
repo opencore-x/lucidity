@@ -125,6 +125,13 @@ router.get('/', async (c) => {
   // Scope to tasks the user can read: personal Inbox tasks plus tasks in any
   // accessible project (owned now; shared/public once enabled).
   const accessibleIds = await accessibleProjectIds(user.id, 'read');
+
+  // IDOR guard: an explicit project_id filter must itself be accessible, rather
+  // than relying on the scope condition to silently exclude foreign projects.
+  if (projectId && !accessibleIds.includes(projectId)) {
+    return c.json({ tasks: [], total: 0, hasMore: false });
+  }
+
   const conditions = [taskAccessCondition(user.id, accessibleIds)];
 
   if (status) {
@@ -218,15 +225,12 @@ router.post('/', async (c) => {
 
   let taskNumber: number | null = null;
   if (parsed.data.projectId) {
+    // Numbering is per-project (the unique constraint is on projectId+taskNumber),
+    // so the MAX must span all members' tasks, not just the current user's.
     const [result] = await db
       .select({ max: sql<number>`COALESCE(MAX(${tasks.taskNumber}), 0) + 1` })
       .from(tasks)
-      .where(
-        and(
-          eq(tasks.projectId, parsed.data.projectId),
-          eq(tasks.userId, user.id),
-        ),
-      );
+      .where(eq(tasks.projectId, parsed.data.projectId));
     taskNumber = result.max;
   }
 
@@ -313,15 +317,11 @@ router.patch('/:id', async (c) => {
     if (parsed.data.projectId) {
       // Moving a task into a project requires write access to the destination.
       await assertProjectAccess(user.id, parsed.data.projectId, 'write');
+      // Per-project numbering: span all members' tasks (see POST handler).
       const [result] = await db
         .select({ max: sql<number>`COALESCE(MAX(${tasks.taskNumber}), 0) + 1` })
         .from(tasks)
-        .where(
-          and(
-            eq(tasks.projectId, parsed.data.projectId),
-            eq(tasks.userId, user.id),
-          ),
-        );
+        .where(eq(tasks.projectId, parsed.data.projectId));
       updateData.taskNumber = result.max;
     } else {
       updateData.taskNumber = null;

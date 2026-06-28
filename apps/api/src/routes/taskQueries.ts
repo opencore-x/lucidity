@@ -69,6 +69,19 @@ taskQueryRouter.get('/stats', async (c) => {
 
   const accessibleIds = await accessibleProjectIds(user.id, 'read');
 
+  // IDOR guard: a foreign project_id yields zeroed stats, not another's counts.
+  if (projectId && !accessibleIds.includes(projectId)) {
+    return c.json({
+      total: 0,
+      pending: 0,
+      inProgress: 0,
+      completed: 0,
+      blocked: 0,
+      deferred: 0,
+      overdue: 0,
+    });
+  }
+
   const conditions = [
     taskAccessSql(user.id, accessibleIds),
     sql`parent_task_id IS NULL`,
@@ -112,6 +125,11 @@ taskQueryRouter.get('/unreviewed', async (c) => {
   const limit = parseInt(c.req.query('limit') || '50', 10);
 
   const accessibleIds = await accessibleProjectIds(user.id, 'read');
+
+  // IDOR guard: a foreign project_id returns nothing, not another's tasks.
+  if (projectId && !accessibleIds.includes(projectId)) {
+    return c.json([]);
+  }
 
   const conditions = [
     taskAccessCondition(user.id, accessibleIds),
