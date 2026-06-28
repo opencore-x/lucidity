@@ -21,3 +21,8 @@ export const TIME_SESSION_DEVICE_VALUES = ['mobile', 'watch', 'web'] as const;
 export const PROJECT_VISIBILITY_VALUES = ['private', 'shared', 'public'] as const;
 export const MEMBER_ACCESS_VALUES = ['view', 'edit'] as const;
 
+// The current user's effective access to a project, resolved server-side and
+// returned with each project so clients can gate edit affordances. 'owner' and
+// 'edit' may mutate; 'view' is read-only.
+export const PROJECT_ACCESS_VALUES = ['owner', 'edit', 'view'] as const;
+

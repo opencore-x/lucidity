@@ -104,6 +104,49 @@ export async function assertProjectAccess(
 }
 
 /**
+ * The current user's effective access to a project, for client-side gating.
+ * 'owner' and 'edit' may mutate; 'view' is read-only.
+ */
+export type ProjectAccessLevel = 'owner' | 'edit' | 'view';
+
+/**
+ * Resolve each given project's access level for `userId` in one batched query.
+ * Owner → 'owner'; otherwise the membership access ('edit'/'view') if any;
+ * otherwise 'view' (the project is only reachable via public visibility, which
+ * is read-only). Callers pass projects already scoped to what the user may read,
+ * so every project resolves to a level. Returns a map keyed by project id.
+ */
+export async function resolveProjectAccessLevels(
+  userId: string,
+  projectRows: { id: string; userId: string }[],
+): Promise<Map<string, ProjectAccessLevel>> {
+  const levels = new Map<string, ProjectAccessLevel>();
+  const nonOwned: string[] = [];
+  for (const p of projectRows) {
+    if (p.userId === userId) levels.set(p.id, 'owner');
+    else nonOwned.push(p.id);
+  }
+
+  if (nonOwned.length > 0) {
+    const memberships = await db
+      .select({ projectId: projectMembers.projectId, access: projectMembers.access })
+      .from(projectMembers)
+      .where(
+        and(
+          eq(projectMembers.userId, userId),
+          inArray(projectMembers.projectId, nonOwned),
+        ),
+      );
+    const byId = new Map(memberships.map((m) => [m.projectId, m.access]));
+    for (const id of nonOwned) {
+      levels.set(id, (byId.get(id) as ProjectAccessLevel | undefined) ?? 'view');
+    }
+  }
+
+  return levels;
+}
+
+/**
  * Assert that `userId` is the OWNER of `projectId` (projects.userId). Used for
  * owner-only operations like managing members or changing visibility — a level
  * above the read/write access the membership model grants. Returns the project's

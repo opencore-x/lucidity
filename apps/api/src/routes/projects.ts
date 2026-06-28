@@ -13,6 +13,7 @@ import {
   accessibleProjectIds,
   assertProjectAccess,
   assertProjectOwner,
+  resolveProjectAccessLevels,
 } from '../lib/authz.js';
 
 const VisibilitySchema = z.object({
@@ -29,7 +30,8 @@ router.get('/', async (c) => {
     .select()
     .from(projects)
     .where(inArray(projects.id, ids));
-  return c.json(allProjects);
+  const levels = await resolveProjectAccessLevels(user.id, allProjects);
+  return c.json(allProjects.map((p) => ({ ...p, userAccess: levels.get(p.id) })));
 });
 
 router.get('/:id', async (c) => {
@@ -42,7 +44,8 @@ router.get('/:id', async (c) => {
 
   if (!project.length) return c.json({ error: 'Project not found' }, 404);
 
-  return c.json(project[0]);
+  const levels = await resolveProjectAccessLevels(user.id, project);
+  return c.json({ ...project[0], userAccess: levels.get(id) });
 });
 
 router.post('/', async (c) => {
@@ -59,7 +62,8 @@ router.post('/', async (c) => {
     .values({ ...parsed.data, id, userId: user.id })
     .returning();
 
-  return c.json(newProject, 201);
+  // The creator is always the owner.
+  return c.json({ ...newProject, userAccess: 'owner' }, 201);
 });
 
 router.patch('/:id', async (c) => {
@@ -81,7 +85,8 @@ router.patch('/:id', async (c) => {
 
   if (!updatedProject) return c.json({ error: 'Project not found' }, 404);
 
-  return c.json(updatedProject);
+  const levels = await resolveProjectAccessLevels(user.id, [updatedProject]);
+  return c.json({ ...updatedProject, userAccess: levels.get(id) });
 });
 
 // Visibility is owner-only — a stricter gate than the write access an
@@ -103,7 +108,8 @@ router.patch('/:id/visibility', async (c) => {
     .returning();
 
   if (!updated) return c.json({ error: 'Project not found' }, 404);
-  return c.json(updated);
+  // Visibility changes are owner-only, so the caller is always the owner.
+  return c.json({ ...updated, userAccess: 'owner' });
 });
 
 router.delete('/:id', async (c) => {
