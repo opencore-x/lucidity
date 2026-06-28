@@ -19,6 +19,11 @@ router.get('/', async (c) => {
   const accessibleIds = await accessibleProjectIds(user.id, 'read');
   if (accessibleIds.length === 0) return c.json([]);
 
+  // IDOR guard: a foreign project_id filter returns nothing.
+  if (projectId && !accessibleIds.includes(projectId)) {
+    return c.json([]);
+  }
+
   const conditions = [inArray(milestones.projectId, accessibleIds)];
   if (projectId) {
     conditions.push(eq(milestones.projectId, projectId));
