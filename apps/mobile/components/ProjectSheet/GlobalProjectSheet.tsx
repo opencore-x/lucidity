@@ -39,6 +39,7 @@ import { useProjectSheetStore } from '@/stores/projectSheetStore';
 import { useUpdateProject, useDeleteProject } from '@/hooks/useProjects';
 import { useTasks } from '@/hooks/useTasks';
 import { EditableField } from '@/components/native/EditableField';
+import { ProjectShareSection } from '@/components/ProjectSheet/ProjectShareSection';
 import type { Project, UpdateProject } from '@lucidity/shared';
 
 const ICON_BLUE = '#0A84FF';
@@ -294,6 +295,11 @@ export function GlobalProjectSheet() {
                     />
                   </HStack>
                 </Section>
+
+                {/* Sharing — owner-only (visibility + invite + member roster) */}
+                {project.userAccess === 'owner' ? (
+                  <ProjectShareSection project={project} />
+                ) : null}
 
                 {/* Destructive delete — its own card, centered red text */}
                 <Section>
