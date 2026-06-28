@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { Host, ZStack, VStack, HStack, Spacer, List, Text as UIText } from '@expo/ui/swift-ui';
+import { Host, ZStack, VStack, HStack, Spacer, List, Image, Text as UIText } from '@expo/ui/swift-ui';
 import {
   padding,
   listStyle,
@@ -10,6 +10,7 @@ import {
   frame,
   foregroundStyle,
   font,
+  glassEffect,
   scrollDismissesKeyboard,
 } from '@expo/ui/swift-ui/modifiers';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -28,6 +29,13 @@ import { useProjectSheetStore } from '@/stores/projectSheetStore';
 import { INBOX_PROJECT, INBOX_PROJECT_ID } from '@/utils/helpers';
 
 const MUTED_GRAY = '#8E8E93';
+
+// Visibility chip on the project page (mirrors the row badge, with a label here).
+type SFSymbol = React.ComponentProps<typeof Image>['systemName'];
+const VISIBILITY_CHIP: Record<string, { glyph: SFSymbol; label: string }> = {
+  shared: { glyph: 'person.2.fill', label: 'Shared' },
+  public: { glyph: 'globe', label: 'Public' },
+};
 
 export default function ProjectScreen() {
   const { colorScheme } = useColorScheme();
@@ -141,6 +149,15 @@ export default function ProjectScreen() {
           headerTintColor: project.color ?? undefined,
           headerRight: () => (
             <View style={layout.row}>
+              {/* Share is owner-only (only owners manage visibility/members) and opens
+                  the same editor where the Share section lives — a clearer affordance
+                  than hunting for it behind the edit pencil. */}
+              {!isInbox && project.userAccess === 'owner' ? (
+                <HeaderGlassButton
+                  systemImage="square.and.arrow.up"
+                  onPress={() => openProjectSheet(project)}
+                />
+              ) : null}
               {!isInbox && !readOnly ? (
                 <HeaderGlassButton systemImage="pencil" onPress={() => openProjectSheet(project)} />
               ) : null}
@@ -190,6 +207,23 @@ export default function ProjectScreen() {
                     tintColor={project.color}
                   />
                   <Spacer />
+                  {!isInbox && VISIBILITY_CHIP[project.visibility ?? 'private'] ? (
+                    <HStack
+                      spacing={4}
+                      modifiers={[
+                        padding({ horizontal: 8, vertical: 3 }),
+                        glassEffect({ glass: { variant: 'regular' }, shape: 'capsule' }),
+                      ]}>
+                      <Image
+                        systemName={VISIBILITY_CHIP[project.visibility!].glyph}
+                        size={11}
+                        color={MUTED_GRAY}
+                      />
+                      <UIText modifiers={[foregroundStyle(MUTED_GRAY), font({ size: 12 })]}>
+                        {VISIBILITY_CHIP[project.visibility!].label}
+                      </UIText>
+                    </HStack>
+                  ) : null}
                 </HStack>
               </VStack>
 
