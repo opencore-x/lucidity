@@ -4,6 +4,7 @@ import { db } from '../lib/db.js';
 import { comments, tasks, users, eq, and, sql } from '@lucidity/db';
 import { CreateCommentSchema, UpdateCommentSchema } from '@lucidity/shared';
 import { getCurrentUser } from '../lib/auth.js';
+import { assertTaskAccess } from '../lib/authz.js';
 
 const router = new Hono();
 
@@ -12,13 +13,11 @@ router.get('/:taskId/comments', async (c) => {
   const user = await getCurrentUser(c);
   const taskId = c.req.param('taskId');
 
-  // Verify task belongs to user
-  const [task] = await db
-    .select()
-    .from(tasks)
-    .where(and(eq(tasks.id, taskId), eq(tasks.userId, user.id)));
+  // Verify the task exists and the user may read it
+  const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId));
 
   if (!task) return c.json({ error: 'Task not found' }, 404);
+  await assertTaskAccess(user.id, task, 'read');
 
   // Join the author so the client can render their real name + avatar (not just the
   // current logged-in user). leftJoin keeps the comment even if the user row is missing.
@@ -47,13 +46,11 @@ router.post('/:taskId/comments', async (c) => {
   const user = await getCurrentUser(c);
   const taskId = c.req.param('taskId');
 
-  // Verify task belongs to user
-  const [task] = await db
-    .select()
-    .from(tasks)
-    .where(and(eq(tasks.id, taskId), eq(tasks.userId, user.id)));
+  // Verify the task exists and the user may write to it
+  const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId));
 
   if (!task) return c.json({ error: 'Task not found' }, 404);
+  await assertTaskAccess(user.id, task, 'write');
 
   const body = await c.req.json();
   const parsed = CreateCommentSchema.safeParse(body);
@@ -80,13 +77,11 @@ router.patch('/:taskId/comments/:commentId', async (c) => {
   const taskId = c.req.param('taskId');
   const commentId = c.req.param('commentId');
 
-  // Verify task belongs to user
-  const [task] = await db
-    .select()
-    .from(tasks)
-    .where(and(eq(tasks.id, taskId), eq(tasks.userId, user.id)));
+  // Verify the task exists and the user may write to it
+  const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId));
 
   if (!task) return c.json({ error: 'Task not found' }, 404);
+  await assertTaskAccess(user.id, task, 'write');
 
   const body = await c.req.json();
   const parsed = UpdateCommentSchema.safeParse(body);
@@ -115,13 +110,11 @@ router.delete('/:taskId/comments/:commentId', async (c) => {
   const taskId = c.req.param('taskId');
   const commentId = c.req.param('commentId');
 
-  // Verify task belongs to user
-  const [task] = await db
-    .select()
-    .from(tasks)
-    .where(and(eq(tasks.id, taskId), eq(tasks.userId, user.id)));
+  // Verify the task exists and the user may write to it
+  const [task] = await db.select().from(tasks).where(eq(tasks.id, taskId));
 
   if (!task) return c.json({ error: 'Task not found' }, 404);
+  await assertTaskAccess(user.id, task, 'write');
 
   const [deleted] = await db
     .delete(comments)

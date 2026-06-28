@@ -17,6 +17,12 @@ import { db } from '../lib/db.js';
 import { tasks, eq, and, asc, desc, isNull, sql } from '@lucidity/db';
 import { CreateTaskSchema, UpdateTaskSchema } from '@lucidity/shared';
 import { getCurrentUser } from '../lib/auth.js';
+import {
+  accessibleProjectIds,
+  assertProjectAccess,
+  assertTaskAccess,
+  taskAccessCondition,
+} from '../lib/authz.js';
 
 /**
  * Calculate the next occurrence of a recurring task using fixed recurrence.
@@ -116,7 +122,10 @@ router.get('/', async (c) => {
   );
   const offset = Math.max(parseInt(c.req.query('offset') || '0', 10) || 0, 0);
 
-  const conditions = [eq(tasks.userId, user.id)];
+  // Scope to tasks the user can read: personal Inbox tasks plus tasks in any
+  // accessible project (owned now; shared/public once enabled).
+  const accessibleIds = await accessibleProjectIds(user.id, 'read');
+  const conditions = [taskAccessCondition(user.id, accessibleIds)];
 
   if (status) {
     conditions.push(sql`${tasks.status} = ${status}`);
@@ -202,6 +211,11 @@ router.post('/', async (c) => {
   // Honor a client-supplied UUIDv7 (optimistic-create stable id); otherwise mint one.
   const id = parsed.data.id ?? uuidv7();
 
+  // Adding a task to a project requires write access to that project.
+  if (parsed.data.projectId) {
+    await assertProjectAccess(user.id, parsed.data.projectId, 'write');
+  }
+
   let taskNumber: number | null = null;
   if (parsed.data.projectId) {
     const [result] = await db
@@ -250,13 +264,11 @@ router.patch('/reorder', async (c) => {
 router.get('/:id', async (c) => {
   const id = c.req.param('id');
   const user = await getCurrentUser(c);
-  const task = await db
-    .select()
-    .from(tasks)
-    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+  const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
 
-  if (!task.length) return c.json({ error: 'Task not found' }, 404);
-  return c.json(task[0]);
+  if (!task) return c.json({ error: 'Task not found' }, 404);
+  await assertTaskAccess(user.id, task, 'read');
+  return c.json(task);
 });
 
 router.patch('/:id', async (c) => {
@@ -268,12 +280,10 @@ router.patch('/:id', async (c) => {
   if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
 
   // Fetch current task to validate recurring constraints
-  const [existingTask] = await db
-    .select()
-    .from(tasks)
-    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+  const [existingTask] = await db.select().from(tasks).where(eq(tasks.id, id));
 
   if (!existingTask) return c.json({ error: 'Task not found' }, 404);
+  await assertTaskAccess(user.id, existingTask, 'write');
 
   // Determine the effective dueDate after this update
   const effectiveDueDate =
@@ -301,6 +311,8 @@ router.patch('/:id', async (c) => {
     parsed.data.projectId !== existingTask.projectId
   ) {
     if (parsed.data.projectId) {
+      // Moving a task into a project requires write access to the destination.
+      await assertProjectAccess(user.id, parsed.data.projectId, 'write');
       const [result] = await db
         .select({ max: sql<number>`COALESCE(MAX(${tasks.taskNumber}), 0) + 1` })
         .from(tasks)
@@ -319,18 +331,17 @@ router.patch('/:id', async (c) => {
   const [updated] = await db
     .update(tasks)
     .set(updateData)
-    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
+    .where(eq(tasks.id, id))
     .returning();
 
   // Propagate dueDate to all descendants if it changed
   if (parsed.data.dueDate !== undefined) {
     await db.execute(sql`
       WITH RECURSIVE descendants AS (
-        SELECT id FROM tasks WHERE parent_task_id = ${id} AND user_id = ${user.id}
+        SELECT id FROM tasks WHERE parent_task_id = ${id}
         UNION ALL
         SELECT t.id FROM tasks t
         JOIN descendants d ON t.parent_task_id = d.id
-        WHERE t.user_id = ${user.id}
       )
       UPDATE tasks
       SET due_date = ${updated.dueDate}
@@ -345,11 +356,10 @@ router.patch('/:id', async (c) => {
   ) {
     await db.execute(sql`
       WITH RECURSIVE descendants AS (
-        SELECT id FROM tasks WHERE parent_task_id = ${id} AND user_id = ${user.id}
+        SELECT id FROM tasks WHERE parent_task_id = ${id}
         UNION ALL
         SELECT t.id FROM tasks t
         JOIN descendants d ON t.parent_task_id = d.id
-        WHERE t.user_id = ${user.id}
       )
       UPDATE tasks
       SET project_id = ${updated.projectId}, milestone_id = NULL
@@ -361,11 +371,10 @@ router.patch('/:id', async (c) => {
   if (updateData.recurringFrequency !== undefined) {
     await db.execute(sql`
       WITH RECURSIVE descendants AS (
-        SELECT id FROM tasks WHERE parent_task_id = ${id} AND user_id = ${user.id}
+        SELECT id FROM tasks WHERE parent_task_id = ${id}
         UNION ALL
         SELECT t.id FROM tasks t
         JOIN descendants d ON t.parent_task_id = d.id
-        WHERE t.user_id = ${user.id}
       )
       UPDATE tasks
       SET recurring_frequency = ${updateData.recurringFrequency}
@@ -380,30 +389,26 @@ router.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const user = await getCurrentUser(c);
 
-  // Verify task exists and belongs to user
-  const [task] = await db
-    .select()
-    .from(tasks)
-    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+  // Verify task exists and the user may write it
+  const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
 
   if (!task) return c.json({ error: 'Task not found' }, 404);
+  await assertTaskAccess(user.id, task, 'write');
 
-  // Recursively delete all descendants using a CTE
+  // Recursively delete all descendants using a CTE. The root is already
+  // authorized; the subtree belongs to the same project, so no user filter.
   await db.execute(sql`
     WITH RECURSIVE descendants AS (
-      SELECT id FROM tasks WHERE parent_task_id = ${id} AND user_id = ${user.id}
+      SELECT id FROM tasks WHERE parent_task_id = ${id}
       UNION ALL
       SELECT t.id FROM tasks t
       JOIN descendants d ON t.parent_task_id = d.id
-      WHERE t.user_id = ${user.id}
     )
     DELETE FROM tasks WHERE id IN (SELECT id FROM descendants)
   `);
 
   // Delete the parent task
-  await db
-    .delete(tasks)
-    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+  await db.delete(tasks).where(eq(tasks.id, id));
 
   return c.body(null, 204);
 });
@@ -412,11 +417,9 @@ router.patch('/:id/complete', async (c) => {
   const id = c.req.param('id');
   const user = await getCurrentUser(c);
 
-  const [task] = await db
-    .select()
-    .from(tasks)
-    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)));
+  const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
   if (!task) return c.json({ error: 'Task not found' }, 404);
+  await assertTaskAccess(user.id, task, 'write');
 
   // Non-recurring: simple toggle
   if (!task.recurringFrequency) {
@@ -427,7 +430,7 @@ router.patch('/:id/complete', async (c) => {
         status: isCompleting ? 'completed' : 'pending',
         completedAt: isCompleting ? new Date() : null,
       })
-      .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
+      .where(eq(tasks.id, id))
       .returning();
     return c.json(updated);
   }
@@ -442,17 +445,16 @@ router.patch('/:id/complete', async (c) => {
   const [updated] = await db
     .update(tasks)
     .set({ status: 'pending', dueDate: nextDueDate, completedAt: null })
-    .where(and(eq(tasks.id, id), eq(tasks.userId, user.id)))
+    .where(eq(tasks.id, id))
     .returning();
 
   // Reset all descendants too
   await db.execute(sql`
     WITH RECURSIVE descendants AS (
-      SELECT id FROM tasks WHERE parent_task_id = ${id} AND user_id = ${user.id}
+      SELECT id FROM tasks WHERE parent_task_id = ${id}
       UNION ALL
       SELECT t.id FROM tasks t
       JOIN descendants d ON t.parent_task_id = d.id
-      WHERE t.user_id = ${user.id}
     )
     UPDATE tasks SET status = 'pending', due_date = ${nextDueDate}, completed_at = NULL
     WHERE id IN (SELECT id FROM descendants)

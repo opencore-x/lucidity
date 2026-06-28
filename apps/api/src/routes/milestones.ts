@@ -8,6 +8,7 @@ import {
   MergeMilestonesSchema,
 } from '@lucidity/shared';
 import { getCurrentUser } from '../lib/auth.js';
+import { accessibleProjectIds, assertProjectAccess } from '../lib/authz.js';
 
 const router = new Hono();
 
@@ -15,7 +16,10 @@ router.get('/', async (c) => {
   const user = await getCurrentUser(c);
   const projectId = c.req.query('project_id');
 
-  const conditions = [eq(milestones.userId, user.id)];
+  const accessibleIds = await accessibleProjectIds(user.id, 'read');
+  if (accessibleIds.length === 0) return c.json([]);
+
+  const conditions = [inArray(milestones.projectId, accessibleIds)];
   if (projectId) {
     conditions.push(eq(milestones.projectId, projectId));
   }
@@ -36,9 +40,10 @@ router.get('/:id', async (c) => {
   const [milestone] = await db
     .select()
     .from(milestones)
-    .where(and(eq(milestones.id, id), eq(milestones.userId, user.id)));
+    .where(eq(milestones.id, id));
 
   if (!milestone) return c.json({ error: 'Milestone not found' }, 404);
+  await assertProjectAccess(user.id, milestone.projectId, 'read');
   return c.json(milestone);
 });
 
@@ -49,10 +54,13 @@ router.get('/:id/progress', async (c) => {
   const [milestone] = await db
     .select()
     .from(milestones)
-    .where(and(eq(milestones.id, id), eq(milestones.userId, user.id)));
+    .where(eq(milestones.id, id));
 
   if (!milestone) return c.json({ error: 'Milestone not found' }, 404);
+  await assertProjectAccess(user.id, milestone.projectId, 'read');
 
+  // Milestone access is authorized above; count every task in the milestone
+  // regardless of author (tasks in a shared milestone may belong to members).
   const queryResult = await db.execute(sql`
     SELECT
       COUNT(*) as total,
@@ -62,7 +70,7 @@ router.get('/:id/progress', async (c) => {
       COUNT(*) FILTER (WHERE status = 'blocked') as blocked,
       COUNT(*) FILTER (WHERE status = 'deferred') as deferred
     FROM tasks
-    WHERE milestone_id = ${id} AND user_id = ${user.id}
+    WHERE milestone_id = ${id}
   `);
 
   const row = queryResult.rows[0];
@@ -88,6 +96,9 @@ router.post('/', async (c) => {
   const parsed = CreateMilestoneSchema.safeParse(body);
 
   if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+
+  // Creating a milestone requires write access to its project.
+  await assertProjectAccess(user.id, parsed.data.projectId, 'write');
 
   const id = uuidv7();
 
@@ -122,22 +133,21 @@ router.post('/merge', async (c) => {
     );
   }
 
-  // Fetch target + sources scoped to this user in one query.
-  const owned = await db
+  // Fetch target + sources in one query.
+  const found = await db
     .select({ id: milestones.id, projectId: milestones.projectId })
     .from(milestones)
-    .where(
-      and(
-        eq(milestones.userId, user.id),
-        inArray(milestones.id, [targetMilestoneId, ...sourceIds]),
-      ),
-    );
+    .where(inArray(milestones.id, [targetMilestoneId, ...sourceIds]));
 
-  const target = owned.find((m) => m.id === targetMilestoneId);
+  const target = found.find((m) => m.id === targetMilestoneId);
   if (!target) return c.json({ error: 'Target milestone not found' }, 404);
 
+  // Merge mutates the target's project — require write access to it. The
+  // cross-project guard below ensures all sources share that project.
+  await assertProjectAccess(user.id, target.projectId, 'write');
+
   const ownedSourceIds = sourceIds.filter((sourceId) =>
-    owned.some((m) => m.id === sourceId),
+    found.some((m) => m.id === sourceId),
   );
   const missing = sourceIds.filter((sourceId) => !ownedSourceIds.includes(sourceId));
   if (missing.length > 0) {
@@ -148,7 +158,7 @@ router.post('/merge', async (c) => {
   }
 
   // Guard against merging across projects — milestones belong to one project.
-  const crossProject = owned.filter(
+  const crossProject = found.filter(
     (m) => m.id !== targetMilestoneId && m.projectId !== target.projectId,
   );
   if (crossProject.length > 0) {
@@ -169,21 +179,11 @@ router.post('/merge', async (c) => {
     db
       .update(tasks)
       .set({ milestoneId: targetMilestoneId })
-      .where(
-        and(
-          eq(tasks.userId, user.id),
-          inArray(tasks.milestoneId, ownedSourceIds),
-        ),
-      )
+      .where(inArray(tasks.milestoneId, ownedSourceIds))
       .returning({ id: tasks.id }),
     db
       .delete(milestones)
-      .where(
-        and(
-          eq(milestones.userId, user.id),
-          inArray(milestones.id, ownedSourceIds),
-        ),
-      ),
+      .where(inArray(milestones.id, ownedSourceIds)),
   ]);
 
   return c.json({
@@ -201,10 +201,18 @@ router.patch('/:id', async (c) => {
 
   if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
 
+  const [milestone] = await db
+    .select({ projectId: milestones.projectId })
+    .from(milestones)
+    .where(eq(milestones.id, id));
+
+  if (!milestone) return c.json({ error: 'Milestone not found' }, 404);
+  await assertProjectAccess(user.id, milestone.projectId, 'write');
+
   const [updated] = await db
     .update(milestones)
     .set(parsed.data)
-    .where(and(eq(milestones.id, id), eq(milestones.userId, user.id)))
+    .where(eq(milestones.id, id))
     .returning();
 
   if (!updated) return c.json({ error: 'Milestone not found' }, 404);
@@ -218,19 +226,19 @@ router.delete('/:id', async (c) => {
   const [milestone] = await db
     .select()
     .from(milestones)
-    .where(and(eq(milestones.id, id), eq(milestones.userId, user.id)));
+    .where(eq(milestones.id, id));
 
   if (!milestone) return c.json({ error: 'Milestone not found' }, 404);
+  await assertProjectAccess(user.id, milestone.projectId, 'write');
 
-  // Unlink tasks from this milestone before deleting
+  // Unlink every task from this milestone before deleting (tasks may belong to
+  // members in a shared project).
   await db
     .update(tasks)
     .set({ milestoneId: null })
-    .where(and(eq(tasks.milestoneId, id), eq(tasks.userId, user.id)));
+    .where(eq(tasks.milestoneId, id));
 
-  await db
-    .delete(milestones)
-    .where(and(eq(milestones.id, id), eq(milestones.userId, user.id)));
+  await db.delete(milestones).where(eq(milestones.id, id));
 
   return c.body(null, 204);
 });
