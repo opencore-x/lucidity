@@ -38,7 +38,13 @@ function isDueToday(dueDate: Task['dueDate']): boolean {
  * allowsFullSwipe is enabled only when Delete is the lone action (completed rows), so an
  * accidental full swipe never fires Delete past the Today toggle.
  */
-export function SwipeableTaskRow({ task }: { task: Task }) {
+export function SwipeableTaskRow({
+  task,
+  readOnly = false,
+}: {
+  task: Task;
+  readOnly?: boolean;
+}) {
   const toggleTask = useToggleTask();
   const updateTask = useUpdateTask();
   const { deleteTask } = useUndoableDeleteTask();
@@ -56,6 +62,12 @@ export function SwipeableTaskRow({ task }: { task: Task }) {
     }
     updateTask.mutate({ id: task.id, data: { dueDate } });
   }, [dueToday, task.id, updateTask]);
+
+  // Read-only (view access): no swipe actions, no toggle — the row still opens the
+  // sheet (which is itself read-only) so a viewer can read the task and its subtasks.
+  if (readOnly) {
+    return <TaskRow task={task} progress={progress} onOpen={() => openSheet(task)} />;
+  }
 
   return (
     <SwipeActions>

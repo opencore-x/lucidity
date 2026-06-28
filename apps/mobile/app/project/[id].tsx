@@ -104,6 +104,10 @@ export default function ProjectScreen() {
     [createTask, id, isInbox]
   );
 
+  // View-access (or a public project you're not an edit-member of) → read-only: hide
+  // every edit affordance. Inbox is always your own, so never read-only.
+  const readOnly = !isInbox && project?.userAccess === 'view';
+
   const isLoading = projectLoading || tasksLoading;
 
   if (isLoading) {
@@ -137,10 +141,12 @@ export default function ProjectScreen() {
           headerTintColor: project.color ?? undefined,
           headerRight: () => (
             <View style={layout.row}>
-              {!isInbox ? (
+              {!isInbox && !readOnly ? (
                 <HeaderGlassButton systemImage="pencil" onPress={() => openProjectSheet(project)} />
               ) : null}
-              <HeaderGlassButton systemImage="plus" onPress={handleCreateTask} />
+              {!readOnly ? (
+                <HeaderGlassButton systemImage="plus" onPress={handleCreateTask} />
+              ) : null}
               <UserMenu />
             </View>
           ),
@@ -188,9 +194,10 @@ export default function ProjectScreen() {
               </VStack>
 
               {selectedTab === 'active' ? (
-                <List.ForEach onMove={onMove}>
+                // Drag-reorder is an edit affordance: omit onMove in read-only.
+                <List.ForEach onMove={readOnly ? undefined : onMove}>
                   {localTasks.map((task) => (
-                    <SwipeableTaskRow key={task.id} task={task} />
+                    <SwipeableTaskRow key={task.id} task={task} readOnly={readOnly} />
                   ))}
                 </List.ForEach>
               ) : completedTasks.length === 0 ? (
@@ -203,10 +210,12 @@ export default function ProjectScreen() {
                   No completed tasks
                 </UIText>
               ) : (
-                completedTasks.map((task) => <SwipeableTaskRow key={task.id} task={task} />)
+                completedTasks.map((task) => (
+                  <SwipeableTaskRow key={task.id} task={task} readOnly={readOnly} />
+                ))
               )}
             </List>
-            {composing ? (
+            {composing && !readOnly ? (
               <TaskComposer
                 placeholder="Add task…"
                 onSubmit={handleSubmitTask}

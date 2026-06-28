@@ -85,7 +85,9 @@ export function TaskRow({
 }: {
   task: Task;
   progress: { completed: number; total: number } | null;
-  onToggle: () => void;
+  // Omitted in read-only (view-access) lists: the checkbox still shows completion
+  // state but no longer toggles.
+  onToggle?: () => void;
   onOpen: () => void;
 }) {
   const completed = task.status === 'completed';
@@ -182,6 +184,7 @@ export function TaskRow({
         color={completed ? DONE_GREEN : CHECKBOX_GRAY}
         onPress={onToggle}
       />
+      {/* onToggle is undefined in read-only lists, so the checkbox is display-only. */}
       <VStack spacing={5} alignment="leading" modifiers={[frame({ maxWidth: Infinity, alignment: 'leading' })]}>
         <Text
           modifiers={[
