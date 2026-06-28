@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { AI_REVIEW_DEPTH_VALUES, PROJECT_VISIBILITY_VALUES } from '../constants.js';
+import {
+  AI_REVIEW_DEPTH_VALUES,
+  PROJECT_VISIBILITY_VALUES,
+  PROJECT_ACCESS_VALUES,
+} from '../constants.js';
 
 // What client sends when creating a project
 export const CreateProjectSchema = z.object({
@@ -18,6 +22,9 @@ export const ProjectSchema = CreateProjectSchema.extend({
   description: z.string().nullable(),
   aiReviewDepth: z.enum(AI_REVIEW_DEPTH_VALUES),
   visibility: z.enum(PROJECT_VISIBILITY_VALUES).default('private'),
+  // Resolved per-request from the calling user's ownership/membership. Optional
+  // because it isn't a stored column — the API attaches it to project responses.
+  userAccess: z.enum(PROJECT_ACCESS_VALUES).optional(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });
