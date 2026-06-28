@@ -9,6 +9,7 @@ import { isAppError } from './lib/errors.js';
 import taskRouter from './routes/tasks.js';
 import userRouter from './routes/users.js';
 import projectRouter from './routes/projects.js';
+import projectMemberRouter from './routes/projectMembers.js';
 import milestoneRouter from './routes/milestones.js';
 import apiKeyRouter from './routes/apiKey.js';
 import commentRouter from './routes/comments.js';
@@ -38,6 +39,7 @@ app.route('/api/tasks', timeSessionRouter); // :taskId/timer/*, :taskId/time-ses
 app.route('/api/tasks', taskQueryRouter);   // Must be before taskRouter so /today, /week match first
 app.route('/api/tasks', taskRouter);
 app.route('/api/users', userRouter);
+app.route('/api/projects', projectMemberRouter); // :id/members/* before /:id
 app.route('/api/projects', projectRouter);
 app.route('/api/milestones', milestoneRouter);
 app.route('/api', searchRouter);

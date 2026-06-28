@@ -1,10 +1,23 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { db } from '../lib/db.js';
 import { eq, inArray, projects, tasks } from '@lucidity/db';
-import { CreateProjectSchema, UpdateProjectSchema } from '@lucidity/shared';
+import {
+  CreateProjectSchema,
+  UpdateProjectSchema,
+  PROJECT_VISIBILITY_VALUES,
+} from '@lucidity/shared';
 import { uuidv7 } from 'uuidv7';
 import { getCurrentUser } from '../lib/auth.js';
-import { accessibleProjectIds, assertProjectAccess } from '../lib/authz.js';
+import {
+  accessibleProjectIds,
+  assertProjectAccess,
+  assertProjectOwner,
+} from '../lib/authz.js';
+
+const VisibilitySchema = z.object({
+  visibility: z.enum(PROJECT_VISIBILITY_VALUES),
+});
 
 const router = new Hono();
 
@@ -69,6 +82,28 @@ router.patch('/:id', async (c) => {
   if (!updatedProject) return c.json({ error: 'Project not found' }, 404);
 
   return c.json(updatedProject);
+});
+
+// Visibility is owner-only — a stricter gate than the write access an
+// edit-member has, so it lives on its own endpoint rather than UpdateProjectSchema.
+router.patch('/:id/visibility', async (c) => {
+  const user = await getCurrentUser(c);
+  const id = c.req.param('id');
+  const body = await c.req.json();
+
+  const parsed = VisibilitySchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+
+  await assertProjectOwner(user.id, id);
+
+  const [updated] = await db
+    .update(projects)
+    .set({ visibility: parsed.data.visibility })
+    .where(eq(projects.id, id))
+    .returning();
+
+  if (!updated) return c.json({ error: 'Project not found' }, 404);
+  return c.json(updated);
 });
 
 router.delete('/:id', async (c) => {
