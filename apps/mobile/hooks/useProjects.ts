@@ -17,6 +17,18 @@ export function useProject(id: string) {
   });
 }
 
+/**
+ * The current user's effective access ('owner' | 'edit' | 'view') to a project,
+ * read from whichever projects cache is already populated. Used by surfaces that
+ * only have a projectId (e.g. the task sheet) to decide read-only gating without
+ * an extra fetch. Inbox / no project → null (your own, always editable).
+ */
+export function useProjectAccess(projectId: string | null | undefined) {
+  const { data: projects } = useProjects();
+  if (!projectId) return null;
+  return projects?.find((p) => p.id === projectId)?.userAccess ?? null;
+}
+
 export function useCreateProject() {
   const queryClient = useQueryClient();
 
