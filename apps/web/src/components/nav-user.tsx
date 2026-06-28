@@ -1,5 +1,5 @@
 import { ChevronsUpDown, LogOut, Settings } from 'lucide-react'
-import { useUser, useClerk } from '@clerk/tanstack-react-start'
+import { useUser, useClerk } from '@clerk/clerk-react'
 
 import {
   Avatar,

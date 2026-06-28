@@ -1,9 +1,10 @@
 import * as React from 'react'
 import {
-  Show,
+  SignedIn,
+  SignedOut,
   SignInButton,
   SignUpButton,
-} from '@clerk/tanstack-react-start'
+} from '@clerk/clerk-react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useTasks, useToggleTask } from '~/hooks/useTasks'
 import { useProjects } from '~/hooks/useProjects'
@@ -18,12 +19,12 @@ export const Route = createFileRoute('/')({
 function Home() {
   return (
     <>
-      <Show when="signed-in">
+      <SignedIn>
         <ProjectsView />
-      </Show>
-      <Show when="signed-out">
+      </SignedIn>
+      <SignedOut>
         <LandingPage />
-      </Show>
+      </SignedOut>
     </>
   )
 }

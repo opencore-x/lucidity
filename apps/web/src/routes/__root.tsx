@@ -1,81 +1,19 @@
 /// <reference types="vite/client" />
-import { ClerkProvider } from '@clerk/tanstack-react-start'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import {
-  HeadContent,
-  Outlet,
-  Scripts,
-  createRootRoute,
-} from '@tanstack/react-router'
+import { Outlet, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import * as React from 'react'
-import { Show } from '@clerk/tanstack-react-start'
-import { ApiProvider } from '~/providers/ApiProvider'
-import { ThemeProvider } from '~/providers/ThemeProvider'
-import { TooltipProvider } from '~/components/ui/tooltip'
+import { SignedIn, SignedOut } from '@clerk/clerk-react'
 import { SidebarInset, SidebarProvider } from '~/components/ui/sidebar'
 import { AppSidebar } from '~/components/app-sidebar'
 import { CommandPalette } from '~/components/command-palette'
-import appCss from '~/styles/app.css?url'
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60,
-      retry: 1,
-    },
-  },
-})
 
 export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'Lucidity' },
-    ],
-    links: [{ rel: 'stylesheet', href: appCss }],
-  }),
-  shellComponent: RootDocument,
   component: RootComponent,
 })
-
-function RootDocument({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('lucidity-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(e){}})()`,
-          }}
-        />
-        <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
-          <QueryClientProvider client={queryClient}>
-            <ApiProvider>
-              <ThemeProvider>
-                <TooltipProvider>
-                  {children}
-                </TooltipProvider>
-              </ThemeProvider>
-            </ApiProvider>
-          </QueryClientProvider>
-        </ClerkProvider>
-        {process.env.NODE_ENV === 'development' && (
-          <TanStackRouterDevtools position="bottom-right" />
-        )}
-        <Scripts />
-      </body>
-    </html>
-  )
-}
 
 function RootComponent() {
   return (
     <>
-      <Show when="signed-in">
+      <SignedIn>
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
@@ -83,10 +21,13 @@ function RootComponent() {
           </SidebarInset>
         </SidebarProvider>
         <CommandPalette />
-      </Show>
-      <Show when="signed-out">
+      </SignedIn>
+      <SignedOut>
         <Outlet />
-      </Show>
+      </SignedOut>
+      {import.meta.env.DEV && (
+        <TanStackRouterDevtools position="bottom-right" />
+      )}
     </>
   )
 }
