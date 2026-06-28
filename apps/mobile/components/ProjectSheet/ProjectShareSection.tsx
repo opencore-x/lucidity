@@ -19,6 +19,7 @@ import {
   onTapGesture,
 } from '@expo/ui/swift-ui/modifiers';
 import { Alert } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { EditableField } from '@/components/native/EditableField';
 import {
   useProjectMembers,
@@ -31,6 +32,10 @@ import type { Project, ProjectVisibility, MemberAccess } from '@lucidity/shared'
 
 const SECONDARY = '#8E8E93';
 const DESTRUCTIVE_RED = '#FF3B30';
+const ICON_BLUE = '#0A84FF';
+
+// Public projects are readable by anyone at this URL (logged-out, read-only).
+const PUBLIC_LINK_BASE = 'https://lucidity.my/p';
 
 const VISIBILITY_FOOTER: Record<ProjectVisibility, string> = {
   private: 'Only you can see this project.',
@@ -78,6 +83,12 @@ export function ProjectShareSection({ project }: { project: Project }) {
     [invite, inviteAccess]
   );
 
+  const handleCopyLink = React.useCallback(async () => {
+    const url = `${PUBLIC_LINK_BASE}/${projectId}`;
+    await Clipboard.setStringAsync(url);
+    Alert.alert('Link copied', 'Anyone with this link can view the project (read-only).');
+  }, [projectId]);
+
   const handleRemove = React.useCallback(
     (userId: string, name: string) => {
       Alert.alert('Remove collaborator', `Remove ${name} from this project?`, [
@@ -103,6 +114,16 @@ export function ProjectShareSection({ project }: { project: Project }) {
           <Text modifiers={[tag('shared')]}>Shared</Text>
           <Text modifiers={[tag('public')]}>Public</Text>
         </Picker>
+
+        {visibility === 'public' ? (
+          <HStack
+            spacing={12}
+            modifiers={[contentShape(shapes.rectangle()), onTapGesture(handleCopyLink)]}>
+            <Image systemName="link" size={20} color={ICON_BLUE} modifiers={[frame({ width: 28 })]} />
+            <Text modifiers={[foregroundStyle(ICON_BLUE)]}>Copy public link</Text>
+            <Spacer />
+          </HStack>
+        ) : null}
       </Section>
 
       <Section
