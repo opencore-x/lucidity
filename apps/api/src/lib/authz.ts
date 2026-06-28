@@ -104,6 +104,29 @@ export async function assertProjectAccess(
 }
 
 /**
+ * Assert that `userId` is the OWNER of `projectId` (projects.userId). Used for
+ * owner-only operations like managing members or changing visibility — a level
+ * above the read/write access the membership model grants. Returns the project's
+ * owner + visibility for convenience. Throws notFound if missing, forbidden if
+ * the caller is not the owner.
+ */
+export async function assertProjectOwner(
+  userId: string,
+  projectId: string,
+): Promise<{ userId: string; visibility: string }> {
+  const [project] = await db
+    .select({ userId: projects.userId, visibility: projects.visibility })
+    .from(projects)
+    .where(eq(projects.id, projectId));
+
+  if (!project) throw notFoundError('Project not found');
+  if (project.userId !== userId) {
+    throw forbiddenError('Only the project owner can do this');
+  }
+  return project;
+}
+
+/**
  * Assert that `userId` may `read`/`write` a task. Project tasks are governed by
  * their project's access; Inbox tasks (projectId NULL) are personal and
  * owner-only. Pass the already-fetched task to avoid a redundant query.
