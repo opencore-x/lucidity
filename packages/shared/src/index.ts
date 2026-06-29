@@ -10,6 +10,8 @@ export {
   PROJECT_VISIBILITY_VALUES,
   MEMBER_ACCESS_VALUES,
   PROJECT_ACCESS_VALUES,
+  SENDER_KINDS,
+  HARNESS_REQUEST_KINDS,
 } from './constants.js';
 
 // Notes
@@ -62,6 +64,20 @@ export {
   InviteProjectMemberSchema,
 } from './schemas/projectMember.js';
 
+export {
+  AskRequestSchema,
+  BriefingRequestSchema,
+  JournalRequestSchema,
+  HarnessRequestSchema,
+  JournalEntrySchema,
+  AskResponseSchema,
+  BriefingResponseSchema,
+  JournalResponseSchema,
+  HarnessResponseSchema,
+  HarnessStreamEventSchema,
+  HarnessMessageSchema,
+} from './schemas/harness.js';
+
 // Types
 export type {
   Task,
@@ -90,4 +106,18 @@ export type {
   ProjectVisibility,
   MemberAccess,
   ProjectAccess,
+  SenderKind,
+  HarnessRequestKind,
+  AskRequest,
+  BriefingRequest,
+  JournalRequest,
+  HarnessRequest,
+  HarnessRequestInput,
+  JournalEntry,
+  AskResponse,
+  BriefingResponse,
+  JournalResponse,
+  HarnessResponse,
+  HarnessStreamEvent,
+  HarnessMessage,
 } from './types.js';

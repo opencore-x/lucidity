@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch --preserveWatchOutput",
-    "test": "tsx --test src/notes.test.ts"
+    "test": "tsx --test \"src/**/*.test.ts\""
   },
   "keywords": [],
   "dependencies": {
