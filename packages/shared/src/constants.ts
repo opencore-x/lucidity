@@ -26,3 +26,13 @@ export const MEMBER_ACCESS_VALUES = ['view', 'edit'] as const;
 // 'edit' may mutate; 'view' is read-only.
 export const PROJECT_ACCESS_VALUES = ['owner', 'edit', 'view'] as const;
 
+// Who authored a turn. A shared primitive: the Lucid harness (M6) sets it on
+// requests/messages, and M4 DM threads reuse it so an agent reply can later post
+// into a human conversation under one `author_kind`. 'human' for now; real
+// 'agent' turns ship with interactive chat.
+export const SENDER_KINDS = ['human', 'agent'] as const;
+
+// The read capabilities Lucid exposes over the harness, satisfied identically by
+// both transports — the local daemon gateway (free) and the hosted Pro server.
+export const HARNESS_REQUEST_KINDS = ['ask', 'briefing', 'journal'] as const;
+

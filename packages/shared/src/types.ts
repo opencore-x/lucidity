@@ -4,6 +4,8 @@ import {
   PROJECT_VISIBILITY_VALUES,
   MEMBER_ACCESS_VALUES,
   PROJECT_ACCESS_VALUES,
+  SENDER_KINDS,
+  HARNESS_REQUEST_KINDS,
 } from './constants.js';
 import {
   TaskSchema,
@@ -48,6 +50,20 @@ import {
   InviteProjectMemberSchema,
 } from './schemas/projectMember.js';
 
+import {
+  AskRequestSchema,
+  BriefingRequestSchema,
+  JournalRequestSchema,
+  HarnessRequestSchema,
+  JournalEntrySchema,
+  AskResponseSchema,
+  BriefingResponseSchema,
+  JournalResponseSchema,
+  HarnessResponseSchema,
+  HarnessStreamEventSchema,
+  HarnessMessageSchema,
+} from './schemas/harness.js';
+
 export type Task = z.infer<typeof TaskSchema>;
 export type CreateTask = z.input<typeof CreateTaskSchema>;
 export type UpdateTask = z.infer<typeof UpdateTaskSchema>;
@@ -81,3 +97,23 @@ export type InviteProjectMember = z.input<typeof InviteProjectMemberSchema>;
 export type ProjectVisibility = (typeof PROJECT_VISIBILITY_VALUES)[number];
 export type MemberAccess = (typeof MEMBER_ACCESS_VALUES)[number];
 export type ProjectAccess = (typeof PROJECT_ACCESS_VALUES)[number];
+
+// Lucid harness wire contract (M6)
+export type SenderKind = (typeof SENDER_KINDS)[number];
+export type HarnessRequestKind = (typeof HARNESS_REQUEST_KINDS)[number];
+
+// Per-variant inputs use z.input so client-set defaults (senderKind) stay
+// optional at construction; the validated union (HarnessRequest) has them filled.
+export type AskRequest = z.input<typeof AskRequestSchema>;
+export type BriefingRequest = z.input<typeof BriefingRequestSchema>;
+export type JournalRequest = z.input<typeof JournalRequestSchema>;
+export type HarnessRequest = z.infer<typeof HarnessRequestSchema>;
+export type HarnessRequestInput = z.input<typeof HarnessRequestSchema>;
+
+export type JournalEntry = z.infer<typeof JournalEntrySchema>;
+export type AskResponse = z.infer<typeof AskResponseSchema>;
+export type BriefingResponse = z.infer<typeof BriefingResponseSchema>;
+export type JournalResponse = z.infer<typeof JournalResponseSchema>;
+export type HarnessResponse = z.infer<typeof HarnessResponseSchema>;
+export type HarnessStreamEvent = z.infer<typeof HarnessStreamEventSchema>;
+export type HarnessMessage = z.infer<typeof HarnessMessageSchema>;
