@@ -23,6 +23,19 @@ export type { AgentExecutor, ExecutorRunInput, ExecutorResult, ExecutorStreamEve
 export { ClaudeCodeExecutor } from './executor/claudeCode.js';
 export type { ClaudeCodeExecutorOptions } from './executor/claudeCode.js';
 
+// Harness seam — the one callable surface both transports invoke (ask/briefing/journal)
+export { createLucidHarness } from './harness/index.js';
+export type {
+  LucidHarnessDeps,
+  LucidHarness,
+  AskInput,
+  BriefingInput,
+  HarnessReply,
+  JournalQuery,
+  JournalResult,
+  JournalSource,
+} from './harness/index.js';
+
 // API client
 export { createApiClient } from './client.js';
 export type { ApiClient, ApiClientConfig } from './client.js';
