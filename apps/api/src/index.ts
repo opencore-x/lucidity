@@ -1,9 +1,11 @@
 import { serve } from '@hono/node-server';
+import { createNodeWebSocket } from '@hono/node-ws';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { clerkMiddleware } from '@hono/clerk-auth';
 import { isAppError } from './lib/errors.js';
+import { createRoomHandler, startRoomHeartbeat } from './room/index.js';
 
 // Router
 import taskRouter from './routes/tasks.js';
@@ -18,6 +20,7 @@ import { taskQueryRouter, searchRouter } from './routes/taskQueries.js';
 import publicRouter from './routes/public.js';
 
 const app = new Hono();
+const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
 app.use('*', logger());
 app.use('*', cors());
@@ -33,6 +36,10 @@ app.onError((err, c) => {
 });
 
 app.get('/', (c) => c.json({ status: 'ok' }));
+
+// Lucid harness room (#255): one WebSocket both the phone and the daemon dial out
+// to; bridges them by userId, relays bytes opaquely (E2E). Auth at the handshake.
+app.get('/api/room', createRoomHandler(upgradeWebSocket));
 
 // Unauthenticated read-only access to public projects (anyone with the link).
 app.route('/api/public', publicRouter);
@@ -50,7 +57,7 @@ app.route('/api', searchRouter);
 
 const port = Number(process.env.PORT) || 3001;
 
-serve(
+const server = serve(
   {
     fetch: app.fetch,
     port,
@@ -59,3 +66,8 @@ serve(
     console.log(`Server running on port ${info.port}`);
   },
 );
+
+// Attach the WebSocket upgrade handler to the same server, then start the
+// room's heartbeat sweep (reaps half-open phone/daemon sockets).
+injectWebSocket(server);
+startRoomHeartbeat();
