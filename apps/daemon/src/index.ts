@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { ClaudeCodeExecutor } from '@lucidity/runtime';
+import { join } from 'node:path';
+import { ClaudeCodeExecutor, createLucidHarness } from '@lucidity/runtime';
 import { loadConfig } from './config.js';
 import { LaneQueue } from './queue.js';
 import { Scheduler } from './scheduler.js';
@@ -11,6 +12,9 @@ import { installAgent, uninstallAgent, agentStatus } from './install.js';
 import { createChatServer } from './chat/server.js';
 import { ensureChatToken } from './chat/token.js';
 import { runChatCli } from './chat/client.js';
+import { createVault } from './vault.js';
+import { startRoomClient } from './room/client.js';
+import { createSessionJournalSource } from './room/journalSource.js';
 
 const KNOWN_JOBS = ['briefing', 'weekly-review'] as const;
 
@@ -119,18 +123,32 @@ async function main(): Promise<void> {
   const chatServer = createChatServer({ config, executor, token: ensureChatToken(), queue });
   chatServer.listen(config.chatPort, '127.0.0.1');
 
+  // Room client (free path): dial the hosted relay so the phone can reach Lucid,
+  // serving ask/briefing/journal through the shared harness. Best-effort — it
+  // reconnects on its own and never takes the daemon down.
+  const roomController = new AbortController();
+  const vault = createVault(config.vaultPath);
+  const harness = createLucidHarness({
+    executor,
+    persona: vault.readPersona(),
+    journalSource: createSessionJournalSource(join(config.vaultPath, 'sessions')),
+  });
+  const roomClient = startRoomClient({ config, harness, vault, signal: roomController.signal });
+
   const tz = config.timezone ? ` ${config.timezone}` : '';
   const next = briefingJob.nextRun();
   const weekly = config.weeklyReview ? `; weekly review ${config.weeklyReviewTime} (day ${config.weeklyReviewDay})` : '';
   console.error(
     `[daemon] Lucid daemon started. Briefing ${config.briefingTime}${tz} → ${deliverer.name}${weekly}. ` +
-      `Next briefing: ${next ? next.toISOString() : 'unknown'}. Chat on 127.0.0.1:${config.chatPort}.`,
+      `Next briefing: ${next ? next.toISOString() : 'unknown'}. Chat on 127.0.0.1:${config.chatPort}. Room dialing ${config.apiUrl}.`,
   );
 
   const shutdown = () => {
     console.error('[daemon] shutting down.');
     scheduler.stop();
     chatServer.close();
+    roomClient.stop();
+    roomController.abort();
     process.exit(0);
   };
   process.on('SIGINT', shutdown);
